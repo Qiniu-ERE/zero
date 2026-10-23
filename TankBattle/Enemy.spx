@@ -61,6 +61,7 @@ func takeHit() {
 	broadcastAndWait "pbHit"
 	hp--
 	if hp > 0 {
+		sfx "armor"
 		setGraphicEffect ColorEffect, float64((3-hp)*40)
 		return
 	}
@@ -71,6 +72,7 @@ func takeHit() {
 	} else if kind == 2 {
 		points = 400
 	}
+	sfx "explode"
 	enemyKilled points
 	Boom.explodeAt xpos, ypos, 1.2
 	destroy

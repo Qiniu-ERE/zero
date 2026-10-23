@@ -33,7 +33,7 @@ onCloned => {
 			broadcast "playerHit"
 			vanish
 		}
-		if bulletHit(xpos, ypos, face) {
+		if bulletHit(xpos, ypos, face, false) {
 			vanish
 		}
 	}

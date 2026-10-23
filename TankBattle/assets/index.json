@@ -6,6 +6,10 @@
     }
   ],
   "backdropIndex": 0,
+  "fontPreferences": [
+    "basic-chinese",
+    "default"
+  ],
   "zorder": [
     "Brick",
     "Steel",

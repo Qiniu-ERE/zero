@@ -5,6 +5,12 @@
       "path": "brick.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "cracked",
+      "path": "cracked.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,

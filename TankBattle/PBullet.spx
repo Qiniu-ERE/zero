@@ -37,7 +37,7 @@ onCloned => {
 			broadcastAndWait "clash"
 			vanish
 		}
-		if bulletHit(xpos, ypos, face) {
+		if bulletHit(xpos, ypos, face, true) {
 			vanish
 		}
 	}

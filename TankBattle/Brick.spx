@@ -12,12 +12,16 @@ func build(x, y float64, i int) {
 
 onCloned => {
 	alive = true
+	setCostume "brick"
 	show
 }
 
 onMsg (msg, data) => {
 	if !alive {
 		return
+	}
+	if msg == "brickCracked" && data == idx {
+		setCostume "cracked"
 	}
 	if msg == "clear" || (msg == "brickBroken" && data == idx) {
 		alive = false

@@ -2,11 +2,28 @@ var (
 	face   int     // 朝向：0 上，90 右，180 下，-90 左
 	shield float64 // 出生保护剩余时间（秒）
 	dead   bool
+	engine int // 引擎声：0 无声，1 怠速，2 行驶
 )
+
+// 切换引擎声
+func setEngine(s int) {
+	if s == engine {
+		return
+	}
+	stopPlaying "idle"
+	stopPlaying "move"
+	engine = s
+	if s == 1 {
+		sfxLoop "idle"
+	} else if s == 2 {
+		sfxLoop "move"
+	}
+}
 
 // 在基地左边出生
 func respawn() {
 	dead = false
+	engine = 0 // 重新开始时声音已全部停止
 	face = 0
 	setHeading 0
 	setXYpos cellX(4), cellY(12)
@@ -45,6 +62,7 @@ func shoot() {
 		return
 	}
 	PBullet.fire xpos, ypos, face
+	sfx "fire"
 }
 
 onKey KeySpace, => {
@@ -62,6 +80,8 @@ onMsg "playerHit", => {
 	}
 	dead = true
 	lives--
+	setEngine 0
+	sfx "playerdie"
 	Boom.explodeAt xpos, ypos, 1.2
 	hide
 	if lives <= 0 {
@@ -78,6 +98,7 @@ onStart => {
 	for {
 		waitNextFrame
 		if gameOver || dead {
+			setEngine 0
 			continue
 		}
 		dt := deltaTime
@@ -104,7 +125,10 @@ onStart => {
 			d = 90
 		}
 		if d != -1 {
+			setEngine 2
 			drive d, dt
+		} else {
+			setEngine 1
 		}
 	}
 }

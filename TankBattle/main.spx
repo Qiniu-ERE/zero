@@ -1,7 +1,7 @@
 import "math"
 
 var (
-	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，9 基地
+	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，9 基地
 	score        int   // 得分
 	lives        int   // 玩家剩余生命
 	enemiesLeft  int   // 还需要消灭的敌人数量
@@ -10,6 +10,7 @@ var (
 	killed       int   // 已消灭的敌人数量
 	pbCount      int   // 场上玩家子弹数量（经典玩法：同时只能有 1 发）
 	gameOver     bool  // 游戏是否结束
+	won          bool  // 是否胜利
 )
 
 const (
@@ -61,7 +62,7 @@ func cellIndex(x, y float64) int {
 	return r*cols + c
 }
 
-// 点 (x, y) 处是什么：0 空地，1 砖墙，2 钢墙，9 基地，-1 出界
+// 点 (x, y) 处是什么：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，9 基地，-1 出界
 func cellAt(x, y float64) int {
 	i := cellIndex(x, y)
 	if i < 0 {
@@ -107,23 +108,45 @@ func dirDY(d int) float64 {
 	return 0
 }
 
-// 打碎第 i 格的砖墙
+// 播放音效。统一由舞台来播放，这样子弹消失了声音也不会被打断
+func sfx(name string) {
+	play name
+}
+
+// 循环播放（用于引擎声）
+func sfxLoop(name string) {
+	play name, true
+}
+
+// 砖墙要打两下：第一下裂开，第二下才碎（和原版一样，基地不会太快被打穿）
 func breakBrick(i int) {
-	grid[i] = 0
-	broadcast "brickBroken", i
+	if grid[i] == 1 {
+		grid[i] = 3
+		broadcast "brickCracked", i
+	} else {
+		grid[i] = 0
+		broadcast "brickBroken", i
+	}
 }
 
 // 子弹的某个检测点碰到东西了吗？碰到砖墙会把砖打碎
-func hitPoint(x, y float64) bool {
+// byPlayer：是不是玩家的子弹（和原版一样，只有玩家的子弹打墙才有声音）
+func hitPoint(x, y float64, byPlayer bool) bool {
 	i := cellIndex(x, y)
 	if i < 0 {
 		return true
 	}
 	switch grid[i] {
-	case 1:
+	case 1, 3:
 		breakBrick(i)
+		if byPlayer {
+			sfx "brick"
+		}
 		return true
 	case 2:
+		if byPlayer {
+			sfx "steel"
+		}
 		return true
 	case 9:
 		baseDestroyed()
@@ -134,18 +157,20 @@ func hitPoint(x, y float64) bool {
 
 // 在 (x, y) 处朝 d 方向飞行的子弹是否撞到了墙、基地或边界
 // 弹头左右各有一个检测点，所以一发子弹可以同时打掉并排的两块砖
-func bulletHit(x, y float64, d int) bool {
+func bulletHit(x, y float64, d int, byPlayer bool) bool {
 	fx := x + dirDX(d)*3
 	fy := y + dirDY(d)*3
 	px := dirDY(d) * 6
 	py := dirDX(d) * 6
-	a := hitPoint(fx+px, fy+py)
-	b := hitPoint(fx-px, fy-py)
+	a := hitPoint(fx+px, fy+py, byPlayer)
+	b := hitPoint(fx-px, fy-py, byPlayer)
 	return a || b
 }
 
 func endGame(win bool) {
 	gameOver = true
+	won = win
+	broadcast "gameEnd"
 	if win {
 		Tip.say "胜利！你消灭了全部敌人！按 R 再玩一次"
 	} else {
@@ -158,6 +183,7 @@ func baseDestroyed() {
 		return
 	}
 	Base.setCostume "broken"
+	sfx "basefall"
 	Boom.explodeAt Base.xpos, Base.ypos, 1.5
 	endGame false
 }
@@ -212,6 +238,7 @@ func buildMap() {
 func startGame() {
 	gameOver = true // 先暂停，等地图搭好再开始
 	broadcastAndWait "clear"
+	stopAllSounds
 	score = 0
 	lives = 3
 	spawned = 0
@@ -222,6 +249,7 @@ func startGame() {
 	Base.setCostume "eagle"
 	buildMap
 	Player.respawn
+	sfx "start"
 	Tip.say "方向键 / WASD 移动，空格键开火，保护好基地！", 3
 	gameOver = false
 }
@@ -229,6 +257,19 @@ func startGame() {
 onKey KeyR, => {
 	if gameOver {
 		startGame
+	}
+}
+
+// 游戏结束后，等爆炸声播完再放胜利 / 失败音乐
+onMsg "gameEnd", => {
+	wait 1.2
+	if !gameOver {
+		return // 已经按 R 重新开始了
+	}
+	if won {
+		sfx "win"
+	} else {
+		sfx "gameover"
 	}
 }
 
