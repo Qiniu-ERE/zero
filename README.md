@@ -1,4 +1,20 @@
-# 坦克大战 · XBuilder 复刻版
+<div align="center">
+
+<img src="docs/logo.svg" width="96" alt="坦克大战 logo">
+
+<h1>坦克大战 · XBuilder 复刻版</h1>
+
+<hr>
+
+[x.qiniu.com](https://x.qiniu.com) | [下载 .xbp](TankBattle.xbp) | [快速开始](#快速开始) | [玩法](#玩法) | [教学要点](#代码里的教学要点) | [动手改编](#动手改编) | [XGo](https://xgo.dev) | [spx 引擎](https://github.com/goplus/spx)
+
+[![1024 HACKATHON](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
+[![Made with XBuilder](https://img.shields.io/badge/made_with-XBuilder-b4521e)](https://x.qiniu.com)
+[![Language XGo](https://img.shields.io/badge/language-XGo-0a7bbb)](https://xgo.dev)
+[![Engine spx](https://img.shields.io/badge/engine-spx_4.0-555)](https://github.com/goplus/spx)
+[![Battle City 1985](https://img.shields.io/badge/remake_of-Battle_City_1985-red)](#素材与版权说明)
+
+</div>
 
 > 🏆 **第五届 1024 HACKATHON 参赛项目** · 这是一个 Builder 的时代 —— AI 放大执行，我们撬动价值
 
