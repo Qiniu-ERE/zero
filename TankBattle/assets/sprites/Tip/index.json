@@ -1,0 +1,18 @@
+{
+  "costumes": [
+    {
+      "name": "tip",
+      "path": "tip.svg",
+      "x": 2,
+      "y": 2
+    }
+  ],
+  "costumeIndex": 0,
+  "heading": 90,
+  "isDraggable": false,
+  "rotationStyle": "normal",
+  "size": 1,
+  "visible": true,
+  "x": -60,
+  "y": 10
+}

@@ -1,0 +1,24 @@
+{
+  "costumes": [
+    {
+      "name": "eagle",
+      "path": "eagle.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "broken",
+      "path": "broken.svg",
+      "x": 12,
+      "y": 12
+    }
+  ],
+  "costumeIndex": 0,
+  "heading": 90,
+  "isDraggable": false,
+  "rotationStyle": "normal",
+  "size": 1,
+  "visible": true,
+  "x": -60,
+  "y": -132
+}

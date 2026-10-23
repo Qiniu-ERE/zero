@@ -1,0 +1,54 @@
+var (
+	face  int
+	alive bool // 只有克隆体才是 true
+)
+
+// 从敌人坦克 (x, y) 处朝 d 方向发射一发子弹
+func fire(x, y float64, d int) {
+	face = d
+	setXYpos x+dirDX(d)*14, y+dirDY(d)*14
+	clone
+}
+
+func vanish() {
+	alive = false
+	Boom.explodeAt xpos, ypos, 0.4
+	destroy
+}
+
+onCloned => {
+	alive = true
+	show
+	for alive {
+		waitNextFrame
+		if gameOver {
+			continue
+		}
+		dt := deltaTime
+		if dt > 0.05 {
+			dt = 0.05
+		}
+		changeXYpos dirDX(face)*180*dt, dirDY(face)*180*dt
+		if touching("Player") {
+			broadcast "playerHit"
+			vanish
+		}
+		if bulletHit(xpos, ypos, face) {
+			vanish
+		}
+	}
+}
+
+// 被玩家子弹抵消
+onMsg "clash", => {
+	if alive && touching("PBullet") {
+		vanish
+	}
+}
+
+onMsg "clear", => {
+	if alive {
+		alive = false
+		destroy
+	}
+}

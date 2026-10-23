@@ -1,0 +1,31 @@
+var (
+	alive bool // 只有克隆体才是 true
+)
+
+// 在 (x, y) 处播放一个大小为 s 的爆炸
+func explodeAt(x, y, s float64) {
+	setXYpos x, y
+	setSize s
+	clone
+}
+
+onCloned => {
+	alive = true
+	setCostume "b1"
+	setLayer Front
+	show
+	wait 0.07
+	setCostume "b2"
+	wait 0.07
+	setCostume "b3"
+	wait 0.1
+	alive = false
+	destroy
+}
+
+onMsg "clear", => {
+	if alive {
+		alive = false
+		destroy
+	}
+}

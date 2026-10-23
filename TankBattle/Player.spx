@@ -1,0 +1,110 @@
+var (
+	face   int     // 朝向：0 上，90 右，180 下，-90 左
+	shield float64 // 出生保护剩余时间（秒）
+	dead   bool
+)
+
+// 在基地左边出生
+func respawn() {
+	dead = false
+	face = 0
+	setHeading 0
+	setXYpos cellX(4), cellY(12)
+	shield = 3
+	show
+}
+
+// 转向，并对齐到半格
+func setFace(d int) {
+	face = d
+	setHeading float64(d)
+	nx := snapX(xpos)
+	ny := snapY(ypos)
+	if !tankBlocked(nx, ny) {
+		setXYpos nx, ny
+	}
+}
+
+// 朝 d 方向开动，撞到墙或敌人就退回来
+func drive(d int, dt float64) {
+	if d != face {
+		setFace d
+	}
+	wasTouching := touching("Enemy")
+	dx := dirDX(face) * 60 * dt
+	dy := dirDY(face) * 60 * dt
+	changeXYpos dx, dy
+	if tankBlocked(xpos, ypos) || (!wasTouching && touching("Enemy")) {
+		changeXYpos -dx, -dy
+	}
+}
+
+// 开火：场上同时只能有一发玩家子弹
+func shoot() {
+	if gameOver || dead || pbCount > 0 {
+		return
+	}
+	PBullet.fire xpos, ypos, face
+}
+
+onKey KeySpace, => {
+	shoot
+}
+
+onKey KeyJ, => {
+	shoot
+}
+
+// 被敌人子弹击中
+onMsg "playerHit", => {
+	if dead || gameOver || shield > 0 {
+		return
+	}
+	dead = true
+	lives--
+	Boom.explodeAt xpos, ypos, 1.2
+	hide
+	if lives <= 0 {
+		endGame false
+		return
+	}
+	wait 1.5
+	if !gameOver {
+		respawn
+	}
+}
+
+onStart => {
+	for {
+		waitNextFrame
+		if gameOver || dead {
+			continue
+		}
+		dt := deltaTime
+		if dt > 0.05 {
+			dt = 0.05
+		}
+		// 出生保护：闪烁
+		if shield > 0 {
+			shield -= dt
+			if shield > 0 && int(shield*10)%2 == 0 {
+				setGraphicEffect GhostEffect, 60
+			} else {
+				clearGraphicEffects
+			}
+		}
+		d := -1
+		if keyPressed(KeyUp) || keyPressed(KeyW) {
+			d = 0
+		} else if keyPressed(KeyDown) || keyPressed(KeyS) {
+			d = 180
+		} else if keyPressed(KeyLeft) || keyPressed(KeyA) {
+			d = -90
+		} else if keyPressed(KeyRight) || keyPressed(KeyD) {
+			d = 90
+		}
+		if d != -1 {
+			drive d, dt
+		}
+	}
+}

@@ -1,0 +1,243 @@
+import "math"
+
+var (
+	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，9 基地
+	score        int   // 得分
+	lives        int   // 玩家剩余生命
+	enemiesLeft  int   // 还需要消灭的敌人数量
+	spawned      int   // 已经出场的敌人数量
+	enemiesAlive int   // 场上活着的敌人数量
+	killed       int   // 已消灭的敌人数量
+	pbCount      int   // 场上玩家子弹数量（经典玩法：同时只能有 1 发）
+	gameOver     bool  // 游戏是否结束
+)
+
+const (
+	cols       = 13     // 地图列数
+	rows       = 13     // 地图行数
+	fieldLeft  = -216.0 // 战场左边界
+	fieldTop   = 156.0  // 战场上边界
+	totalEnemy = 20     // 每关敌人总数
+	maxAlive   = 4      // 场上最多同时存在的敌人数量
+)
+
+// 关卡地图（13 x 13，每格 24 像素）
+// . 空地   B 砖墙（可打碎）   S 钢墙（打不碎）   E 基地（老鹰）
+func levelMap() []string {
+	return []string{
+		".............",
+		".B.B.B.B.B.B.",
+		".B.B.B.B.B.B.",
+		".B.B.BSB.B.B.",
+		".B.B.....B.B.",
+		".....B.B.....",
+		"SS.BB...BB.SS",
+		".....B.B.....",
+		".B.B.BBB.B.B.",
+		".B.B.B.B.B.B.",
+		".B.B.....B.B.",
+		".B.B.BBB.B.B.",
+		".....BEB.....",
+	}
+}
+
+// 第 c 列格子中心的 x 坐标
+func cellX(c int) float64 {
+	return fieldLeft + 12 + float64(c*24)
+}
+
+// 第 r 行格子中心的 y 坐标
+func cellY(r int) float64 {
+	return fieldTop - 12 - float64(r*24)
+}
+
+// 点 (x, y) 所在格子的编号，出界返回 -1
+func cellIndex(x, y float64) int {
+	c := int(math.Floor((x - fieldLeft) / 24))
+	r := int(math.Floor((fieldTop - y) / 24))
+	if c < 0 || c >= cols || r < 0 || r >= rows {
+		return -1
+	}
+	return r*cols + c
+}
+
+// 点 (x, y) 处是什么：0 空地，1 砖墙，2 钢墙，9 基地，-1 出界
+func cellAt(x, y float64) int {
+	i := cellIndex(x, y)
+	if i < 0 {
+		return -1
+	}
+	return grid[i]
+}
+
+// 坦克（边长约 22 像素）中心在 (x, y) 时，是否会压到墙、基地或出界
+func tankBlocked(x, y float64) bool {
+	h := 11.0
+	return cellAt(x-h, y-h) != 0 || cellAt(x+h, y-h) != 0 || cellAt(x-h, y+h) != 0 || cellAt(x+h, y+h) != 0
+}
+
+// 转弯时把坐标对齐到半格（12 像素），这样坦克才能顺利钻进 1 格宽的路
+func snapX(x float64) float64 {
+	return fieldLeft + math.Round((x-fieldLeft)/12)*12
+}
+
+func snapY(y float64) float64 {
+	return fieldTop - math.Round((fieldTop-y)/12)*12
+}
+
+// 朝向 d（0 上，90 右，180 下，-90 左）对应的 x 方向
+func dirDX(d int) float64 {
+	if d == 90 {
+		return 1
+	}
+	if d == -90 {
+		return -1
+	}
+	return 0
+}
+
+// 朝向 d 对应的 y 方向
+func dirDY(d int) float64 {
+	if d == 0 {
+		return 1
+	}
+	if d == 180 {
+		return -1
+	}
+	return 0
+}
+
+// 打碎第 i 格的砖墙
+func breakBrick(i int) {
+	grid[i] = 0
+	broadcast "brickBroken", i
+}
+
+// 子弹的某个检测点碰到东西了吗？碰到砖墙会把砖打碎
+func hitPoint(x, y float64) bool {
+	i := cellIndex(x, y)
+	if i < 0 {
+		return true
+	}
+	switch grid[i] {
+	case 1:
+		breakBrick(i)
+		return true
+	case 2:
+		return true
+	case 9:
+		baseDestroyed()
+		return true
+	}
+	return false
+}
+
+// 在 (x, y) 处朝 d 方向飞行的子弹是否撞到了墙、基地或边界
+// 弹头左右各有一个检测点，所以一发子弹可以同时打掉并排的两块砖
+func bulletHit(x, y float64, d int) bool {
+	fx := x + dirDX(d)*3
+	fy := y + dirDY(d)*3
+	px := dirDY(d) * 6
+	py := dirDX(d) * 6
+	a := hitPoint(fx+px, fy+py)
+	b := hitPoint(fx-px, fy-py)
+	return a || b
+}
+
+func endGame(win bool) {
+	gameOver = true
+	if win {
+		Tip.say "胜利！你消灭了全部敌人！按 R 再玩一次"
+	} else {
+		Tip.say "游戏结束！按 R 重新开始"
+	}
+}
+
+func baseDestroyed() {
+	if gameOver {
+		return
+	}
+	Base.setCostume "broken"
+	Boom.explodeAt Base.xpos, Base.ypos, 1.5
+	endGame false
+}
+
+func enemyKilled(points int) {
+	score += points
+	killed++
+	enemiesAlive--
+	enemiesLeft = totalEnemy - killed
+	if killed >= totalEnemy {
+		endGame true
+	}
+}
+
+// 轮流在左上、中上、右上三个出生点放出敌人
+func spawnEnemy() {
+	c := (spawned % 3) * 6
+	kind := 0 // 0 普通坦克，1 快速坦克，2 重型坦克
+	n := rand(1, 10)
+	if n <= 2 {
+		kind = 2
+	} else if n <= 5 {
+		kind = 1
+	}
+	Enemy.spawn cellX(c), cellY(0), kind
+	spawned++
+	enemiesAlive++
+}
+
+// 根据 levelMap 生成砖墙、钢墙和基地
+func buildMap() {
+	grid = make([]int, rows*cols)
+	for r := 0; r < rows; r++ {
+		line := levelMap()[r]
+		for c := 0; c < cols; c++ {
+			i := r*cols + c
+			switch line[c] {
+			case 'B':
+				grid[i] = 1
+				Brick.build cellX(c), cellY(r), i
+			case 'S':
+				grid[i] = 2
+				Steel.build cellX(c), cellY(r)
+			case 'E':
+				grid[i] = 9
+				Base.setXYpos cellX(c), cellY(r)
+			}
+		}
+	}
+}
+
+func startGame() {
+	gameOver = true // 先暂停，等地图搭好再开始
+	broadcastAndWait "clear"
+	score = 0
+	lives = 3
+	spawned = 0
+	enemiesAlive = 0
+	killed = 0
+	pbCount = 0
+	enemiesLeft = totalEnemy
+	Base.setCostume "eagle"
+	buildMap
+	Player.respawn
+	Tip.say "方向键 / WASD 移动，空格键开火，保护好基地！", 3
+	gameOver = false
+}
+
+onKey KeyR, => {
+	if gameOver {
+		startGame
+	}
+}
+
+onStart => {
+	startGame
+	for {
+		wait 2
+		if !gameOver && spawned < totalEnemy && enemiesAlive < maxAlive {
+			spawnEnemy
+		}
+	}
+}

@@ -1,0 +1,129 @@
+var (
+	kind   int     // 0 普通，1 快速，2 重型
+	hp     int     // 还能挨几发子弹
+	spd    float64 // 移动速度（像素/秒）
+	face   int     // 朝向：0 上，90 右，180 下，-90 左
+	fireCD float64 // 距离下次开火的时间
+	turnCD float64 // 距离下次随机转向的时间
+	alive  bool    // 只有克隆体才是 true
+)
+
+// 在 (x, y) 放出一辆 k 类型的敌人（克隆）
+func spawn(x, y float64, k int) {
+	kind = k
+	setXYpos x, y
+	clone
+}
+
+// 转向，并对齐到半格
+func setFace(d int) {
+	face = d
+	setHeading float64(d)
+	nx := snapX(xpos)
+	ny := snapY(ypos)
+	if !tankBlocked(nx, ny) {
+		setXYpos nx, ny
+	}
+}
+
+// 随机选一个方向，更喜欢往下（基地方向）走
+func pickFace() {
+	n := rand(1, 10)
+	if n <= 4 {
+		setFace 180
+	} else if n <= 6 {
+		setFace -90
+	} else if n <= 8 {
+		setFace 90
+	} else {
+		setFace 0
+	}
+}
+
+func touchingTank() bool {
+	return touching("Enemy") || touching("Player")
+}
+
+// 往前开，撞到东西就退回来并换个方向
+func drive(dt float64) {
+	wasTouching := touchingTank()
+	dx := dirDX(face) * spd * dt
+	dy := dirDY(face) * spd * dt
+	changeXYpos dx, dy
+	if tankBlocked(xpos, ypos) || (!wasTouching && touchingTank()) {
+		changeXYpos -dx, -dy
+		pickFace
+	}
+}
+
+// 被玩家子弹打中
+func takeHit() {
+	broadcastAndWait "pbHit"
+	hp--
+	if hp > 0 {
+		setGraphicEffect ColorEffect, float64((3-hp)*40)
+		return
+	}
+	alive = false
+	points := 100
+	if kind == 1 {
+		points = 200
+	} else if kind == 2 {
+		points = 400
+	}
+	enemyKilled points
+	Boom.explodeAt xpos, ypos, 1.2
+	destroy
+}
+
+onCloned => {
+	alive = true
+	if kind == 1 {
+		setCostume "fast"
+		hp = 1
+		spd = 75
+	} else if kind == 2 {
+		setCostume "heavy"
+		hp = 3
+		spd = 30
+	} else {
+		setCostume "basic"
+		hp = 1
+		spd = 40
+	}
+	setFace 180
+	fireCD = rand(0.5, 1.5)
+	turnCD = rand(1.2, 3.2)
+	show
+	for alive {
+		waitNextFrame
+		if gameOver {
+			continue
+		}
+		dt := deltaTime
+		if dt > 0.05 {
+			dt = 0.05
+		}
+		drive dt
+		turnCD -= dt
+		if turnCD <= 0 {
+			pickFace
+			turnCD = rand(1.2, 3.2)
+		}
+		fireCD -= dt
+		if fireCD <= 0 {
+			EBullet.fire xpos, ypos, face
+			fireCD = rand(1.0, 2.5)
+		}
+		if touching("PBullet") {
+			takeHit
+		}
+	}
+}
+
+onMsg "clear", => {
+	if alive {
+		alive = false
+		destroy
+	}
+}

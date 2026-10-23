@@ -1,0 +1,18 @@
+{
+  "costumes": [
+    {
+      "name": "player",
+      "path": "player.svg",
+      "x": 12,
+      "y": 12
+    }
+  ],
+  "costumeIndex": 0,
+  "heading": 0,
+  "isDraggable": false,
+  "rotationStyle": "normal",
+  "size": 1,
+  "visible": false,
+  "x": -120,
+  "y": -132
+}

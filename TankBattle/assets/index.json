@@ -1,0 +1,71 @@
+{
+  "backdrops": [
+    {
+      "name": "field",
+      "path": "field.svg"
+    }
+  ],
+  "backdropIndex": 0,
+  "zorder": [
+    "Brick",
+    "Steel",
+    "Base",
+    "Enemy",
+    "Player",
+    "PBullet",
+    "EBullet",
+    "Boom",
+    "Tip",
+    {
+      "type": "monitor",
+      "name": "scoreMonitor",
+      "size": 1.0,
+      "target": "",
+      "val": "getVar:score",
+      "color": 15629590,
+      "label": "得分",
+      "mode": 1,
+      "style": "scratch",
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "x": 122,
+      "y": 150,
+      "isDiscrete": true,
+      "visible": true
+    },
+    {
+      "type": "monitor",
+      "name": "livesMonitor",
+      "size": 1.0,
+      "target": "",
+      "val": "getVar:lives",
+      "color": 4504882,
+      "label": "生命",
+      "mode": 1,
+      "style": "scratch",
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "x": 122,
+      "y": 120,
+      "isDiscrete": true,
+      "visible": true
+    },
+    {
+      "type": "monitor",
+      "name": "enemyMonitor",
+      "size": 1.0,
+      "target": "",
+      "val": "getVar:enemiesLeft",
+      "color": 7829367,
+      "label": "敌人",
+      "mode": 1,
+      "style": "scratch",
+      "sliderMin": 0,
+      "sliderMax": 100,
+      "x": 122,
+      "y": 90,
+      "isDiscrete": true,
+      "visible": true
+    }
+  ]
+}

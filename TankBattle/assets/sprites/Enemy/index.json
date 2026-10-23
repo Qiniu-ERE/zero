@@ -1,0 +1,30 @@
+{
+  "costumes": [
+    {
+      "name": "basic",
+      "path": "basic.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "fast",
+      "path": "fast.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "heavy",
+      "path": "heavy.svg",
+      "x": 12,
+      "y": 12
+    }
+  ],
+  "costumeIndex": 0,
+  "heading": 180,
+  "isDraggable": false,
+  "rotationStyle": "normal",
+  "size": 1,
+  "visible": false,
+  "x": -204,
+  "y": 144
+}
