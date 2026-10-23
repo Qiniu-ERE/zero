@@ -10,7 +10,14 @@ func build(x, y float64) {
 
 onCloned => {
 	alive = true
+	setCostume look("steel")
 	show
+}
+
+onMsg "themeChanged", => {
+	if alive {
+		setCostume look("steel")
+	}
 }
 
 onMsg "clear", => {

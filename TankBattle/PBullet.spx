@@ -21,6 +21,7 @@ func vanish() {
 
 onCloned => {
 	alive = true
+	setCostume look("bullet")
 	show
 	for alive {
 		waitNextFrame

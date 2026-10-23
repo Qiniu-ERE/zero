@@ -11,6 +11,18 @@
       "path": "broken.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "eagle_m",
+      "path": "eagle_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "broken_m",
+      "path": "broken_m.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,

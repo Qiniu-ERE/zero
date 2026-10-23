@@ -17,6 +17,24 @@
       "path": "b3.svg",
       "x": 20,
       "y": 20
+    },
+    {
+      "name": "b1_m",
+      "path": "b1_m.svg",
+      "x": 20,
+      "y": 20
+    },
+    {
+      "name": "b2_m",
+      "path": "b2_m.svg",
+      "x": 20,
+      "y": 20
+    },
+    {
+      "name": "b3_m",
+      "path": "b3_m.svg",
+      "x": 20,
+      "y": 20
     }
   ],
   "costumeIndex": 0,

@@ -5,6 +5,12 @@
       "path": "steel.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "steel_m",
+      "path": "steel_m.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,

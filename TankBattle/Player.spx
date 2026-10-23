@@ -12,6 +12,8 @@ func setEngine(s int) {
 	}
 	stopPlaying "idle"
 	stopPlaying "move"
+	stopPlaying "idle_m"
+	stopPlaying "move_m"
 	engine = s
 	if s == 1 {
 		sfxLoop "idle"
@@ -24,6 +26,7 @@ func setEngine(s int) {
 func respawn() {
 	dead = false
 	engine = 0 // 重新开始时声音已全部停止
+	setCostume look("player")
 	face = 0
 	setHeading 0
 	setXYpos cellX(4), cellY(12)
@@ -71,6 +74,14 @@ onKey KeySpace, => {
 
 onKey KeyJ, => {
 	shoot
+}
+
+// 切换画风：换造型，并让引擎声换成对应风格
+onMsg "themeChanged", => {
+	setCostume look("player")
+	s := engine
+	setEngine 0
+	setEngine s
 }
 
 // 被敌人子弹击中

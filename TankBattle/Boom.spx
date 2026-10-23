@@ -7,17 +7,20 @@ func explodeAt(x, y, s float64) {
 	setXYpos x, y
 	setSize s
 	clone
+	if s >= 1 {
+		shake s * 3
+	}
 }
 
 onCloned => {
 	alive = true
-	setCostume "b1"
+	setCostume look("b1")
 	setLayer Front
 	show
 	wait 0.07
-	setCostume "b2"
+	setCostume look("b2")
 	wait 0.07
-	setCostume "b3"
+	setCostume look("b3")
 	wait 0.1
 	alive = false
 	destroy

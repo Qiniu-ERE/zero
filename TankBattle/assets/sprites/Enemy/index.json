@@ -17,6 +17,24 @@
       "path": "heavy.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "basic_m",
+      "path": "basic_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "fast_m",
+      "path": "fast_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "heavy_m",
+      "path": "heavy_m.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,

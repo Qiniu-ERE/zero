@@ -3,6 +3,10 @@
     {
       "name": "field",
       "path": "field.svg"
+    },
+    {
+      "name": "field_m",
+      "path": "field_m.svg"
     }
   ],
   "backdropIndex": 0,

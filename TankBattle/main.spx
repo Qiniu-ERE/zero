@@ -11,6 +11,10 @@ var (
 	pbCount      int   // 场上玩家子弹数量（经典玩法：同时只能有 1 发）
 	gameOver     bool  // 游戏是否结束
 	won          bool  // 是否胜利
+	theme        int   // 画风：0 经典像素，1 现代 3D 风格（按 T 切换）
+	baseDown     bool  // 基地是否已被摧毁
+	camBusy      bool  // 镜头特写进行中（此时不震屏）
+	shakePower   float64
 )
 
 const (
@@ -108,14 +112,50 @@ func dirDY(d int) float64 {
 	return 0
 }
 
+// 根据当前画风取造型 / 音效的名字：经典用 "basic"，现代用 "basic_m"
+func look(name string) string {
+	if theme == 1 {
+		return name + "_m"
+	}
+	return name
+}
+
 // 播放音效。统一由舞台来播放，这样子弹消失了声音也不会被打断
 func sfx(name string) {
-	play name
+	play look(name)
 }
 
 // 循环播放（用于引擎声）
 func sfxLoop(name string) {
-	play name, true
+	play look(name), true
+}
+
+func baseLook() string {
+	if baseDown {
+		return look("broken")
+	}
+	return look("eagle")
+}
+
+// 切换画风：舞台换背景，其他精灵收到 "themeChanged" 后各自换造型
+func switchTheme() {
+	theme = 1 - theme
+	setBackdrop look("field")
+	Base.setCostume baseLook()
+	broadcast "themeChanged"
+	if theme == 1 {
+		Tip.say "现代画风", 1
+	} else {
+		Tip.say "经典画风", 1
+	}
+}
+
+// 现代画风下的震屏（由爆炸触发）
+func shake(power float64) {
+	if theme == 1 && !camBusy {
+		shakePower = power
+		broadcast "shake"
+	}
 }
 
 // 砖墙要打两下：第一下裂开，第二下才碎（和原版一样，基地不会太快被打穿）
@@ -182,8 +222,12 @@ func baseDestroyed() {
 	if gameOver {
 		return
 	}
-	Base.setCostume "broken"
+	baseDown = true
+	Base.setCostume baseLook()
 	sfx "basefall"
+	if theme == 1 {
+		broadcast "baseCam"
+	}
 	Boom.explodeAt Base.xpos, Base.ypos, 1.5
 	endGame false
 }
@@ -246,12 +290,42 @@ func startGame() {
 	killed = 0
 	pbCount = 0
 	enemiesLeft = totalEnemy
-	Base.setCostume "eagle"
+	baseDown = false
+	Base.setCostume baseLook()
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
 	buildMap
 	Player.respawn
 	sfx "start"
-	Tip.say "方向键 / WASD 移动，空格键开火，保护好基地！", 3
+	Tip.say "方向键 / WASD 移动，空格键开火，按 T 切换经典 / 现代画风！", 3
 	gameOver = false
+}
+
+onKey KeyT, => {
+	switchTheme
+}
+
+// 震屏：镜头快速抖动几下再回到中心
+onMsg "shake", => {
+	p := shakePower
+	repeat 6, => {
+		Camera.setXYpos rand(-p, p), rand(-p, p)
+		wait 0.03
+	}
+	if !camBusy {
+		Camera.setXYpos 0, 0
+	}
+}
+
+// 现代画风下基地被摧毁：镜头推近特写
+onMsg "baseCam", => {
+	camBusy = true
+	Camera.setXYpos Base.xpos, Base.ypos
+	Camera.setZoom 1.8
+	wait 2
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
+	camBusy = false
 }
 
 onKey KeyR, => {

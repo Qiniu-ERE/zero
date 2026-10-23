@@ -11,6 +11,18 @@
       "path": "cracked.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "brick_m",
+      "path": "brick_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "cracked_m",
+      "path": "cracked_m.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,

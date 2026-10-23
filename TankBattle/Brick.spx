@@ -12,7 +12,7 @@ func build(x, y float64, i int) {
 
 onCloned => {
 	alive = true
-	setCostume "brick"
+	setCostume look("brick")
 	show
 }
 
@@ -21,7 +21,14 @@ onMsg (msg, data) => {
 		return
 	}
 	if msg == "brickCracked" && data == idx {
-		setCostume "cracked"
+		setCostume look("cracked")
+	}
+	if msg == "themeChanged" {
+		if grid[idx] == 3 {
+			setCostume look("cracked")
+		} else {
+			setCostume look("brick")
+		}
 	}
 	if msg == "clear" || (msg == "brickBroken" && data == idx) {
 		alive = false

@@ -5,6 +5,12 @@
       "path": "bullet.svg",
       "x": 3,
       "y": 3
+    },
+    {
+      "name": "bullet_m",
+      "path": "bullet_m.svg",
+      "x": 3,
+      "y": 3
     }
   ],
   "costumeIndex": 0,

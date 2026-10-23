@@ -26,6 +26,17 @@ func setFace(d int) {
 	}
 }
 
+// 按类型和当前画风换造型
+func applyLook() {
+	if kind == 1 {
+		setCostume look("fast")
+	} else if kind == 2 {
+		setCostume look("heavy")
+	} else {
+		setCostume look("basic")
+	}
+}
+
 // 随机选一个方向，更喜欢往下（基地方向）走
 func pickFace() {
 	n := rand(1, 10)
@@ -81,18 +92,16 @@ func takeHit() {
 onCloned => {
 	alive = true
 	if kind == 1 {
-		setCostume "fast"
 		hp = 1
 		spd = 75
 	} else if kind == 2 {
-		setCostume "heavy"
 		hp = 3
 		spd = 30
 	} else {
-		setCostume "basic"
 		hp = 1
 		spd = 40
 	}
+	applyLook
 	setFace 180
 	fireCD = rand(0.5, 1.5)
 	turnCD = rand(1.2, 3.2)
@@ -120,6 +129,12 @@ onCloned => {
 		if touching("PBullet") {
 			takeHit
 		}
+	}
+}
+
+onMsg "themeChanged", => {
+	if alive {
+		applyLook
 	}
 }
 

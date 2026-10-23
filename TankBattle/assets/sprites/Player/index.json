@@ -5,6 +5,12 @@
       "path": "player.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "player_m",
+      "path": "player_m.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,
