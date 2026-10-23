@@ -1,10 +1,8 @@
 <div align="center">
 
-<img src="docs/logo.svg" width="96" alt="坦克大战 logo">
+<img src="docs/logo.svg" width="120" alt="坦克大战 logo">
 
 <h1>坦克大战 · XBuilder 复刻版</h1>
-
-<hr>
 
 [x.qiniu.com](https://x.qiniu.com) | [下载 .xbp](TankBattle.xbp) | [快速开始](#快速开始) | [玩法](#玩法) | [教学要点](#代码里的教学要点) | [动手改编](#动手改编) | [XGo](https://xgo.dev) | [spx 引擎](https://github.com/goplus/spx)
 
