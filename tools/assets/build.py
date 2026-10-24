@@ -239,7 +239,7 @@ def text_costume(s, size, fill, bold, anchor, pad=1.0):
 
 # 标签：key -> (字号, 颜色, 粗体, 对齐)
 LABELS = {
-    **{f"stage.{n}": (10, "#ffffff", True, "start") for n in range(1, 8)},
+    **{f"stage.{n}": (10, "#ffffff", True, "start") for n in range(1, 9)},
     "enemies": (7.5, MUTED, False, "end"),
     "score": (6.8, MUTED, True, "start"),
     "best": (6.8, MUTED, True, "start"),
@@ -441,7 +441,7 @@ def home(lang):
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
     x = 16 + cw + 5 + width(tr("home.demo", lang), 7) + 14
-    c, cw = chip(x, 290, "1-7")
+    c, cw = chip(x, 290, "1-8")
     s.append(c + text(x + cw + 5, 297.4, tr("home.pick", lang), 7, "#7f8ba3"))
     # 展示台和坦克
     s.append('<ellipse cx="330" cy="236" rx="92" ry="20" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')

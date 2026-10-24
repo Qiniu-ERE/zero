@@ -99,6 +99,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "stage.8_zh",
+      "path": "stage.8_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.8_en",
+      "path": "stage.8_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "enemies_zh",
       "path": "enemies_zh.svg",
       "x": 64.0,
@@ -367,13 +381,27 @@
     {
       "name": "msg.stage7_zh",
       "path": "msg.stage7_zh.svg",
-      "x": 282.0,
+      "x": 300.0,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
       "name": "msg.stage7_en",
       "path": "msg.stage7_en.svg",
+      "x": 322.34,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage8_zh",
+      "path": "msg.stage8_zh.svg",
+      "x": 282.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage8_en",
+      "path": "msg.stage8_en.svg",
       "x": 277.36,
       "y": 44.0,
       "bitmapResolution": 4
