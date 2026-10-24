@@ -710,6 +710,23 @@ def ed_status(k, lang):
     return svg(w, h, "".join(s), res=HR), (0, 0)
 
 
+def touch_pads():
+    """触屏模式（手机 App）的方向键：画在右侧面板里，下面两行说明"""
+    out = []
+    for lang in LANGS:
+        r = 46
+        cx, cy = 60, 50
+        s = [f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#ffffff" fill-opacity="0.05" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="1"/>',
+             f'<rect x="{cx-11}" y="{cy-r+6}" width="22" height="{2*r-12}" rx="4" fill="#ffffff" fill-opacity="0.12"/>',
+             f'<rect x="{cx-r+6}" y="{cy-11}" width="{2*r-12}" height="22" rx="4" fill="#ffffff" fill-opacity="0.12"/>']
+        for path in (f"M{cx} {cy-r+10}l7 9h-14z", f"M{cx} {cy+r-10}l7 -9h-14z", f"M{cx-r+10} {cy}l9 7v-14z", f"M{cx+r-10} {cy}l-9 7v-14z"):
+            s.append(f'<path d="{path}" fill="#3ee8ff" fill-opacity="0.85"/>')
+        s.append(text(cx, cy + r + 13, tr("touch.pad", lang), 6.6, "#c8d2e3", True, "middle"))
+        s.append(text(cx, cy + r + 23, tr("touch.tap", lang), 5.8, MUTED, False, "middle"))
+        out.append((f"touchpad_{lang}", svg(120, 2 * r + 30, "".join(s), res=HR), (cx, cy)))
+    return out
+
+
 def ed_widgets():
     """编辑器里会动的小部件：工具选中框、对称开关、对称线、光标、问题标记"""
     sel = svg(25, 25, '<rect x="0.7" y="0.7" width="23.6" height="23.6" rx="4.5" fill="#3ee8ff" fill-opacity="0.12" stroke="#3ee8ff" stroke-width="1.4"/>', res=HR)
@@ -719,7 +736,7 @@ def ed_widgets():
     cur = svg(C, C, f'<rect x="0.7" y="0.7" width="{C-1.4}" height="{C-1.4}" rx="2" fill="#3ee8ff" fill-opacity="0.15" stroke="#3ee8ff" stroke-width="1.4"/>', res=HR)
     mark = svg(C, C, f'<rect x="0.8" y="0.8" width="{C-1.6}" height="{C-1.6}" rx="3" fill="#ff2a2a" fill-opacity="0.3" stroke="#ff4a3a" stroke-width="1.6"/>'
                + text(12, 17, "!", 13, "#ffffff", True, "middle"), res=HR)
-    return [("edsel", sel, (12.5, 12.5)), ("edsw_on", on, (10, 5)), ("edsw_off", off, (10, 5)),
+    return [*touch_pads(), ("edsel", sel, (12.5, 12.5)), ("edsw_on", on, (10, 5)), ("edsw_off", off, (10, 5)),
             ("edline", line, (1, 13 * C / 2)), ("edcursor", cur, (C / 2, C / 2)), ("edmark", mark, (C / 2, C / 2))]
 
 
@@ -801,6 +818,16 @@ def build_hud():
     return write_sprite("UI", costumes)
 
 
+def stage_index():
+    """舞台配置：窗口标题（桌面版窗口上显示；不设置时 spx 会用临时目录名，是一串哈希）"""
+    p = os.path.join(ASSETS, "index.json")
+    with open(p, encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg["run"] = {**cfg.get("run", {}), "title": "坦克大战 2026"}
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
+
+
 def main():
     out = [
         write("field.svg", backdrop_classic()),
@@ -826,6 +853,7 @@ def main():
     for i in range(3):
         out.append(write(f"sprites/Boom/b{i+1}_m.svg", boom_m(i)))
     player_index()
+    stage_index()
     hud = build_hud()
     print(f"generated {len(out)} art files, {hud} HUD costumes")
 

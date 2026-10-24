@@ -1114,6 +1114,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "touchpad_zh",
+      "path": "touchpad_zh.svg",
+      "x": 240,
+      "y": 200,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "touchpad_en",
+      "path": "touchpad_en.svg",
+      "x": 240,
+      "y": 200,
+      "bitmapResolution": 4
+    },
+    {
       "name": "edsel",
       "path": "edsel.svg",
       "x": 50.0,

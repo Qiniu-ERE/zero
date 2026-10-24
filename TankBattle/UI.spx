@@ -1,4 +1,7 @@
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // 所有界面元素（标签、数字、图标、语言按钮、提示条、广告位、弹窗画面）都是 UI 的克隆，用 kind 区分。
 //
@@ -34,6 +37,8 @@ const (
 	kEdStatus = 14 // 检查结果
 	kEdCursor = 15 // 鼠标所在的格子
 	kEdMark   = 16 // 出问题的格子
+
+	kTouchPad = 17 // 触屏模式的方向键（手机 App 里替换右侧的按键说明）
 )
 
 // ---------- 创建 ----------
@@ -250,6 +255,9 @@ func refresh() {
 		} else if !coop && (key == "tag.1p" || key == "tag.2p") {
 			hide
 			return
+		} else if touchUI && strings.HasPrefix(key, "hint.") {
+			hide // 触屏模式：按键说明的位置换成方向键
+			return
 		}
 		setCostume k + "_" + langCode()
 		show
@@ -308,6 +316,13 @@ func refresh() {
 		}
 	case kEdSel, kEdSwitch, kEdStatus, kEdCursor, kEdMark:
 		refreshEditor
+	case kTouchPad:
+		if touchUI && (state == stPlay || state == stRevive || state == stResult) {
+			setCostume "touchpad_" + langCode()
+			show
+		} else {
+			hide
+		}
 	case kScreen:
 		if screen == "" {
 			hide

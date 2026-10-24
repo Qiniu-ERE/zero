@@ -12,6 +12,8 @@ STRINGS = {
     "tag.1p": ("1P", "1P"),
     "tag.2p": ("2P", "2P"),
     "coop": ("双人", "2P"),
+    "touch.pad": ("按住移动 · 自动开火", "Hold to move · auto fire"),
+    "touch.tap": ("点战场也能开火", "Tap the field to fire"),
     "go": ("去挑战", "Play"),
     # 对局 HUD（游戏）
     "stage.1": ("第 1 关 · 钢铁峡谷", "Stage 1 · Steel Canyon"),
