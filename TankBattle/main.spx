@@ -466,6 +466,15 @@ func genMap(theme int) []string {
 	return m
 }
 
+// 发给大模型的请求（XBuilder 版的 AIMaker 精灵使用，见 docs/v3/ai/AIMaker.spx）
+func aiRequest() string {
+	if aiPrompt != "" {
+		return "玩家的描述：" + aiPrompt
+	}
+	themes := []string{"", "被护城河环绕的城堡", "钢墙夹出的走廊", "草丛很多、适合埋伏", "曲折的砖墙迷宫", "开阔、几乎无处可躲", "随便设计一张有趣的地图"}
+	return "主题：" + themes[aiTheme]
+}
+
 // 进入 AI 造关页面
 func openAIMaker() {
 	state = stAIMaker

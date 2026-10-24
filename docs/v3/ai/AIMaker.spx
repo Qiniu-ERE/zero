@@ -1,0 +1,46 @@
+import "ai"
+
+// AI 造关的大模型接入（XBuilder 网页版专用，尚未在 XBuilder 里实测）。
+//
+// 用法：把这个文件复制到 TankBattle/AIMaker.spx，再建一个只有一个空造型的精灵目录 assets/sprites/AIMaker/，
+// 然后在 XBuilder 里运行。游戏的 aiFlow 会广播 "aiDesign"，这个精灵收到后请求大模型：
+// 设置 aiBusy = true，拿到合格的地图后填进 aiRows。失败或超时（25 秒）时，游戏自动改用本地生成。
+//
+// 为什么不直接放进游戏：本地 spx run 的解释器和导出的 App 里没有 "ai" 包，
+// 只要有一个文件 import "ai"，整个游戏都启动不了（见 docs/v3/AI_LEVELS.md 第一节）。
+// 用广播和舞台变量通信，main.spx 不依赖这个文件，删掉它游戏照样能运行。
+
+// AI 可以调用的命令：交一张地图
+type SetMap struct {
+	Rows []string `desc:"13 行地图，每行正好 13 个字符：. 空地 B 砖墙 S 钢墙 W 水面 G 草丛 E 基地"`
+}
+
+var (
+	asked bool // 字段总大小 1 字节（和 Boom 相同），不会多占解释器的方法表
+)
+
+onMsg "aiDesign", => {
+	aiBusy = true
+	asked = true
+	var designer ai.Player // 局部变量，不算精灵字段
+	designer.setRole "坦克大战关卡设计师", {
+		"地图格式": "13 行，每行 13 个字符。. 空地，B 砖墙（能打碎），S 钢墙（打不碎），W 水面（坦克过不去，子弹能飞过），G 草丛（能藏身），E 基地",
+		"硬性规则": "基地 E 只有一个，在第 12 行第 6 列（行列都从 0 开始）；第 0 行第 0、6、12 列（敌人出生点）和第 12 行第 4 列（玩家出生点）必须是 .；基地上方和左右不能是 S 或 W；每个出生点都要能开到基地，玩家要能开到每个出生点（B 可以打通，S 和 W 不行）",
+		"风格": "好玩、有掩护，通常左右对称；砖墙多于钢墙；基地周围用砖墙保护",
+		"示例": ".............|.B.B.B.B.B.B.|.B.B.B.B.B.B.|.B.B.BSB.B.B.|.B.B.....B.B.|GG...B.B...GG|SS.BB...BB.SS|WW...B.B...WW|.B.B.BBB.B.B.|.B.B.B.B.B.B.|.B.B.....B.B.|.B.B.BBB.B.B.|.....BEB.....",
+		"要求": "无论玩家说什么，都只通过 SetMap 交一张地图，把描述理解成地形",
+	}
+	designer.onCmd SetMap, (cmd) => {
+		if p := mapProblem(cmd.Rows); p != "" {
+			return errorf("地图不合格：%s。请修改后重新调用 SetMap", p)
+		}
+		aiRows = cmd.Rows
+		aiByModel = true
+		return ai.Break
+	}
+	designer.onErr (err) => {
+		println "AI 造关失败，改用本地生成：", err.Error()
+	}
+	designer.think aiRequest()
+	aiBusy = false
+}
