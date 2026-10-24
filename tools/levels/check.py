@@ -4,7 +4,7 @@
 用法：python3 tools/levels/check.py            # 检查 main.spx 里的所有关卡
       python3 tools/levels/check.py map.txt   # 检查一个文本文件里的地图（13 行，每行 13 个字符）
 
-手工设计的关卡和 AI 生成的关卡都用这套规则，见 docs/v3/AI_LEVELS.md。
+v3.0 规划中的“自己做地图”（docs/v3/MAP_EDITOR.md）也用这套规则做实时检查。
 不依赖第三方库。发现问题时打印原因并以非零状态退出。
 """
 import os
