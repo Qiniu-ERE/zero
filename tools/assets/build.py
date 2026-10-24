@@ -245,7 +245,7 @@ def toggle_costume(lang):
 
 
 # 数字样式：名字 -> (字号, 颜色)
-NUM_STYLES = {"S": (18, "#ffffff"), "B": (8, "#ffe27a")}
+NUM_STYLES = {"S": (18, "#ffffff"), "B": (8, "#ffe27a"), "C": (14, "#ffe27a")}
 DIGITS = "0123456789"
 
 
@@ -281,12 +281,13 @@ def write_sprite(name, costumes, res=HR, x=0, y=0, visible=False):
     os.makedirs(d, exist_ok=True)
     keep = set()
     configs = []
-    for cname, content, (px, py) in costumes:
+    for cname, content, (px, py), *opt in costumes:
+        r = opt[0] if opt else res  # 造型可以单独指定 bitmapResolution（全屏画面用 2，省内存）
         fname = re.sub(r"[^A-Za-z0-9_.-]", "_", cname) + ".svg"
         keep.add(fname)
         with open(os.path.join(d, fname), "w", encoding="utf-8") as f:
             f.write(content)
-        configs.append({"name": cname, "path": fname, "x": round(px * res, 2), "y": round(py * res, 2), "bitmapResolution": res})
+        configs.append({"name": cname, "path": fname, "x": round(px * r, 2), "y": round(py * r, 2), "bitmapResolution": r})
     for old in os.listdir(d):
         if old.endswith(".svg") and old not in keep:
             os.remove(os.path.join(d, old))
@@ -297,15 +298,265 @@ def write_sprite(name, costumes, res=HR, x=0, y=0, visible=False):
     return len(costumes)
 
 
-def update_generated_block(path, lines):
-    """替换 .spx 文件里 BEGIN GENERATED / END GENERATED 之间的内容"""
+def update_generated_block(path, lines, name="widths"):
+    """替换 .spx 文件里 // BEGIN GENERATED <name> 和 // END GENERATED <name> 之间的内容"""
     with open(path, encoding="utf-8") as f:
         src = f.read()
-    new, n = re.subn(r"(// BEGIN GENERATED[^\n]*\n).*?(\t*// END GENERATED)", lambda m: m.group(1) + "".join(lines) + m.group(2), src, flags=re.S)
+    pat = rf"(// BEGIN GENERATED {name}\n).*?(\t*// END GENERATED {name})"
+    new, n = re.subn(pat, lambda m: m.group(1) + "".join(lines) + m.group(2), src, flags=re.S)
     if n != 1:
         sys.exit(f"{path} 里没有找到 GENERATED 区块")
     with open(path, "w", encoding="utf-8") as f:
         f.write(new)
+
+
+# ---------- 画面：主页、复活、模拟广告、结算，以及广告卡片 / 横幅 ----------
+# 坐标都是 SVG 坐标（左上角原点，y 向下）。按钮区域记在 BUTTONS 里，生成到 UI.spx 的 hit()，
+# 这样点击区域永远和画面一致。
+GBLUE = "#1a73e8"  # 广告按钮统一用 Google 蓝，和游戏自己的橙色按钮区分
+BUTTONS = {}       # 名字 -> (x, y, w, h)，SVG 坐标
+
+
+def button(name, x, y, w, h):
+    BUTTONS[name] = (x, y, w, h)
+
+
+def chip(x, y, k, dark=False):
+    """按键提示小方块，(x, y) 是左上角，返回 (svg, 宽度)"""
+    w = width(k, 6, True) + 6
+    fill, op, col = ("#000000", 0.25, "#ffffff") if dark else ("#ffffff", 0.12, "#ffffff")
+    return (f'<rect x="{x:.2f}" y="{y}" width="{w:.2f}" height="10" rx="2.5" fill="{fill}" fill-opacity="{op}"/>'
+            + text(x + w / 2, y + 7.4, k, 6, col, True, "middle")), w
+
+
+def ad_badge(x, y, lang):
+    s = tr("ad.badge", lang)
+    w = width(s, 6, True) + 6
+    return (f'<rect x="{x:.2f}" y="{y}" width="{w:.2f}" height="9" rx="2" fill="none" stroke="#f2c94c" stroke-width="0.6"/>'
+            + text(x + w / 2, y + 6.8, s, 6, "#f2c94c", True, "middle")), w
+
+
+def play_icon(x, y, col, k=1.0):
+    return f'<path d="M{x-3*k:.2f} {y-4*k:.2f}L{x+4*k:.2f} {y}L{x-3*k:.2f} {y+4*k:.2f}Z" fill="{col}"/>'
+
+
+def brand_logo(cx, cy, r):
+    return (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{GBLUE}"/>'
+            f'<circle cx="{cx}" cy="{cy}" r="{r*0.43:.2f}" fill="#ffffff"/>')
+
+
+def defs_ui():
+    return (lin("cta", "#ff9a1a", "#ff5a1a", vertical=False) + lin("gold", "#ffe27a", "#f29a00")
+            + lin("bgH", "#141b2b", "#07090f"))
+
+
+def native_card(lang):
+    """对局中右侧面板底部的原生广告卡（120x86）"""
+    w, h = 120, 86
+    b, _ = ad_badge(6, 6, lang)
+    body = [f'<rect x="0.3" y="0.3" width="{w-0.6}" height="{h-0.6}" rx="6" fill="#ffffff" fill-opacity="0.04" stroke="#2c3850" stroke-width="0.6"/>', b,
+            f'<path d="M{w-17} 7.5l5 3-5 3z" fill="none" stroke="#6b778f" stroke-width="0.7"/>',
+            f'<path d="M{w-9} 8l5 5M{w-4} 8l-5 5" stroke="#6b778f" stroke-width="0.9"/>',
+            '<rect x="6" y="21" width="20" height="20" rx="4" fill="#ffffff"/>', brand_logo(16, 31, 6),
+            text(31, 29, tr("ad.brand", lang), 7.5, "#e6ecf5", True),
+            text(31, 39, tr("ad.head", lang), 5.8, MUTED),
+            f'<rect x="6" y="{h-22}" width="{w-12}" height="15" rx="7.5" fill="{GBLUE}"/>',
+            text(w / 2, h - 12, tr("ad.cta", lang), 7.2, "#ffffff", True, "middle")]
+    return svg(w, h, "".join(body), res=HR), (w / 2, h / 2)
+
+
+CARD = (342, 250, 120, 86)       # 原生广告卡在屏幕上的位置
+BANNER = (16, 316, 448, 32)      # 主页横幅的位置
+
+
+def banner(lang):
+    """主页底部横幅（Anchor Banner）"""
+    w, h = BANNER[2], BANNER[3]
+    b, bw = ad_badge(8, 11.5, lang)
+    body = [f'<rect x="0.3" y="0.3" width="{w-0.6}" height="{h-0.6}" rx="6" fill="#ffffff" fill-opacity="0.04" stroke="#2c3850" stroke-width="0.6"/>', b,
+            f'<rect x="{bw+14}" y="6" width="20" height="20" rx="4" fill="#ffffff"/>', brand_logo(bw + 24, 16, 6),
+            text(bw + 42, 19.5, tr("ad.banner", lang), 7.8, "#c8d2e3"),
+            f'<rect x="{w-84}" y="8" width="58" height="16" rx="8" fill="{GBLUE}"/>',
+            text(w - 55, 18.8, tr("ad.cta", lang), 7, "#ffffff", True, "middle"),
+            f'<path d="M{w-15} 6.5l5 3-5 3z" fill="none" stroke="#6b778f" stroke-width="0.7"/>',
+            f'<path d="M{w-15} 19l5 5M{w-10} 19l-5 5" stroke="#6b778f" stroke-width="0.9"/>']
+    return svg(w, h, "".join(body), res=HR), (w / 2, h / 2)
+
+
+def home(lang):
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>',
+         '<circle cx="330" cy="170" r="140" fill="#3ee8ff" fill-opacity="0.05"/><circle cx="330" cy="170" r="90" fill="#ffd23a" fill-opacity="0.05"/>']
+    t = tr("title", lang)
+    s.append(text(16, 46, t, 22, "#ffffff", True))
+    s.append(text(16 + width(t, 22, True) + 6, 46, "2026", 22, "url(#gold)", True))
+    s.append(text(16, 60, tr("subtitle", lang), 7.5, "#7f8ba3", True))
+    # 开始按钮
+    button("home.start", 16, 84, 170, 50)
+    s.append('<rect x="16" y="84" width="170" height="50" rx="10" fill="url(#cta)"/>')
+    s.append(text(28, 106, tr("home.start", lang), 13, "#ffffff", True))
+    s.append(text(28, 122, tr("home.start.d", lang), 6.8, "#fff2e0"))
+    c, cw = chip(0, 0, "Enter", dark=True)
+    s.append(f'<g transform="translate({186-10-cw:.2f},96)">{c}</g>')
+    # 其他模式：即将推出
+    for i, k in enumerate(("m.daily", "m.coop", "m.ai")):
+        y = 144 + i * 44
+        s.append(f'<rect x="16.3" y="{y+0.3}" width="169.4" height="37.4" rx="8" fill="#ffffff" fill-opacity="0.035" stroke="#263046" stroke-width="0.6"/>')
+        s.append(text(28, y + 17, tr(k, lang), 10.5, "#7f8ba3", True))
+        s.append(text(28, y + 29, tr(k + ".d", lang), 6.2, "#5a6680"))
+        sw = width(tr("soon", lang), 5.8, True) + 10
+        s.append(f'<rect x="{186-10-sw:.2f}" y="{y+8}" width="{sw:.2f}" height="11" rx="5.5" fill="#2c3850"/>')
+        s.append(text(186 - 10 - sw / 2, y + 15.6, tr("soon", lang), 5.8, MUTED, True, "middle"))
+    # 展示台和坦克
+    s.append('<ellipse cx="330" cy="236" rx="92" ry="20" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')
+    defs, body = tank_body(*TANKS["player"])
+    s.append(f'<g transform="translate(330 186) rotate(30) scale(4.2) translate(-12 -12)">{body}</g>')
+    return svg(W, H, "".join(s), defs_ui() + defs, res=2), (W / 2, H / 2)
+
+
+MX, MY, MW, MH = 58, 76, 220, 220  # 弹窗位置（盖在战场中央）
+
+
+def modal_frame(stroke, op=0.6):
+    return f'<rect x="{MX}" y="{MY}" width="{MW}" height="{MH}" rx="12" fill="#121826" stroke="{stroke}" stroke-opacity="{op}" stroke-width="1"/>'
+
+
+def revive(n, lang):
+    m = MX + MW / 2
+    s = [f'<rect width="{W}" height="{H}" fill="#1f0407" fill-opacity="0.55"/>', modal_frame("#ff4a3a")]
+    s.append(text(m, MY + 30, tr("rv.title", lang), 15, "#ff5a4a", True, "middle"))
+    s.append(text(m, MY + 45, tr("rv.sub", lang), 7.5, "#c8d2e3", False, "middle"))
+    r, cy = 18, MY + 76
+    circ = 2 * math.pi * r
+    s.append(f'<circle cx="{m}" cy="{cy}" r="{r}" fill="none" stroke="#2a3346" stroke-width="3.5"/>')
+    s.append(f'<circle cx="{m}" cy="{cy}" r="{r}" fill="none" stroke="#ff9a1a" stroke-width="3.5" stroke-linecap="round" '
+             f'stroke-dasharray="{circ*n/7:.2f} {circ:.2f}" transform="rotate(-90 {m} {cy})"/>')
+    s.append(text(m, cy + 6, str(n), 17, "#ffffff", True, "middle"))
+    # 看视频复活（广告按钮）
+    bx, by, bw, bh = MX + 20, MY + 108, MW - 40, 28
+    button("revive.ad", bx, by, bw, bh)
+    s.append(f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="14" fill="{GBLUE}"/>')
+    s.append(play_icon(bx + 16, by + 14, "#ffffff"))
+    s.append(text(m + 2, by + 17.5, tr("revive.ad", lang), 9.5, "#ffffff", True, "middle"))
+    c, cw = chip(0, 0, "J", dark=True)
+    s.append(f'<g transform="translate({bx+bw-10-cw:.2f},{by+9})">{c}</g>')
+    b, abw = ad_badge(0, 0, lang)
+    rw = width(tr("rv.reward", lang), 6.5)
+    x0 = m - (abw + 4 + rw) / 2
+    s.append(f'<g transform="translate({x0:.2f},{by+bh+7})">{b}</g>')
+    s.append(text(x0 + abw + 4, by + bh + 14, tr("rv.reward", lang), 6.5, "#c8d2e3"))
+    # 放弃
+    gx, gy, gw, gh = m - 55, MY + 170, 110, 22
+    button("revive.giveup", gx, gy, gw, gh)
+    s.append(f'<rect x="{gx}" y="{gy}" width="{gw}" height="{gh}" rx="11" fill="#ffffff" fill-opacity="0.04" stroke="#3a4660" stroke-width="0.7"/>')
+    c, cw = chip(0, 0, "Esc")
+    tw = width(tr("giveup", lang), 8)
+    x0 = m - (tw + 5 + cw) / 2
+    s.append(text(x0, gy + 14.5, tr("giveup", lang), 8, MUTED))
+    s.append(f'<g transform="translate({x0+tw+5:.2f},{gy+6})">{c}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def adplay(n, lang, total=5):
+    """模拟的激励视频广告（全屏），n 是剩余秒数"""
+    s = [f'<rect width="{W}" height="{H}" fill="#05070c"/>']
+    b, _ = ad_badge(16, 14, lang)
+    s.append(b)
+    s.append(text(464, 21, tr("ap.reward", lang).format(n=n), 8, "#c8d2e3", True, "end"))
+    s.append(f'<rect x="16" y="32" width="448" height="2.5" rx="1.25" fill="#ffffff" fill-opacity="0.12"/>')
+    s.append(f'<rect x="16" y="32" width="{448*(total-n+1)/total:.2f}" height="2.5" rx="1.25" fill="{GBLUE}"/>')
+    # 广告素材（示例品牌）
+    s.append('<rect x="90" y="62" width="300" height="220" rx="16" fill="#ffffff"/>')
+    s.append(brand_logo(240, 112, 22))
+    s.append(text(240, 158, tr("ad.brand", lang), 13, "#202124", True, "middle"))
+    s.append(text(240, 190, tr("ap.big", lang), 22, GBLUE, True, "middle"))
+    s.append(text(240, 210, tr("ad.head", lang), 8, "#5f6368", False, "middle"))
+    s.append(f'<rect x="185" y="232" width="110" height="28" rx="14" fill="{GBLUE}"/>')
+    s.append(text(240, 250, tr("ad.cta", lang), 9, "#ffffff", True, "middle"))
+    s.append(text(240, 336, tr("ap.demo", lang), 6.8, "#6b778f", False, "middle"))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+COIN_POS = (MX + 50, MY + 70)  # 结算弹窗里金币数字的锚点（SVG 坐标，基线左端）
+
+
+def result(win, done, lang):
+    m = MX + MW / 2
+    s = [f'<rect width="{W}" height="{H}" fill="#05070c" fill-opacity="0.5"/>', modal_frame("#f2c94c" if win else "#3a4660")]
+    s.append(text(m, MY + 34, tr("rs.win" if win else "rs.lose", lang), 18, "#ffe27a" if win else "#c8d2e3", True, "middle"))
+    # 金币（数字由 UI 克隆显示在 COIN_POS）
+    s.append(f'<rect x="{MX+20}" y="{MY+48}" width="{MW-40}" height="32" rx="8" fill="#ffffff" fill-opacity="0.05"/>')
+    s.append(f'<circle cx="{MX+38}" cy="{MY+64}" r="6.5" fill="url(#gold)"/><circle cx="{MX+38}" cy="{MY+64}" r="4.2" fill="none" stroke="#a86a00" stroke-width="0.9"/>')
+    s.append(text(MX + MW - 28, MY + 68, tr("coins", lang), 7.5, MUTED, True, "end"))
+    # 看视频双倍（广告按钮）/ 已领取
+    bx, by, bw, bh = MX + 20, MY + 90, MW - 40, 26
+    if not done:
+        button("result.ad", bx, by, bw, bh)
+        s.append(f'<rect x="{bx+0.5}" y="{by+0.5}" width="{bw-1}" height="{bh-1}" rx="12.5" fill="none" stroke="{GBLUE}" stroke-width="1"/>')
+        b, abw = ad_badge(bx + 8, by + 8.5, lang)
+        s.append(b + play_icon(bx + abw + 18, by + 13, "#8ab4f8", 0.9))
+        s.append(text(m + 6, by + 16.5, tr("ad.double", lang), 8.5, "#8ab4f8", True, "middle"))
+        c, cw = chip(0, 0, "J")
+        s.append(f'<g transform="translate({bx+bw-10-cw:.2f},{by+8})">{c}</g>')
+    else:
+        s.append(f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="13" fill="#14b866" fill-opacity="0.15"/>')
+        tw = width(tr("rs.doubled", lang), 8.5, True)
+        s.append(text(m - 6, by + 16.5, tr("rs.doubled", lang), 8.5, "#2ee88a", True, "middle"))
+        s.append(f'<path d="M{m+tw/2-2:.2f} {by+13}l3 3 6-6" fill="none" stroke="#2ee88a" stroke-width="1.6"/>')
+    # 再来一局
+    ax, ay, aw, ah = MX + 20, MY + 128, MW - 40, 30
+    button("result.again", ax, ay, aw, ah)
+    s.append(f'<rect x="{ax}" y="{ay}" width="{aw}" height="{ah}" rx="15" fill="url(#cta)"/>')
+    s.append(text(m - 6, ay + 19.5, tr("rs.again", lang), 10, "#ffffff", True, "middle"))
+    c, cw = chip(0, 0, "R", dark=True)
+    s.append(f'<g transform="translate({ax+aw-10-cw:.2f},{ay+10})">{c}</g>')
+    # 主页
+    hx, hy, hw, hh = m - 45, MY + 172, 90, 22
+    button("result.home", hx, hy, hw, hh)
+    c, cw = chip(0, 0, "H")
+    tw = width(tr("rs.home", lang), 8)
+    x0 = m - (tw + 5 + cw) / 2
+    s.append(text(x0, hy + 14.5, tr("rs.home", lang), 8, MUTED))
+    s.append(f'<g transform="translate({x0+tw+5:.2f},{hy+6})">{c}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def screen_costumes():
+    out = []
+    for lang in LANGS:
+        out.append((f"card_{lang}", *native_card(lang)))
+        out.append((f"banner_{lang}", *banner(lang)))
+        out.append((f"home_{lang}", *home(lang), 2))
+        for n in range(1, 8):
+            out.append((f"revive_{n}_{lang}", *revive(n, lang), 2))
+        for n in range(1, 6):
+            out.append((f"adplay_{n}_{lang}", *adplay(n, lang), 2))
+        for win in (True, False):
+            for done in (False, True):
+                name = f"result_{'win' if win else 'lose'}_{'done' if done else 'plain'}_{lang}"
+                out.append((name, *result(win, done, lang), 2))
+    # 广告卡片和横幅上的关闭按钮
+    x, y, w, h = CARD
+    button("card.close", x + w - 16, y, 16, 16)
+    button("card", x, y, w, h)
+    x, y, w, h = BANNER
+    button("banner.close", x + w - 22, y, 22, h)
+    button("banner", x, y, w, h)
+    return out
+
+
+def stage_xy(x, y):
+    """SVG 坐标 -> 舞台坐标"""
+    return x - W / 2, H / 2 - y
+
+
+def hit_lines():
+    lines = ["\tswitch name {\n"]
+    for name, (x, y, w, h) in BUTTONS.items():
+        x0, y1 = stage_xy(x, y)
+        x1, y0 = stage_xy(x + w, y + h)
+        lines.append(f'\tcase "{name}":\n\t\treturn x >= {x0:g} && x <= {x1:g} && y >= {y0:g} && y <= {y1:g}\n')
+    lines.append("\t}\n")
+    return lines
 
 
 def build_hud():
@@ -329,6 +580,8 @@ def build_hud():
     costumes += icon_costumes()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])
+    costumes += screen_costumes()
+    update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), hit_lines(), "hit")
     return write_sprite("UI", costumes)
 
 
