@@ -4,7 +4,7 @@ import (
 )
 
 var (
-	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，9 基地
+	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，4 水面，5 草丛，9 基地
 	score        int   // 得分
 	best         int   // 本次运行的最高分
 	lives        int   // 玩家剩余生命
@@ -61,7 +61,7 @@ const (
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
-// . 空地   B 砖墙（可打碎）   S 钢墙（打不碎）   E 基地（老鹰）
+// . 空地   B 砖墙（可打碎）   S 钢墙（打不碎）   W 水面（坦克过不去，子弹能飞过）   G 草丛（能藏身）   E 基地（老鹰）
 func levelMap() []string {
 	return []string{
 		".............",
@@ -69,9 +69,9 @@ func levelMap() []string {
 		".B.B.B.B.B.B.",
 		".B.B.BSB.B.B.",
 		".B.B.....B.B.",
-		".....B.B.....",
+		"GG...B.B...GG",
 		"SS.BB...BB.SS",
-		".....B.B.....",
+		"WW...B.B...WW",
 		".B.B.BBB.B.B.",
 		".B.B.B.B.B.B.",
 		".B.B.....B.B.",
@@ -112,7 +112,12 @@ func cellAt(x, y float64) int {
 // 坦克（边长约 22 像素）中心在 (x, y) 时，是否会压到墙、基地或出界
 func tankBlocked(x, y float64) bool {
 	h := 11.0
-	return cellAt(x-h, y-h) != 0 || cellAt(x+h, y-h) != 0 || cellAt(x-h, y+h) != 0 || cellAt(x+h, y+h) != 0
+	return blocksTank(cellAt(x-h, y-h)) || blocksTank(cellAt(x+h, y-h)) || blocksTank(cellAt(x-h, y+h)) || blocksTank(cellAt(x+h, y+h))
+}
+
+// 格子 v 能不能挡住坦克：空地和草丛能开过去，其他（包括水面和出界）都不行
+func blocksTank(v int) bool {
+	return v != 0 && v != 5
 }
 
 // 转弯时把坐标对齐到半格（12 像素），这样坦克才能顺利钻进 1 格宽的路
@@ -245,14 +250,14 @@ func shake(power float64) {
 }
 
 // 砖墙要打两下：第一下裂开，第二下才碎（和原版一样，基地不会太快被打穿）
+// 砖墙精灵收到 "gridChanged" 后会自己对照 grid 更新（同一帧打中两块砖也不会漏掉）
 func breakBrick(i int) {
 	if grid[i] == 1 {
 		grid[i] = 3
-		broadcast "brickCracked", i
 	} else {
 		grid[i] = 0
-		broadcast "brickBroken", i
 	}
+	broadcast "gridChanged"
 }
 
 // 子弹的某个检测点碰到东西了吗？碰到砖墙会把砖打碎
@@ -453,6 +458,12 @@ func buildMap() {
 			case 'S':
 				grid[i] = 2
 				Tile.build cellX(c), cellY(r), 2, i
+			case 'W':
+				grid[i] = 4
+				Tile.build cellX(c), cellY(r), 4, i
+			case 'G':
+				grid[i] = 5
+				Tile.build cellX(c), cellY(r), 5, i
 			case 'E':
 				grid[i] = 9
 				baseX = cellX(c)
