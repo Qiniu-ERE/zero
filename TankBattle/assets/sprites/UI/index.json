@@ -183,30 +183,30 @@
       "bitmapResolution": 4
     },
     {
-      "name": "msg.win_zh",
-      "path": "msg.win_zh.svg",
-      "x": 212.72,
+      "name": "msg.adclick_zh",
+      "path": "msg.adclick_zh.svg",
+      "x": 264.0,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
-      "name": "msg.win_en",
-      "path": "msg.win_en.svg",
-      "x": 309.13,
+      "name": "msg.adclick_en",
+      "path": "msg.adclick_en.svg",
+      "x": 359.47,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
-      "name": "msg.lose_zh",
-      "path": "msg.lose_zh.svg",
-      "x": 248.72,
+      "name": "msg.revived_zh",
+      "path": "msg.revived_zh.svg",
+      "x": 210.0,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
-      "name": "msg.lose_en",
-      "path": "msg.lose_en.svg",
-      "x": 310.82,
+      "name": "msg.revived_en",
+      "path": "msg.revived_en.svg",
+      "x": 258.15,
       "y": 44.0,
       "bitmapResolution": 4
     },
@@ -379,6 +379,83 @@
       "bitmapResolution": 4
     },
     {
+      "name": "C0",
+      "path": "C0.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C1",
+      "path": "C1.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C2",
+      "path": "C2.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C3",
+      "path": "C3.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C4",
+      "path": "C4.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C5",
+      "path": "C5.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C6",
+      "path": "C6.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C7",
+      "path": "C7.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C8",
+      "path": "C8.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "C9",
+      "path": "C9.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "Ccomma",
+      "path": "Ccomma.svg",
+      "x": 0,
+      "y": 61.6,
+      "bitmapResolution": 4
+    },
+    {
       "name": "pip_on",
       "path": "pip_on.svg",
       "x": 8,
@@ -405,6 +482,272 @@
       "x": 24,
       "y": 24,
       "bitmapResolution": 4
+    },
+    {
+      "name": "card_zh",
+      "path": "card_zh.svg",
+      "x": 240.0,
+      "y": 172.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "banner_zh",
+      "path": "banner_zh.svg",
+      "x": 896.0,
+      "y": 64.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "home_zh",
+      "path": "home_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_1_zh",
+      "path": "revive_1_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_2_zh",
+      "path": "revive_2_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_3_zh",
+      "path": "revive_3_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_4_zh",
+      "path": "revive_4_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_5_zh",
+      "path": "revive_5_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_6_zh",
+      "path": "revive_6_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_7_zh",
+      "path": "revive_7_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_1_zh",
+      "path": "adplay_1_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_2_zh",
+      "path": "adplay_2_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_3_zh",
+      "path": "adplay_3_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_4_zh",
+      "path": "adplay_4_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_5_zh",
+      "path": "adplay_5_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_win_plain_zh",
+      "path": "result_win_plain_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_win_done_zh",
+      "path": "result_win_done_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_lose_plain_zh",
+      "path": "result_lose_plain_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_lose_done_zh",
+      "path": "result_lose_done_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "card_en",
+      "path": "card_en.svg",
+      "x": 240.0,
+      "y": 172.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "banner_en",
+      "path": "banner_en.svg",
+      "x": 896.0,
+      "y": 64.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "home_en",
+      "path": "home_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_1_en",
+      "path": "revive_1_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_2_en",
+      "path": "revive_2_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_3_en",
+      "path": "revive_3_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_4_en",
+      "path": "revive_4_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_5_en",
+      "path": "revive_5_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_6_en",
+      "path": "revive_6_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "revive_7_en",
+      "path": "revive_7_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_1_en",
+      "path": "adplay_1_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_2_en",
+      "path": "adplay_2_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_3_en",
+      "path": "adplay_3_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_4_en",
+      "path": "adplay_4_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "adplay_5_en",
+      "path": "adplay_5_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_win_plain_en",
+      "path": "result_win_plain_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_win_done_en",
+      "path": "result_win_done_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_lose_plain_en",
+      "path": "result_lose_plain_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_lose_done_en",
+      "path": "result_lose_done_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
     }
   ],
   "costumeIndex": 0,

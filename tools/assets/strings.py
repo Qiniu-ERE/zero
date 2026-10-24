@@ -18,8 +18,26 @@ STRINGS = {
     "msg.modern": ("现代画风", "Modern style"),
     "msg.classic": ("经典画风", "Classic style"),
     "msg.lang": ("已切换到中文", "Switched to English"),
-    "msg.win": ("胜利！按 R 再玩一次", "Victory! Press R to play again"),
-    "msg.lose": ("游戏结束！按 R 重新开始", "Game over! Press R to restart"),
+    "msg.adclick": ("演示：这里会打开广告主页", "Demo: opens the advertiser's page"),
+    "msg.revived": ("已复活，继续战斗！", "Revived. Keep fighting!"),
+    # 主页（游戏）
+    "home.start": ("开始战役", "Start"),
+    "home.start.d": ("消灭 20 辆敌军，守住基地", "Destroy 20 tanks, guard the base"),
+    "soon": ("即将推出", "SOON"),
+    # 复活弹窗（游戏）
+    "rv.title": ("防线失守！", "Defense broken!"),
+    "rv.sub": ("看一段视频，可以复活一次", "Watch a short ad to revive once"),
+    "rv.reward": ("修复基地，额外 1 条命", "Base repaired + 1 extra life"),
+    # 模拟广告播放（游戏）
+    "ap.reward": ("{n} 秒后发放奖励", "Reward in {n}s"),
+    "ap.demo": ("模拟广告位 · 正式版接入 Google H5 Games Ads", "Simulated ad slot · Google H5 Games Ads in production"),
+    "ap.big": ("10GB 免费空间", "10 GB free"),
+    # 结算（游戏）
+    "rs.win": ("胜利！", "VICTORY"),
+    "rs.lose": ("战败", "DEFEAT"),
+    "rs.doubled": ("已领取双倍", "Doubled"),
+    "rs.again": ("再来一局", "Play again"),
+    "rs.home": ("主页", "Home"),
     # 对局 HUD（效果图）
     "stage": ("第 3 关 · 钢铁峡谷", "Stage 3 · Steel Canyon"),
     "enemies": ("敌军", "Enemies"),

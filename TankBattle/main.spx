@@ -1,4 +1,7 @@
-import "math"
+import (
+	"math"
+	"strconv"
+)
 
 var (
 	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，9 基地
@@ -21,6 +24,31 @@ var (
 	shakePower   float64
 	baseX        float64 // 基地位置（基地是 Tile 的一个克隆）
 	baseY        float64
+	baseIdx      int     // 基地所在的格子编号（复活时修复基地用）
+
+	// 流程与广告（见 docs/ARCHITECTURE.md 的「游戏流程」）
+	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
+	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
+	revived      bool   // 本局是否已经复活过（每局只能复活一次）
+	coins        int    // 本局获得的金币
+	doubled      bool   // 金币是否已经通过看视频翻倍
+	adReward     int    // 正在播放的激励视频对应的奖励：rewardRevive / rewardDouble
+	cardClosed   bool   // 玩家关掉了对局中的原生广告卡
+	bannerClosed bool   // 玩家关掉了主页横幅
+)
+
+const (
+	stHome   = 0 // 主页
+	stPlay   = 1 // 对局中
+	stRevive = 2 // 询问是否看视频复活
+	stAd     = 3 // 正在播放（模拟的）激励视频
+	stResult = 4 // 结算
+
+	rewardRevive = 1 // 激励视频奖励：复活
+	rewardDouble = 2 // 激励视频奖励：金币翻倍
+
+	adSeconds     = 5 // 模拟激励视频的时长
+	reviveSeconds = 7 // 复活询问的倒计时
 )
 
 const (
@@ -179,6 +207,12 @@ func buildHud() {
 	UI.label 104, 30, "hint.fire"
 	UI.label 104, 14, "hint.style"
 	UI.label 104, -2, "hint.lang"
+	// 广告位：对局中的原生广告卡、主页横幅
+	UI.adSlot 162, -113, "card"
+	UI.adSlot 0, -152, "banner"
+	// 全屏 / 弹窗画面，以及结算弹窗里的金币数
+	UI.screenLayer
+	UI.number kCoin, -132, 35, 9
 	// 战场上方的提示条
 	UI.toastBar -72, 20
 }
@@ -259,14 +293,106 @@ func bulletHit(x, y float64, d int, byPlayer bool) bool {
 	return a || b
 }
 
+// ---------- 流程：主页 → 对局 → (复活询问 → 激励视频) → 结算 ----------
+
+// 切换全屏 / 弹窗画面。先让画面层到最前，再把广告位、语言按钮和提示条放到它上面
+func setScreen(name string) {
+	screen = name
+	broadcastAndWait "screen"
+	broadcast "raise"
+}
+
+func goHome() {
+	state = stHome
+	gameOver = true
+	broadcastAndWait "clear"
+	stopAllSounds
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
+	setScreen "home"
+}
+
+// 战败（基地被毁或生命用完）：每局第一次战败时询问是否看视频复活
+func defeat() {
+	if gameOver {
+		return
+	}
+	gameOver = true
+	if revived {
+		endGame false
+		return
+	}
+	state = stRevive
+	broadcast "reviveFlow"
+}
+
+// 开始播放激励视频，reward 是看完后的奖励
+func watchAd(reward int) {
+	if state == stAd {
+		return
+	}
+	state = stAd
+	adReward = reward
+	broadcast "adFlow"
+}
+
+// 复活：修复基地、额外 1 条命，玩家回到出生点并获得出生保护
+func revive() {
+	revived = true
+	if baseDown {
+		baseDown = false
+		grid[baseIdx] = 9
+		broadcast "baseChanged"
+	}
+	lives++
+	broadcast "hud"
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
+	state = stPlay
+	setScreen ""
+	Player.respawn
+	gameOver = false
+	toast "msg.revived", 1.5
+}
+
 func endGame(win bool) {
 	gameOver = true
 	won = win
-	broadcast "gameEnd"
+	state = stResult
+	coins = score / 50
 	if win {
-		toast "msg.win", 9999
+		coins += 100
+	}
+	doubled = false
+	broadcast "gameEnd"
+	showResult
+}
+
+func showResult() {
+	name := "result_lose_"
+	if won {
+		name = "result_win_"
+	}
+	if doubled {
+		name += "done"
 	} else {
-		toast "msg.lose", 9999
+		name += "plain"
+	}
+	setScreen name
+	broadcast "hud" // 刷新金币数
+}
+
+// 确认键：主页开始、复活询问时看视频、结算时看视频翻倍
+func confirm() {
+	switch state {
+	case stHome:
+		startGame
+	case stRevive:
+		watchAd rewardRevive
+	case stResult:
+		if !doubled {
+			watchAd rewardDouble
+		}
 	}
 }
 
@@ -281,7 +407,7 @@ func baseDestroyed() {
 		broadcast "baseCam"
 	}
 	Boom.explodeAt baseX, baseY, 1.5
-	endGame false
+	defeat
 }
 
 func enemyKilled(points int) {
@@ -331,6 +457,7 @@ func buildMap() {
 				grid[i] = 9
 				baseX = cellX(c)
 				baseY = cellY(r)
+				baseIdx = i
 				Tile.build baseX, baseY, 9, i
 			}
 		}
@@ -349,6 +476,9 @@ func startGame() {
 	pbCount = 0
 	enemiesLeft = totalEnemy
 	baseDown = false
+	revived = false
+	state = stPlay
+	setScreen ""
 	Camera.setZoom 1
 	Camera.setXYpos 0, 0
 	buildMap
@@ -390,17 +520,74 @@ onMsg "baseCam", => {
 	camBusy = false
 }
 
-onKey KeyR, => {
-	if gameOver {
+onKey KeyEnter, => {
+	confirm
+}
+
+onKey KeyJ, => {
+	confirm
+}
+
+onKey KeySpace, => {
+	if state == stHome {
 		startGame
+	}
+}
+
+onKey KeyEscape, => {
+	if state == stRevive {
+		endGame false
+	}
+}
+
+onKey KeyR, => {
+	if state == stResult {
+		startGame
+	}
+}
+
+onKey KeyH, => {
+	if state == stResult {
+		goHome
+	}
+}
+
+// 复活询问：倒计时结束还没选择就直接结算
+onMsg "reviveFlow", => {
+	wait 2.2 // 先让爆炸和镜头特写播完
+	for n := reviveSeconds; n >= 1; n-- {
+		if state != stRevive {
+			return
+		}
+		setScreen "revive_" + strconv.Itoa(n)
+		wait 1
+	}
+	if state == stRevive {
+		endGame false
+	}
+}
+
+// 模拟的激励视频：倒计时结束后发放奖励（正式版接入 Google H5 Games Ads）
+onMsg "adFlow", => {
+	for n := adSeconds; n >= 1; n-- {
+		setScreen "adplay_" + strconv.Itoa(n)
+		wait 1
+	}
+	if adReward == rewardRevive {
+		revive
+	} else {
+		coins *= 2
+		doubled = true
+		state = stResult
+		showResult
 	}
 }
 
 // 游戏结束后，等爆炸声播完再放胜利 / 失败音乐
 onMsg "gameEnd", => {
 	wait 1.2
-	if !gameOver {
-		return // 已经按 R 重新开始了
+	if state != stResult {
+		return // 已经重新开始或回到主页了
 	}
 	if won {
 		sfx "win"
@@ -411,7 +598,7 @@ onMsg "gameEnd", => {
 
 onStart => {
 	buildHud
-	startGame
+	goHome
 	for {
 		wait 2
 		if !gameOver && spawned < totalEnemy && enemiesAlive < maxAlive {

@@ -97,7 +97,7 @@ onMsg "playerHit", => {
 	Boom.explodeAt xpos, ypos, 1.2
 	hide
 	if lives <= 0 {
-		endGame false
+		defeat
 		return
 	}
 	wait 1.5

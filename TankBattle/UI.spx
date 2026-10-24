@@ -1,6 +1,6 @@
 import "strconv"
 
-// 所有界面元素（标签、数字、图标、语言按钮、提示条）都是 UI 的克隆，用 kind 区分。
+// 所有界面元素（标签、数字、图标、语言按钮、提示条、广告位、弹窗画面）都是 UI 的克隆，用 kind 区分。
 //
 // 为什么这样写：spx 解释器（本地 spx run 和 XBuilder 网页版共用）的方法表有全局上限 2560。
 // 实测发现，每出现一种“新的字段总大小”的精灵类型，就要多占约 110 个位置，v1 已经接近上限。
@@ -8,7 +8,7 @@ import "strconv"
 // 详见 docs/ARCHITECTURE.md 的「解释器方法表上限」。
 var (
 	kind  int     // 见下面的 kind 常量
-	key   string  // 标签 / 提示条：文案 key，造型名是 "<key>_<语言>"
+	key   string  // 标签 / 提示条：文案 key，造型名是 "<key>_<语言>"；广告位："card" 或 "banner"
 	slot  int     // 数字：第几个字符；图标：第几个
 	baseX float64 // 数字：锚点
 	baseY float64
@@ -22,7 +22,10 @@ const (
 	kPip   = 4 // 顶栏的敌军剩余格子
 	kLife  = 5 // 生命图标
 	kLang  = 6 // 中 | EN 语言按钮
-	kToast = 7 // 提示条
+	kToast  = 7  // 提示条
+	kAd     = 8  // 广告位：对局中的原生广告卡（key "card"）或主页横幅（key "banner"）
+	kScreen = 9  // 全屏 / 弹窗画面：主页、复活、模拟广告、结算（造型名在舞台的 screen 里）
+	kCoin   = 10 // 结算弹窗里金币数的一个字符位（金色，左对齐）
 )
 
 // ---------- 创建 ----------
@@ -66,18 +69,66 @@ func toastBar(x, y float64) {
 	clone
 }
 
+// 广告位，k 是 "card" 或 "banner"
+func adSlot(x, y float64, k string) {
+	kind = kAd
+	key = k
+	setXYpos x, y
+	clone
+}
+
+func screenLayer() {
+	kind = kScreen
+	setXYpos 0, 0
+	clone
+}
+
+// ---------- 点击区域 ----------
+
+// (x, y) 是否在按钮 name 的范围内（由 tools/assets/build.py 生成，和画面保持一致）
+func hit(name string, x, y float64) bool {
+	// BEGIN GENERATED hit
+	switch name {
+	case "home.start":
+		return x >= -224 && x <= -54 && y >= 46 && y <= 96
+	case "revive.ad":
+		return x >= -162 && x <= 18 && y >= -32 && y <= -4
+	case "revive.giveup":
+		return x >= -127 && x <= -17 && y >= -88 && y <= -66
+	case "result.ad":
+		return x >= -162 && x <= 18 && y >= -12 && y <= 14
+	case "result.again":
+		return x >= -162 && x <= 18 && y >= -54 && y <= -24
+	case "result.home":
+		return x >= -117 && x <= -27 && y >= -90 && y <= -68
+	case "card.close":
+		return x >= 206 && x <= 222 && y >= -86 && y <= -70
+	case "card":
+		return x >= 102 && x <= 222 && y >= -156 && y <= -70
+	case "banner.close":
+		return x >= 202 && x <= 224 && y >= -168 && y <= -136
+	case "banner":
+		return x >= -224 && x <= 224 && y >= -168 && y <= -136
+	}
+	// END GENERATED hit
+	return false
+}
+
 // ---------- 数字 ----------
 
 // 数字宽度和逗号宽度（由 tools/assets/build.py 生成，和造型保持一致）
 func widths(st string) (float64, float64) {
-	// BEGIN GENERATED
+	// BEGIN GENERATED widths
 	if st == "S" {
 		return 10.782, 6.084
 	}
 	if st == "B" {
 		return 4.792, 2.704
 	}
-	// END GENERATED
+	if st == "C" {
+		return 8.386, 4.732
+	}
+	// END GENERATED widths
 	return 0, 0
 }
 
@@ -100,6 +151,13 @@ func refreshNumber() {
 	if kind == kBest {
 		s = withCommas(best)
 		st = "B"
+	} else if kind == kCoin {
+		s = withCommas(coins)
+		st = "C"
+		if state != stResult {
+			hide
+			return
+		}
 	}
 	if slot >= len(s) {
 		hide
@@ -138,7 +196,7 @@ func refresh() {
 	case kLabel:
 		setCostume key + "_" + langCode()
 		show
-	case kScore, kBest:
+	case kScore, kBest, kCoin:
 		refreshNumber
 	case kPip:
 		if slot < killed {
@@ -155,11 +213,74 @@ func refresh() {
 		}
 		show
 	case kLang:
-		setCostume "toggle_" + langCode()
-		show
+		if state == stAd {
+			hide // 播放广告时不显示，避免挡住广告
+		} else {
+			setCostume "toggle_" + langCode()
+			show
+		}
 	case kToast:
 		if left > 0 {
 			setCostume key + "_" + langCode()
+		}
+	case kAd:
+		// 原生广告卡在对局、复活询问、结算时显示，横幅只在主页显示；播放激励视频时都不显示。玩家关掉后不再出现
+		card := key == "card" && (state == stPlay || state == stRevive || state == stResult) && !cardClosed
+		banner := key == "banner" && state == stHome && !bannerClosed
+		if card || banner {
+			setCostume key + "_" + langCode()
+			show
+		} else {
+			hide
+		}
+	case kScreen:
+		if screen == "" {
+			hide
+		} else {
+			setCostume screen + "_" + langCode()
+			show
+		}
+	}
+}
+
+// 点击广告位：关闭按钮关掉广告，其他位置模拟打开广告主页
+func clickAd() {
+	x := mouseX
+	y := mouseY
+	if hit(key+".close", x, y) {
+		if key == "card" {
+			cardClosed = true
+		} else {
+			bannerClosed = true
+		}
+		hide
+		return
+	}
+	toast "msg.adclick", 1.5
+}
+
+// 点击全屏 / 弹窗画面上的按钮
+func clickScreen() {
+	x := mouseX
+	y := mouseY
+	switch state {
+	case stHome:
+		if hit("home.start", x, y) {
+			startGame
+		}
+	case stRevive:
+		if hit("revive.ad", x, y) {
+			watchAd rewardRevive
+		} else if hit("revive.giveup", x, y) {
+			endGame false
+		}
+	case stResult:
+		if hit("result.ad", x, y) && !doubled {
+			watchAd rewardDouble
+		} else if hit("result.again", x, y) {
+			startGame
+		} else if hit("result.home", x, y) {
+			goHome
 		}
 	}
 }
@@ -195,11 +316,32 @@ onMsg "langChanged", => {
 	}
 }
 
+// 画面切换：画面层移到最前，然后（"raise"）再把广告位、语言按钮、提示条放到画面之上
+onMsg "screen", => {
+	if isCloned {
+		refresh
+		if kind == kScreen {
+			setLayer Front
+		}
+	}
+}
+
+onMsg "raise", => {
+	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin) {
+		setLayer Front
+	}
+}
+
 // 显示提示条，内容在舞台的 toastKey / toastSecs 里
 onMsg "toast", => {
 	if isCloned && kind == kToast {
 		key = toastKey
 		left = toastSecs
+		if state == stHome {
+			setXYpos 0, -118 // 主页：菜单和横幅之间的空白处
+		} else {
+			setXYpos -72, 20 // 战场上方
+		}
 		refresh
 		setLayer Front
 		show
@@ -207,7 +349,15 @@ onMsg "toast", => {
 }
 
 onClick => {
-	if isCloned && kind == kLang {
+	if !isCloned {
+		return
+	}
+	switch kind {
+	case kLang:
 		switchLang
+	case kAd:
+		clickAd
+	case kScreen:
+		clickScreen
 	}
 }
