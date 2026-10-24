@@ -87,6 +87,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           xgo-version: ${{ env.XGO_VERSION }}
+      - name: Go 放到普通目录（Windows）
+        # buildlauncher 要求 go.exe 是“规范路径”，而 Go 在 Windows 上解析 C:\hostedtoolcache 的目录链接会失败
+        if: runner.os == 'Windows'
+        run: |
+          cp -r "$(go env GOROOT)" "$RUNNER_TEMP/go"
+          echo "$RUNNER_TEMP/go/bin" >> "$GITHUB_PATH"
       - name: 安装 spx
         run: tools/export/setup_spx.sh
       - name: 打包
