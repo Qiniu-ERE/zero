@@ -81,7 +81,16 @@ build_desktop() {
       # 包成 .app，双击就能打开
       local app="$out/$APP_TITLE.app"
       mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-      mv "$exe" "$app/Contents/MacOS/$APP_NAME"
+      # 真正的程序叫 TankBattle-bin，外面套一个启动脚本：关掉 Go 的异步抢占（GODEBUG=asyncpreemptoff=1）。
+      # 游戏的 Go 库运行在引擎进程里，Go 用来抢占的 SIGURG 信号可能落到引擎自己的线程上，
+      # 偶尔会让进程崩溃（"non-Go code set up signal handler without SA_ONSTACK flag"，CI 的冒烟测试里遇到过）
+      mv "$exe" "$app/Contents/MacOS/$APP_NAME-bin"
+      cat > "$app/Contents/MacOS/$APP_NAME" <<'SH'
+#!/bin/sh
+export GODEBUG="${GODEBUG:+$GODEBUG,}asyncpreemptoff=1"
+exec "$(dirname "$0")/TankBattle-bin" "$@"
+SH
+      chmod +x "$app/Contents/MacOS/$APP_NAME"
       local iconset="$BUILD_DIR/icon.iconset"
       rm -rf "$iconset" && mkdir -p "$iconset"
       for s in 16 32 128 256 512; do
@@ -92,7 +101,9 @@ build_desktop() {
       local base="${APP_VERSION%%-*}"   # Info.plist 的版本号只能是数字（去掉 -dev.N）
       sed -e "s/@NAME@/$APP_NAME/g" -e "s/@TITLE@/$APP_TITLE/g" -e "s/@ID@/$APP_ID/g" -e "s/@VERSION@/$base/g" \
         "$EXPORT_DIR/Info.plist" > "$app/Contents/Info.plist"
-      codesign --force --deep -s - "$app" 2>/dev/null || true  # ad-hoc 签名，Apple Silicon 必须有签名才能运行
+      # ad-hoc 签名：Apple Silicon 上的程序必须有签名才能运行。先签真正的程序，再签整个 App
+      codesign --force -s - "$app/Contents/MacOS/$APP_NAME-bin"
+      codesign --force -s - "$app" 2>/dev/null || true
       readme macOS > "$out/README.txt"
       (cd "$out" && ditto -c -k --sequesterRsrc --keepParent "$APP_TITLE.app" "$DIST_DIR/$name.zip" && zip -q "$DIST_DIR/$name.zip" README.txt)
       ;;
@@ -103,8 +114,15 @@ build_desktop() {
       ;;
     *)
       readme Linux > "$out/README.txt"
+      # 和 macOS 一样，用启动脚本关掉 Go 的异步抢占（见上面 macOS 部分的说明）
+      mv "$exe" "$out/$APP_NAME-bin" && chmod +x "$out/$APP_NAME-bin"
+      cat > "$exe" <<'SH'
+#!/bin/sh
+export GODEBUG="${GODEBUG:+$GODEBUG,}asyncpreemptoff=1"
+exec "$(dirname "$0")/TankBattle-bin" "$@"
+SH
       chmod +x "$exe"
-      tar -C "$out" -czf "$DIST_DIR/$name.tar.gz" "$APP_NAME" README.txt
+      tar -C "$out" -czf "$DIST_DIR/$name.tar.gz" "$APP_NAME" "$APP_NAME-bin" README.txt
       ;;
   esac
 }

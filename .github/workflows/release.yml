@@ -209,7 +209,7 @@ jobs:
           (./TankBattle > run.log 2>&1 &)
           sleep 40
           import -window root ../smoke-linux.png
-          pgrep -f TankBattle > /dev/null && echo "running" || { echo "not running"; tail -50 run.log; }
+          pgrep -f gdspxrt > /dev/null && echo "running" || { echo "not running"; tail -50 run.log; }
           cp run.log ../smoke-linux.log
       - uses: actions/upload-artifact@v4
         if: always()
