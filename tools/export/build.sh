@@ -98,7 +98,7 @@ build_desktop() {
       ;;
     windows-*)
       readme Windows > "$out/安装说明.txt"
-      (cd "$out" && 7z a -tzip -bso0 "$DIST_DIR/$name.zip" "$APP_NAME.exe" 安装说明.txt)
+      (cd "$out" && 7z a -tzip -mcu=on -bso0 "$DIST_DIR/$name.zip" "$APP_NAME.exe" 安装说明.txt)  # -mcu=on：中文文件名用 UTF-8
       ;;
     *)
       readme Linux > "$out/安装说明.txt"

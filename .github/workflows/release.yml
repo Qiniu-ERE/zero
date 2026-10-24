@@ -205,4 +205,6 @@ jobs:
           VERSION: ${{ needs.plan.outputs.version }}
         run: |
           sed "s/@VERSION@/$VERSION/g" tools/export/RELEASE_NOTES.md > "$RUNNER_TEMP/notes.md"
-          gh release create "$GITHUB_REF_NAME" dist/* --title "坦克大战 2026 v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+          pre=""
+          case "$VERSION" in *-*) pre="--prerelease" ;; esac   # v3.0.0-rc.1 这类版本标记为预发布
+          gh release create "$GITHUB_REF_NAME" dist/* $pre --title "坦克大战 2026 v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
