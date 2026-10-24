@@ -94,6 +94,10 @@ const (
 	fieldTop   = 150.0  // 战场上边界
 	totalEnemy = 20     // 每关敌人总数
 	lastStage  = 8      // 关卡总数
+	touchUI    = false  // 触屏模式：打 Android / iOS 包时 tools/export/build.sh 会把它改成 true
+	padX       = 162.0  // 触屏模式的方向键中心（右侧面板里）
+	padY       = 8.0
+	padR       = 58.0 // 方向键的响应半径
 	customStage = 9     // 自制地图试玩时的关卡编号
 )
 
@@ -759,6 +763,7 @@ func buildHud() {
 	UI.adSlot 0, -152, "banner"
 	// 全屏 / 弹窗画面，以及结算弹窗里的金币数
 	UI.screenLayer
+	UI.icon kTouchPad, padX, padY, 0 // 触屏模式的方向键（只在触屏模式的对局中显示）
 	// 编辑器的小部件（只在编辑器里显示）
 	UI.icon kEdSel, 0, 0, 0
 	UI.icon kEdSwitch, 208, 83, 0  // 对称开关

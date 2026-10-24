@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+	<title>坦克大战 2026</title>
+	<meta name="theme-color" content="#07090f">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="坦克大战">
+	<link rel="apple-touch-icon" href="icon-192.png">
+	<link rel="icon" href="icon-192.png">
+	<link rel="manifest" href="manifest.webmanifest">
+	<link rel="stylesheet" href="play.css">
+	<script src="fflate.js"></script>
+</head>
+<body>
+	<!-- 游戏本体：spx 导出的 runner.html，按 4:3 等比放大 -->
+	<iframe id="game" src="runner.html" title="坦克大战 2026" allow="autoplay; fullscreen"></iframe>
+
+	<!-- 开始画面：手机上必须由玩家点一下才能播放声音 -->
+	<div id="start">
+		<img src="icon-512.png" alt="">
+		<h1>坦克大战 <span>2026</span></h1>
+		<p class="sub">XBuilder 复刻重铸版 · Battle City Reforged</p>
+		<button id="startBtn">点击开始 · Tap to start</button>
+		<div id="progress" hidden><div id="bar"></div></div>
+		<p id="msg"></p>
+		<p class="hint" id="installHint"></p>
+	</div>
+
+	<!-- 触屏虚拟按键（只在触屏设备上显示）：按下时向游戏发送键盘事件 -->
+	<div id="pad" hidden>
+		<div class="side left">
+			<div class="dpad" data-keys="KeyW,KeyS,KeyA,KeyD"><span class="tag">1P</span></div>
+			<button class="fire" data-key="KeyJ">开火</button>
+		</div>
+		<div class="side right">
+			<div class="dpad p2" data-keys="ArrowUp,ArrowDown,ArrowLeft,ArrowRight"><span class="tag">2P</span></div>
+			<button class="fire" data-key="KeyJ" id="fire1">开火</button>
+			<button class="fire p2" data-key="Enter" id="fire2">开火</button>
+		</div>
+		<div class="top">
+			<button class="small" data-key="KeyT">画风</button>
+			<button class="small" id="coopBtn">双人按键</button>
+			<button class="small" id="fsBtn">全屏</button>
+		</div>
+	</div>
+
+	<script src="play.js"></script>
+</body>
+</html>

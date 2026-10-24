@@ -6,6 +6,10 @@
 > 本文是 [v3.0 规划](PLAN.md)中“跨平台”部分的可行性评估，**只做评估和文档，不改游戏代码**。文中的截图分两类，都已标明：
 > **实测**是 2026-10-24 在 macOS（M1 Pro）上真实导出并运行后截的图；**概念示意**是方案效果图，里面的游戏画面也是实测截图。
 
+## 实现状态
+
+**✅ 打包工具和发布流程已实现**（[PR #15](https://github.com/Qiniu-ERE/zero/pull/15)），详见下面的[第七节](#七实现结果)。本地已经验证 macOS 单文件程序和网页版；Windows、Linux、Android、iOS 由 GitHub Actions 打包，在 CI 上验证。下面第一到六节是当初的评估记录。
+
 ## 结论速览
 
 **不需要“解码”或逆向。** XBuilder 导出的 `.xbp` 就是一个 zip 包，里面是 spx 源码和素材。XBuilder 的运行引擎是 spx 4.0，内核是 **Godot 4.4.1**。spx 命令行自带导出命令，可以把同一份源码打成各个平台的原生包，也可以导出 Web 包。所以“自制 App”是正常的**编译打包**，不需要破解。只有 iPhone 装原生 App 时绕不开苹果签名（见 3.2）。
@@ -228,6 +232,84 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 | 苹果签名和应用商店审核 | iOS 原生分发受限 | 比赛演示用免费账号或 TestFlight，正式上架不在 v3.0 范围 |
 
 ---
+
+## 七、实现结果
+
+### 7.1 发布了哪些包
+
+推送 `v*` 标签（例如 `v3.0.0`）后，GitHub Actions（`.github/workflows/release.yml`）打出下面这些包，并创建 GitHub Release：
+
+| 文件 | 平台 | 怎么打出来的 | 怎么安装 |
+|---|---|---|---|
+| `TankBattle-<版本>-windows-x64.zip` | Windows 10 / 11 | `windows-latest` 上 `spx buildlauncher`（MSYS2 提供 gcc） | 解压后双击 `TankBattle.exe` |
+| `TankBattle-<版本>-macos-arm64.zip` | macOS（Apple 芯片） | `macos-15` 上 `spx buildlauncher`，再包成 `坦克大战 2026.app`（图标、Info.plist、ad-hoc 签名） | 第一次右键 → 打开 |
+| `TankBattle-<版本>-linux-x64.tar.gz` | Linux x86_64 | `ubuntu-latest` 上 `spx buildlauncher` | `./TankBattle` |
+| `TankBattle-<版本>-web.zip` | iPhone / 安卓 / 浏览器 | `spx exportweb` + 我们的外壳页面（PWA） | 上传到 HTTPS 静态网站，手机“添加到主屏幕” |
+| `TankBattle-<版本>-android.apk` | Android（arm64） | `spx exportapk`（NDK r23c、JDK 17），调试证书签名，**触屏模式** | 直接安装 |
+| `TankBattle-<版本>-ios-unsigned.ipa` | iPhone / iPad | `spx exportios` 只导出 Xcode 工程，`xcodebuild` 不签名编译，**触屏模式** | Sideloadly / AltStore 用自己的 Apple ID 签名安装 |
+
+每个包里都附带对应平台的README.txt（安装说明）（来自 [`tools/export/INSTALL.md`](../../tools/export/INSTALL.md)），Release 里还有 `SHA256SUMS.txt`。
+
+本地也能用同样的脚本打包：
+
+```sh
+tools/export/setup_spx.sh web        # 第一次：spx 源码、模板补丁、xgo、运行时（可加 android / ios）
+tools/export/build.sh desktop        # 当前系统的单文件程序
+tools/export/build.sh web            # 网页版
+```
+
+### 7.2 关键做法
+
+| 问题 | 做法 |
+|---|---|
+| spx 的 Go 模块 `v4.0.0` 还没发布 | 从固定提交（`c3c0da5`）编译安装 spx，游戏的 `go.mod` 用 `replace` 指向这份源码 |
+| spx 每次导出都会用内置模板覆盖 `export_presets.cfg`，包名是 `com.gamestan.spx`，iOS 的 Team ID 是 spx 自己的 | `patch_spx.py` 在编译 spx 之前改模板：包名 `com.qiniu.tankbattle`、应用名、版本号、图标；iOS 改为只导出 Xcode 工程，再用 `xcodebuild CODE_SIGNING_ALLOWED=NO` 编出不签名的 IPA |
+| 原生 App 里没有网页外壳的虚拟按键 | 游戏加了**触屏模式**（`touchUI`，只在 Android / iOS 包里打开）：右侧面板换成方向键，按住移动并自动开火，点战场也能开火。引擎只把一根手指当作鼠标，所以按方向时自动开火 |
+| 桌面窗口标题显示一串哈希 | `assets/index.json` 里设置 `run.title` |
+| 网页版只有 spx 的调试台页面 | `tools/export/web/`：自动启动、4:3 铺满、多点触控虚拟按键（单人 WASD + J；“双人按键”打开后右边是 2P 的方向键 + Enter）、PWA 清单、离线缓存；电脑上把键盘事件转发进游戏 |
+| 单文件程序是否真的自包含 | 实测：启动器第一次运行时把内嵌的引擎解压到 `~/Library/Caches/spx/runtimebundle/`，换目录、换电脑都能运行 |
+
+### 7.3 实测截图
+
+| macOS：解压出的 `坦克大战 2026.app` | 网页版：iPhone 横屏（模拟） | 按住方向键“上”之后 |
+|---|---|---|
+| ![](release/macos-app.png) | ![](release/web-phone-home.png) | ![](release/web-phone-play.png) |
+
+| 网页版：竖屏 | 网页版：电脑浏览器 | 手机 App 的触屏模式 |
+|---|---|---|
+| ![](release/web-phone-portrait.png) | ![](release/web-desktop.png) | ![](release/app-touch-mode.png) |
+
+- macOS：从别的目录启动解压出的 `.app`，正常进入主页；Bundle ID、显示名、ad-hoc 签名都对。
+- 网页版：用无头 Chrome 模拟 iPhone（横屏、竖屏、触屏），点“开始”后进入主页，点“开火”进入第 1 关，按住方向键“上”坦克向上开，按住“右”转向右边并移动。
+- 触屏模式：在 `spx run` 里打开 `touchUI` 预览布局（截图右下）。
+
+### 7.4 CI 上的冒烟测试
+
+在提交说明里带 `[ci smoke]` 时，CI 会把打好的桌面包解压、启动，45 秒后截屏（`smoke-windows` / `smoke-macos` / `smoke-linux` 三个任务）：
+
+| Windows（windows-latest，没有显卡，自动用 ANGLE 软件渲染） | macOS（macos-15） | Linux（Xvfb 虚拟显示器 + lavapipe 软件 Vulkan） |
+|---|---|---|
+| ![](release/ci-smoke-windows.png) | ![](release/ci-smoke-macos.png) | ![](release/ci-smoke-linux.png) |
+
+三个平台都正常进入了主页。冒烟测试发现并修复了两个问题：
+
+- **macOS 偶发崩溃**：`signal 16 received but handler not on signal stack` / `non-Go code set up signal handler without SA_ONSTACK flag`。游戏的 Go 库运行在引擎进程里，Go 用来做异步抢占的 SIGURG 信号可能落到引擎自己的线程上。修法：`.app` 和 Linux 包都通过一个小启动脚本运行，设置 `GODEBUG=asyncpreemptoff=1`（引擎子进程会继承）。本机跑了十几次都没遇到，CI 上第一次就遇到了，说明是和时机有关的偶发问题，用户机器上也可能出现。
+- **Windows 压缩包里的中文文件名乱码**：各平台的说明文件统一改名为 `README.txt`（Windows 版带 UTF-8 BOM）。
+
+另外几点：
+
+- Windows 版运行时还会开一个黑色的日志控制台窗口（spx 的启动器是控制台程序），不影响游戏。
+- **APK 没法在 CI 的安卓模拟器里测**：Godot 的安卓模板只有 ARM 引擎库（arm64、armv7），只能用 x86_64 模拟器的 ARM 转译来跑，而转译层不支持 Go 运行时读取 CPU 型号的指令（`mrs MIDR_EL1`），启动 3 秒后 SIGILL 崩溃。真机的 Linux 内核会处理这条指令，所以这只是模拟器的限制，但 APK 仍然要在真机上验证。
+- iOS 包检查过内容：Bundle ID `com.qiniu.tankbattle`、版本 3.0.0、arm64 可执行文件、坦克图标；主屏幕名称是 “TankBattle”。
+
+### 7.5 限制和没验证的部分
+
+- **GitHub Pages 用不了**：仓库是私有的，组织是免费套餐，不支持 Pages。所以网页版以 zip 发布，需要自己上传到静态网站（例如七牛云 Kodo）。仓库公开后可以加一个 Pages 部署任务。
+- **Actions 分钟数**：私有仓库每月 2000 分钟，macOS 机器按 10 倍计算。一次完整发布大约用 400~500 分钟，所以调试时用提交信息里的 `[ci 平台]` 只打需要的平台。
+- **签名**：macOS 和 Windows 都没有付费签名证书，第一次打开会有系统提示（说明里写了怎么打开）；APK 用调试证书；IPA 不签名。上架应用商店不在 v3.0 范围内。
+- **Intel Mac、Windows ARM、Linux ARM** 没有打包。
+- **真机**：Android、iOS 的包在 CI 上打出来，还没有在真机上装过；手机网页版只在模拟器里测过。
+- **iOS 的 MoltenVK**：模板的 Xcode 工程要求 `MoltenVK.xcframework`，打包时用 Khronos 发布的 v1.3.0 静态版本补上；真机上的渲染还没验证。
 
 ## 附录：复现命令
 

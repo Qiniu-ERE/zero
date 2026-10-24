@@ -1,0 +1,109 @@
+html, body {
+	margin: 0;
+	height: 100%;
+	background: #07090f;
+	color: #e6ecf5;
+	font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+	overflow: hidden;
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+/* 游戏画面：位置和大小由 play.js 按 4:3 计算 */
+#game {
+	position: absolute;
+	border: 0;
+	background: #07090f;
+	visibility: hidden;
+}
+body.playing #game { visibility: visible; }
+
+/* 开始画面 */
+#start {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	background: radial-gradient(circle at 50% 40%, #16324a 0%, #07090f 70%);
+	text-align: center;
+	padding: 20px;
+	z-index: 3;
+}
+body.playing #start { display: none; }
+#start img { width: min(30vmin, 160px); border-radius: 22%; box-shadow: 0 8px 30px rgba(62, 232, 255, .25); }
+#start h1 { margin: 6px 0 0; font-size: min(8vmin, 40px); }
+#start h1 span { color: #ffc93a; }
+#start .sub { margin: 0; color: #8a96ad; font-size: 14px; }
+#startBtn {
+	margin-top: 14px;
+	padding: 14px 34px;
+	border: 0;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #ff9a1a, #ff5a1a);
+	color: #fff;
+	font-size: 18px;
+	font-weight: 700;
+	cursor: pointer;
+}
+#startBtn:disabled { opacity: .5; }
+#progress { width: min(60vw, 320px); height: 6px; border-radius: 3px; background: #1d2638; overflow: hidden; }
+#bar { width: 0; height: 100%; background: #3ee8ff; transition: width .2s; }
+#msg { min-height: 1.2em; margin: 4px 0 0; color: #9fdcea; font-size: 14px; }
+#start .hint { max-width: 520px; color: #5a6680; font-size: 12px; line-height: 1.6; }
+
+/* 虚拟按键 */
+#pad { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+#pad .side { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+#pad .dpad, #pad button { pointer-events: auto; touch-action: none; }
+#pad .dpad {
+	position: relative;
+	width: var(--dpad, 150px);
+	height: var(--dpad, 150px);
+	border-radius: 50%;
+	background:
+		linear-gradient(#fff3, #fff3) center / 34% 100% no-repeat,
+		linear-gradient(#fff3, #fff3) center / 100% 34% no-repeat,
+		rgba(255, 255, 255, .06);
+	border: 2px solid rgba(255, 255, 255, .25);
+}
+#pad .dpad.active { border-color: #3ee8ff; }
+#pad .tag { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: #ffd23a; display: none; }
+#pad .dpad.p2 .tag { color: #4fe3c1; }
+#pad .fire {
+	width: var(--fire, 96px);
+	height: var(--fire, 96px);
+	border-radius: 50%;
+	border: 3px solid rgba(255, 255, 255, .5);
+	background: rgba(255, 106, 42, .85);
+	color: #fff;
+	font-size: 18px;
+	font-weight: 700;
+}
+#pad .fire.p2 { background: rgba(79, 227, 193, .8); }
+#pad .fire.down { filter: brightness(1.3); transform: scale(.94); }
+/* 功能按钮放在左上角（右上角是游戏自己的“中 | EN”切换） */
+/* 横屏：左侧空白区里竖着排；竖屏：屏幕底部横着排 */
+#pad .top { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+@media (orientation: portrait) {
+	#pad .top { top: auto; bottom: max(10px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); flex-direction: row; }
+}
+#pad .small {
+	padding: 6px 12px;
+	border: 1px solid rgba(255, 255, 255, .25);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, .08);
+	color: #c8d2e3;
+	font-size: 13px;
+}
+#pad .small.on { border-color: #4fe3c1; color: #4fe3c1; }
+
+/* 单人：左边方向键（WASD），右边开火（J）。双人：左边 1P（WASD + J），右边 2P（方向键 + Enter） */
+#pad .dpad.p2, #pad .fire.p2, #pad .left .fire { display: none; }
+body.coop #pad .dpad.p2, body.coop #pad .fire.p2, body.coop #pad .left .fire { display: block; }
+body.coop #pad #fire1 { display: none; }
+body.coop #pad .tag { display: block; }
