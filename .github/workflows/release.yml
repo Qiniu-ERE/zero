@@ -1,0 +1,202 @@
+# 打包并发布坦克大战：Windows / macOS / Linux 单文件程序、网页版（PWA，iPhone 和安卓用）、Android APK、iOS IPA。
+#
+# - 推送 v* 标签（例如 v3.0.0）：打全部平台，并创建 GitHub Release，把安装包挂上去
+# - 手动运行（Actions 页面 → Release → Run workflow）：打全部平台，产物在这次运行的 Artifacts 里，不发布
+# - 推送到 feat/v3-release 分支时，只在提交信息里带 [ci 平台] 才打对应平台（调试用，节省 Actions 分钟数）：
+#   [ci desktop] [ci web] [ci android] [ci ios] [ci all]
+#
+# 打包脚本在 tools/export/，本地也能用同样的命令打包。
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+    branches: [feat/v3-release]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.26.5'   # 和 spx 的 runtime.lock.json 一致
+  XGO_VERSION: 'v1.7.5'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.p.outputs.version }}
+      desktop: ${{ steps.p.outputs.desktop }}
+      web: ${{ steps.p.outputs.web }}
+      android: ${{ steps.p.outputs.android }}
+      ios: ${{ steps.p.outputs.ios }}
+    steps:
+      - id: p
+        env:
+          MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if [ "${{ github.ref_type }}" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="3.0.0-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          all=false
+          if [ "${{ github.ref_type }}" = tag ] || [ "${{ github.event_name }}" = workflow_dispatch ] || [[ "$MSG" == *"[ci all]"* ]]; then all=true; fi
+          for t in desktop web android ios; do
+            if $all || [[ "$MSG" == *"[ci $t]"* ]]; then echo "$t=true"; else echo "$t=false"; fi >> "$GITHUB_OUTPUT"
+          done
+          echo "version $version"; cat "$GITHUB_OUTPUT"
+
+  desktop:
+    needs: plan
+    if: needs.plan.outputs.desktop == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15        # Apple 芯片
+          - os: windows-latest  # x64
+          - os: ubuntu-latest   # x64
+    runs-on: ${{ matrix.os }}
+    env:
+      APP_VERSION: ${{ needs.plan.outputs.version }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up MSYS2 (Windows：编译需要 gcc)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-toolchain
+      - name: Add MinGW to PATH (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "${RUNNER_TEMP}/msys64/mingw64/bin" >> "$GITHUB_PATH"
+      - name: Linux 依赖
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -y -q gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev zip
+      - uses: goplus/setup-xgo@v1
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          xgo-version: ${{ env.XGO_VERSION }}
+      - name: 安装 spx
+        run: tools/export/setup_spx.sh
+      - name: 打包
+        run: tools/export/build.sh desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os }}
+          path: dist/*
+          if-no-files-found: error
+
+  web:
+    needs: plan
+    if: needs.plan.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -q && sudo apt-get install -y -q gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev zip
+      - uses: goplus/setup-xgo@v1
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          xgo-version: ${{ env.XGO_VERSION }}
+      - run: tools/export/setup_spx.sh web
+      - run: tools/export/build.sh web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: dist/*
+          if-no-files-found: error
+
+  android:
+    needs: plan
+    if: needs.plan.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -q && sudo apt-get install -y -q gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android NDK r23c（spx 锁定的版本）
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;23.2.8568313" "build-tools;34.0.0" "platforms;android-34" > /dev/null
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/23.2.8568313" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+      - uses: goplus/setup-xgo@v1
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          xgo-version: ${{ env.XGO_VERSION }}
+      - run: tools/export/setup_spx.sh android
+      - name: 打包
+        env:
+          # 调试证书：仓库设置了这几个 Secret 就用固定的证书（以后发新版可以覆盖安装），否则临时生成
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+            export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/debug.keystore"
+            export GODOT_ANDROID_KEYSTORE_DEBUG_USER="$ANDROID_KEYSTORE_USER"
+            export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
+          fi
+          tools/export/build.sh android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: dist/*
+          if-no-files-found: error
+
+  ios:
+    needs: plan
+    if: needs.plan.outputs.ios == 'true'
+    runs-on: macos-15
+    env:
+      APP_VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: goplus/setup-xgo@v1
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          xgo-version: ${{ env.XGO_VERSION }}
+      - run: tools/export/setup_spx.sh ios
+      - run: tools/export/build.sh ios
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: [plan, desktop, web, android, ios]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: 校验和
+        run: cd dist && sha256sum * > SHA256SUMS.txt && ls -la
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          sed "s/@VERSION@/$VERSION/g" tools/export/RELEASE_NOTES.md > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" dist/* --title "坦克大战 2026 v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
