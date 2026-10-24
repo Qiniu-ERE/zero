@@ -498,12 +498,12 @@ def adplay(n, lang, total=5):
     s.append(text(464, 21, tr("ap.reward", lang).format(n=n), 8, "#c8d2e3", True, "end"))
     s.append(f'<rect x="16" y="32" width="448" height="2.5" rx="1.25" fill="#ffffff" fill-opacity="0.12"/>')
     s.append(f'<rect x="16" y="32" width="{448*(total-n+1)/total:.2f}" height="2.5" rx="1.25" fill="{GBLUE}"/>')
-    # 广告素材（示例品牌）
+    # 广告素材（七牛云广告位招商）
     s.append('<rect x="90" y="62" width="300" height="220" rx="16" fill="#ffffff"/>')
     s.append(brand_logo(240, 112, 22))
     s.append(text(240, 158, tr("ad.brand", lang), 13, "#202124", True, "middle"))
     s.append(text(240, 190, tr("ap.big", lang), 22, GBLUE, True, "middle"))
-    s.append(text(240, 210, tr("ad.head", lang), 8, "#5f6368", False, "middle"))
+    s.append(text(240, 210, tr("ap.sub", lang), 8, "#5f6368", False, "middle"))
     s.append(f'<rect x="185" y="232" width="110" height="28" rx="14" fill="{GBLUE}"/>')
     s.append(text(240, 250, tr("ad.cta", lang), 9, "#ffffff", True, "middle"))
     s.append(text(240, 336, tr("ap.demo", lang), 6.8, "#6b778f", False, "middle"))

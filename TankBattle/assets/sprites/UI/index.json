@@ -185,14 +185,14 @@
     {
       "name": "msg.adclick_zh",
       "path": "msg.adclick_zh.svg",
-      "x": 264.0,
+      "x": 336.0,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
       "name": "msg.adclick_en",
       "path": "msg.adclick_en.svg",
-      "x": 359.47,
+      "x": 375.91,
       "y": 44.0,
       "bitmapResolution": 4
     },
