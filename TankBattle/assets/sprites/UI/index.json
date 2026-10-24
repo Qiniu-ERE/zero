@@ -15,6 +15,90 @@
       "bitmapResolution": 4
     },
     {
+      "name": "stage.2_zh",
+      "path": "stage.2_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.2_en",
+      "path": "stage.2_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.3_zh",
+      "path": "stage.3_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.3_en",
+      "path": "stage.3_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.4_zh",
+      "path": "stage.4_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.4_en",
+      "path": "stage.4_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.5_zh",
+      "path": "stage.5_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.5_en",
+      "path": "stage.5_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.6_zh",
+      "path": "stage.6_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.6_en",
+      "path": "stage.6_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.7_zh",
+      "path": "stage.7_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.7_en",
+      "path": "stage.7_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "enemies_zh",
       "path": "enemies_zh.svg",
       "x": 64.0,
@@ -207,6 +291,90 @@
       "name": "msg.revived_en",
       "path": "msg.revived_en.svg",
       "x": 258.15,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage2_zh",
+      "path": "msg.stage2_zh.svg",
+      "x": 336.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage2_en",
+      "path": "msg.stage2_en.svg",
+      "x": 310.55,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage3_zh",
+      "path": "msg.stage3_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage3_en",
+      "path": "msg.stage3_en.svg",
+      "x": 289.16,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage4_zh",
+      "path": "msg.stage4_zh.svg",
+      "x": 282.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage4_en",
+      "path": "msg.stage4_en.svg",
+      "x": 270.26,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage5_zh",
+      "path": "msg.stage5_zh.svg",
+      "x": 282.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage5_en",
+      "path": "msg.stage5_en.svg",
+      "x": 341.44,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage6_zh",
+      "path": "msg.stage6_zh.svg",
+      "x": 246.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage6_en",
+      "path": "msg.stage6_en.svg",
+      "x": 290.08,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage7_zh",
+      "path": "msg.stage7_zh.svg",
+      "x": 282.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.stage7_en",
+      "path": "msg.stage7_en.svg",
+      "x": 277.36,
       "y": 44.0,
       "bitmapResolution": 4
     },
@@ -603,6 +771,20 @@
       "bitmapResolution": 2
     },
     {
+      "name": "result_final_plain_zh",
+      "path": "result_final_plain_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_final_done_zh",
+      "path": "result_final_done_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
       "name": "result_lose_plain_zh",
       "path": "result_lose_plain_zh.svg",
       "x": 480.0,
@@ -731,6 +913,20 @@
     {
       "name": "result_win_done_en",
       "path": "result_win_done_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_final_plain_en",
+      "path": "result_final_plain_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_final_done_en",
+      "path": "result_final_done_en.svg",
       "x": 480.0,
       "y": 360.0,
       "bitmapResolution": 2

@@ -239,7 +239,7 @@ def text_costume(s, size, fill, bold, anchor, pad=1.0):
 
 # 标签：key -> (字号, 颜色, 粗体, 对齐)
 LABELS = {
-    "stage.1": (10, "#ffffff", True, "start"),
+    **{f"stage.{n}": (10, "#ffffff", True, "start") for n in range(1, 8)},
     "enemies": (7.5, MUTED, False, "end"),
     "score": (6.8, MUTED, True, "start"),
     "best": (6.8, MUTED, True, "start"),
@@ -440,6 +440,9 @@ def home(lang):
     # 路演演示模式提示
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
+    x = 16 + cw + 5 + width(tr("home.demo", lang), 7) + 14
+    c, cw = chip(x, 290, "1-7")
+    s.append(c + text(x + cw + 5, 297.4, tr("home.pick", lang), 7, "#7f8ba3"))
     # 展示台和坦克
     s.append('<ellipse cx="330" cy="236" rx="92" ry="20" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')
     defs, body = tank_body(*TANKS["player"])
@@ -513,10 +516,13 @@ def adplay(n, lang, total=5):
 COIN_POS = (MX + 50, MY + 70)  # 结算弹窗里金币数字的锚点（SVG 坐标，基线左端）
 
 
-def result(win, done, lang):
+def result(kind, done, lang):
+    """kind：win 过关（按钮是“下一关”）、final 最后一关也赢了（全部通关）、lose 战败"""
+    win = kind != "lose"
     m = MX + MW / 2
     s = [f'<rect width="{W}" height="{H}" fill="#05070c" fill-opacity="0.5"/>', modal_frame("#f2c94c" if win else "#3a4660")]
-    s.append(text(m, MY + 34, tr("rs.win" if win else "rs.lose", lang), 18, "#ffe27a" if win else "#c8d2e3", True, "middle"))
+    title = {"win": "rs.win", "final": "rs.final", "lose": "rs.lose"}[kind]
+    s.append(text(m, MY + 34, tr(title, lang), 18, "#ffe27a" if win else "#c8d2e3", True, "middle"))
     # 金币（数字由 UI 克隆显示在 COIN_POS）
     s.append(f'<rect x="{MX+20}" y="{MY+48}" width="{MW-40}" height="32" rx="8" fill="#ffffff" fill-opacity="0.05"/>')
     s.append(f'<circle cx="{MX+38}" cy="{MY+64}" r="6.5" fill="url(#gold)"/><circle cx="{MX+38}" cy="{MY+64}" r="4.2" fill="none" stroke="#a86a00" stroke-width="0.9"/>')
@@ -540,7 +546,7 @@ def result(win, done, lang):
     ax, ay, aw, ah = MX + 20, MY + 128, MW - 40, 30
     button("result.again", ax, ay, aw, ah)
     s.append(f'<rect x="{ax}" y="{ay}" width="{aw}" height="{ah}" rx="15" fill="url(#cta)"/>')
-    s.append(text(m - 6, ay + 19.5, tr("rs.again", lang), 10, "#ffffff", True, "middle"))
+    s.append(text(m - 6, ay + 19.5, tr("rs.next" if kind == "win" else "rs.again", lang), 10, "#ffffff", True, "middle"))
     c, cw = chip(0, 0, "R", dark=True)
     s.append(f'<g transform="translate({ax+aw-10-cw:.2f},{ay+10})">{c}</g>')
     # 主页
@@ -564,10 +570,10 @@ def screen_costumes():
             out.append((f"revive_{n}_{lang}", *revive(n, lang), 2))
         for n in range(1, 6):
             out.append((f"adplay_{n}_{lang}", *adplay(n, lang), 2))
-        for win in (True, False):
+        for kind in ("win", "final", "lose"):
             for done in (False, True):
-                name = f"result_{'win' if win else 'lose'}_{'done' if done else 'plain'}_{lang}"
-                out.append((name, *result(win, done, lang), 2))
+                name = f"result_{kind}_{'done' if done else 'plain'}_{lang}"
+                out.append((name, *result(kind, done, lang), 2))
     # 广告卡片和横幅上的关闭按钮
     x, y, w, h = CARD
     button("card.close", x + w - 16, y, 16, 16)
@@ -593,11 +599,16 @@ def hit_lines():
     return lines
 
 
+STAGE_LABEL_MAX = 150  # 关卡名最宽多少：顶栏右边还有“敌军”和剩余格子
+
+
 def build_hud():
     """所有界面造型都放进一个 UI 精灵（spx 解释器对精灵类型数量有上限，见 UI.spx）"""
     costumes = []
     for key, (size, fill, bold, anchor) in LABELS.items():
         for lang in LANGS:
+            if key.startswith("stage.") and width(tr(key, lang), size, bold) > STAGE_LABEL_MAX:
+                sys.exit(f"关卡名太长，会和顶栏的“敌军”重叠：{tr(key, lang)}")
             c, piv = text_costume(tr(key, lang), size, fill, bold, anchor)
             costumes.append((f"{key}_{lang}", c, piv))
     for key, k in HINTS.items():
