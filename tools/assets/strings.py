@@ -1,0 +1,102 @@
+"""v2.0 文案表：key -> (中文, English)。效果图和游戏共用，字体子集也从这里生成。"""
+
+STRINGS = {
+    # 通用
+    "title": ("坦克大战", "BATTLE CITY"),
+    "lang.zh": ("中", "中"),
+    "lang.en": ("EN", "EN"),
+    "hint.style": ("切换画风", "Art style"),
+    "hint.lang": ("中 / EN", "中 / EN"),
+    "go": ("去挑战", "Play"),
+    # 对局 HUD（游戏）
+    "stage.1": ("第 1 关 · 钢铁峡谷", "Stage 1 · Steel Canyon"),
+    "best": ("最高分", "BEST"),
+    "hint.move": ("移动", "Move"),
+    "hint.fire": ("开火", "Fire"),
+    # 提示条（游戏）
+    "msg.start": ("消灭 20 辆敌军，守住基地！", "Destroy 20 tanks. Guard the base!"),
+    "msg.modern": ("现代画风", "Modern style"),
+    "msg.classic": ("经典画风", "Classic style"),
+    "msg.lang": ("已切换到中文", "Switched to English"),
+    "msg.adclick": ("演示：这里会打开七牛云广告招商页", "Demo: opens the Qiniu ad sales page"),
+    "msg.revived": ("已复活，继续战斗！", "Revived. Keep fighting!"),
+    # 主页（游戏）
+    "home.start": ("开始战役", "Start"),
+    "home.start.d": ("消灭 20 辆敌军，守住基地", "Destroy 20 tanks, guard the base"),
+    "soon": ("即将推出", "SOON"),
+    "home.demo": ("路演演示模式", "Demo mode"),
+    # 复活弹窗（游戏）
+    "rv.title": ("防线失守！", "Defense broken!"),
+    "rv.sub": ("看一段视频，可以复活一次", "Watch a short ad to revive once"),
+    "rv.reward": ("修复基地，额外 1 条命", "Base repaired + 1 extra life"),
+    # 模拟广告播放（游戏）
+    "ap.reward": ("{n} 秒后发放奖励", "Reward in {n}s"),
+    "ap.demo": ("模拟广告位 · 正式版接入 Google H5 Games Ads", "Simulated ad slot · Google H5 Games Ads in production"),
+    "ap.big": ("广告位招商中", "Advertise here"),
+    "ap.sub": ("面向 XBuilder 玩家的品牌曝光位", "Reach the XBuilder player community"),
+    # 结算（游戏）
+    "rs.win": ("胜利！", "VICTORY"),
+    "rs.lose": ("战败", "DEFEAT"),
+    "rs.doubled": ("已领取双倍", "Doubled"),
+    "rs.again": ("再来一局", "Play again"),
+    "rs.home": ("主页", "Home"),
+    # 对局 HUD（效果图）
+    "stage": ("第 3 关 · 钢铁峡谷", "Stage 3 · Steel Canyon"),
+    "enemies": ("敌军", "Enemies"),
+    "score": ("得分", "SCORE"),
+    "combo": ("连击", "COMBO"),
+    "lives": ("生命", "LIVES"),
+    "perks": ("本局强化", "PERKS"),
+    "rank": ("今日排名", "Today's rank"),
+    "p2": ("2P 小明", "2P Ming"),
+    # 广告（Google 原生广告样式）
+    "ad.badge": ("广告", "Ad"),
+    "ad.brand": ("七牛云", "Qiniu Cloud"),
+    "ad.head": ("本广告位招商中", "This ad slot is available"),
+    "ad.cta": ("立即咨询", "Contact us"),
+    "ad.banner": ("七牛云 · 本广告位招商中，欢迎品牌投放", "Qiniu Cloud · This ad slot is open to brands"),
+    # 通关
+    "clear": ("第 3 关 完成", "STAGE 3 CLEAR"),
+    "st.kills": ("击毁", "Kills"),
+    "st.time": ("用时", "Time"),
+    "st.combo": ("最高连击", "Best combo"),
+    "st.base": ("基地", "Base"),
+    "coins": ("金币", "Coins"),
+    "ad.double": ("看视频 金币×2", "Watch ad · 2× coins"),
+    "choose": ("选择一项强化", "Choose a perk"),
+    "r.rare": ("稀有", "RARE"),
+    "r.epic": ("史诗", "EPIC"),
+    "r.common": ("普通", "COMMON"),
+    "pk.ricochet": ("弹射弹", "Ricochet"),
+    "pk.ricochet.d": ("子弹可反弹一次", "Bullets bounce once"),
+    "pk.drone": ("无人机僚机", "Wingman Drone"),
+    "pk.drone.d": ("自动射击的僚机", "Fires on its own"),
+    "pk.iron": ("钢铁之心", "Iron Base"),
+    "pk.iron.d": ("基地护甲 +2", "Base armor +2"),
+    "continue": ("继续", "Continue"),
+    # 复活
+    "lost": ("基地失守", "BASE LOST"),
+    "lost.sub": ("只差 3 辆敌人就通关了", "Only 3 enemies to go"),
+    "revive.ad": ("看视频复活", "Watch ad to revive"),
+    "revive.ad.sub": ("基地修复 + 5 秒护盾", "Base repaired + 5s shield"),
+    "revive.ad.len": ("广告 · 15 秒", "Ad · 15s"),
+    "revive.gem": ("50 钻石复活", "Revive for 50 gems"),
+    "giveup": ("放弃", "Give up"),
+    # 主页
+    "m.campaign": ("开始战役", "Campaign"),
+    "m.campaign.d": ("35 关剧情模式", "35 story stages"),
+    "m.daily": ("每日挑战", "Daily Challenge"),
+    "m.daily.d": ("AI 每日一图，全服同图", "New AI map every day"),
+    "m.coop": ("双人合作", "Co-op"),
+    "m.coop.d": ("本地双人", "Local 2 players"),
+    "m.ai": ("AI 造关", "AI Level Maker"),
+    "m.ai.d": ("一句话生成地图", "Describe it, play it"),
+    "new": ("新", "NEW"),
+    "language": ("语言", "Language"),
+    "subtitle": ("经典重铸", "REFORGED"),
+}
+
+
+def tr(key, lang):
+    zh, en = STRINGS[key]
+    return zh if lang == "zh" else en

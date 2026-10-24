@@ -1,0 +1,96 @@
+{
+  "costumes": [
+    {
+      "name": "brick",
+      "path": "brick.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "cracked",
+      "path": "cracked.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "brick_m",
+      "path": "brick_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "cracked_m",
+      "path": "cracked_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "steel",
+      "path": "steel.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "steel_m",
+      "path": "steel_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "eagle",
+      "path": "eagle.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "broken",
+      "path": "broken.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "eagle_m",
+      "path": "eagle_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "broken_m",
+      "path": "broken_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "water",
+      "path": "water.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "water_m",
+      "path": "water_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "grass",
+      "path": "grass.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "grass_m",
+      "path": "grass_m.svg",
+      "x": 12,
+      "y": 12
+    }
+  ],
+  "costumeIndex": 0,
+  "heading": 90,
+  "isDraggable": false,
+  "rotationStyle": "normal",
+  "size": 1,
+  "visible": false,
+  "x": 0,
+  "y": 170
+}

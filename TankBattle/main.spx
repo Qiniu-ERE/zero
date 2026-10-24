@@ -1,8 +1,12 @@
-import "math"
+import (
+	"math"
+	"strconv"
+)
 
 var (
-	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，9 基地
+	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，4 水面，5 草丛，9 基地
 	score        int   // 得分
+	best         int   // 本次运行的最高分
 	lives        int   // 玩家剩余生命
 	enemiesLeft  int   // 还需要消灭的敌人数量
 	spawned      int   // 已经出场的敌人数量
@@ -12,22 +16,61 @@ var (
 	gameOver     bool  // 游戏是否结束
 	won          bool  // 是否胜利
 	theme        int   // 画风：0 经典像素，1 现代 3D 风格（按 T 切换）
+	lang         int   // 语言：0 中文，1 English（按 L 或点右上角切换）
+	toastKey     string  // 提示条要显示的文案 key
+	toastSecs    float64 // 提示条显示多久
 	baseDown     bool  // 基地是否已被摧毁
 	camBusy      bool  // 镜头特写进行中（此时不震屏）
 	shakePower   float64
+	baseX        float64 // 基地位置（基地是 Tile 的一个克隆）
+	baseY        float64
+	baseIdx      int     // 基地所在的格子编号（复活时修复基地用）
+
+	// 流程与广告（见 docs/ARCHITECTURE.md 的「游戏流程」）
+	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
+	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
+	revived      bool   // 本局是否已经复活过（每局只能复活一次）
+	coins        int    // 本局获得的金币
+	doubled      bool   // 金币是否已经通过看视频翻倍
+	adReward     int    // 正在播放的激励视频对应的奖励：rewardRevive / rewardDouble
+	cardClosed   bool   // 玩家关掉了对局中的原生广告卡
+	bannerClosed bool   // 玩家关掉了主页横幅
+
+	// 路演演示模式（主页按 P）：玩家坦克自动驾驶，脚本依次展示各项功能
+	autopilot bool
+	apDir     int     // 自动驾驶绕路时的方向
+	apTimer   float64 // 还要绕路多久（撞墙后随机走一会儿）
+	tgtX      float64 // 最近一辆敌人的位置（敌人每帧通过 seeEnemy 汇报）
+	tgtY      float64
+	tgtDist   float64
+	tgtAge    float64 // 距离上次汇报过了多久，太久说明目标已经没了
+)
+
+const (
+	stHome   = 0 // 主页
+	stPlay   = 1 // 对局中
+	stRevive = 2 // 询问是否看视频复活
+	stAd     = 3 // 正在播放（模拟的）激励视频
+	stResult = 4 // 结算
+
+	rewardRevive = 1 // 激励视频奖励：复活
+	rewardDouble = 2 // 激励视频奖励：金币翻倍
+
+	adSeconds     = 5 // 模拟激励视频的时长
+	reviveSeconds = 7 // 复活询问的倒计时
 )
 
 const (
 	cols       = 13     // 地图列数
 	rows       = 13     // 地图行数
-	fieldLeft  = -216.0 // 战场左边界
-	fieldTop   = 156.0  // 战场上边界
+	fieldLeft  = -228.0 // 战场左边界
+	fieldTop   = 150.0  // 战场上边界
 	totalEnemy = 20     // 每关敌人总数
 	maxAlive   = 4      // 场上最多同时存在的敌人数量
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
-// . 空地   B 砖墙（可打碎）   S 钢墙（打不碎）   E 基地（老鹰）
+// . 空地   B 砖墙（可打碎）   S 钢墙（打不碎）   W 水面（坦克过不去，子弹能飞过）   G 草丛（能藏身）   E 基地（老鹰）
 func levelMap() []string {
 	return []string{
 		".............",
@@ -35,9 +78,9 @@ func levelMap() []string {
 		".B.B.B.B.B.B.",
 		".B.B.BSB.B.B.",
 		".B.B.....B.B.",
-		".....B.B.....",
+		"GG...B.B...GG",
 		"SS.BB...BB.SS",
-		".....B.B.....",
+		"WW...B.B...WW",
 		".B.B.BBB.B.B.",
 		".B.B.B.B.B.B.",
 		".B.B.....B.B.",
@@ -78,7 +121,12 @@ func cellAt(x, y float64) int {
 // 坦克（边长约 22 像素）中心在 (x, y) 时，是否会压到墙、基地或出界
 func tankBlocked(x, y float64) bool {
 	h := 11.0
-	return cellAt(x-h, y-h) != 0 || cellAt(x+h, y-h) != 0 || cellAt(x-h, y+h) != 0 || cellAt(x+h, y+h) != 0
+	return blocksTank(cellAt(x-h, y-h)) || blocksTank(cellAt(x+h, y-h)) || blocksTank(cellAt(x-h, y+h)) || blocksTank(cellAt(x+h, y+h))
+}
+
+// 格子 v 能不能挡住坦克：空地和草丛能开过去，其他（包括水面和出界）都不行
+func blocksTank(v int) bool {
+	return v != 0 && v != 5
 }
 
 // 转弯时把坐标对齐到半格（12 像素），这样坦克才能顺利钻进 1 格宽的路
@@ -130,6 +178,59 @@ func sfxLoop(name string) {
 	play look(name), true
 }
 
+// 当前语言代码，HUD 造型名用它做后缀："score_zh"、"score_en"
+func langCode() string {
+	if lang == 1 {
+		return "en"
+	}
+	return "zh"
+}
+
+func switchLang() {
+	lang = 1 - lang
+	broadcast "langChanged"
+	toast "msg.lang", 1.2
+}
+
+// 显示提示条（文案 key 见 tools/assets/strings.py 的 msg.*）
+func toast(k string, secs float64) {
+	toastKey = k
+	toastSecs = secs
+	broadcast "toast"
+}
+
+// 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
+func buildHud() {
+	// 顶栏：关卡名、敌军剩余、语言按钮
+	UI.label -228, 160, "stage.1"
+	UI.label -36, 160, "enemies"
+	for i := 0; i < totalEnemy; i++ {
+		UI.icon kPip, -29+float64(i)*5.8, 163, i
+	}
+	UI.langButton 208, 164
+	// 右侧面板：得分、最高分、生命、按键提示
+	UI.label 104, 140, "score"
+	UI.number kScore, 104, 120, 9
+	UI.label 104, 104, "best"
+	UI.number kBest, 220, 104, 9
+	UI.label 104, 80, "lives"
+	for i := 0; i < 3; i++ {
+		UI.icon kLife, 110+float64(i)*16, 68, i
+	}
+	UI.label 104, 46, "hint.move"
+	UI.label 104, 30, "hint.fire"
+	UI.label 104, 14, "hint.style"
+	UI.label 104, -2, "hint.lang"
+	// 广告位：对局中的原生广告卡、主页横幅
+	UI.adSlot 162, -113, "card"
+	UI.adSlot 0, -152, "banner"
+	// 全屏 / 弹窗画面，以及结算弹窗里的金币数
+	UI.screenLayer
+	UI.number kCoin, -132, 35, 9
+	// 战场上方的提示条
+	UI.toastBar -72, 20
+}
+
 func baseLook() string {
 	if baseDown {
 		return look("broken")
@@ -141,12 +242,11 @@ func baseLook() string {
 func switchTheme() {
 	theme = 1 - theme
 	setBackdrop look("field")
-	Base.setCostume baseLook()
 	broadcast "themeChanged"
 	if theme == 1 {
-		Tip.say "现代画风", 1
+		toast "msg.modern", 1.2
 	} else {
-		Tip.say "经典画风", 1
+		toast "msg.classic", 1.2
 	}
 }
 
@@ -159,14 +259,14 @@ func shake(power float64) {
 }
 
 // 砖墙要打两下：第一下裂开，第二下才碎（和原版一样，基地不会太快被打穿）
+// 砖墙精灵收到 "gridChanged" 后会自己对照 grid 更新（同一帧打中两块砖也不会漏掉）
 func breakBrick(i int) {
 	if grid[i] == 1 {
 		grid[i] = 3
-		broadcast "brickCracked", i
 	} else {
 		grid[i] = 0
-		broadcast "brickBroken", i
 	}
+	broadcast "gridChanged"
 }
 
 // 子弹的某个检测点碰到东西了吗？碰到砖墙会把砖打碎
@@ -189,7 +289,9 @@ func hitPoint(x, y float64, byPlayer bool) bool {
 		}
 		return true
 	case 9:
-		baseDestroyed()
+		if !autopilot { // 路演演示时基地不会被打掉，由演示脚本安排“防线失守”
+			baseDestroyed()
+		}
 		return true
 	}
 	return false
@@ -207,14 +309,178 @@ func bulletHit(x, y float64, d int, byPlayer bool) bool {
 	return a || b
 }
 
+// ---------- 流程：主页 → 对局 → (复活询问 → 激励视频) → 结算 ----------
+
+// 切换全屏 / 弹窗画面。先让画面层到最前，再把广告位、语言按钮和提示条放到它上面
+func setScreen(name string) {
+	screen = name
+	broadcastAndWait "screen"
+	broadcast "raise"
+}
+
+func goHome() {
+	state = stHome
+	autopilot = false
+	gameOver = true
+	broadcastAndWait "clear"
+	stopAllSounds
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
+	setScreen "home"
+}
+
+// 战败（基地被毁或生命用完）：每局第一次战败时询问是否看视频复活
+func defeat() {
+	if gameOver {
+		return
+	}
+	gameOver = true
+	if revived {
+		endGame false
+		return
+	}
+	state = stRevive
+	broadcast "reviveFlow"
+}
+
+// 开始播放激励视频，reward 是看完后的奖励
+func watchAd(reward int) {
+	if state == stAd {
+		return
+	}
+	state = stAd
+	adReward = reward
+	broadcast "adFlow"
+}
+
+// 复活：修复基地、额外 1 条命，玩家回到出生点并获得出生保护
+func revive() {
+	revived = true
+	if baseDown {
+		baseDown = false
+		grid[baseIdx] = 9
+		broadcast "baseChanged"
+	}
+	lives++
+	broadcast "hud"
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
+	state = stPlay
+	setScreen ""
+	Player.respawn
+	gameOver = false
+	toast "msg.revived", 1.5
+}
+
 func endGame(win bool) {
 	gameOver = true
 	won = win
-	broadcast "gameEnd"
+	state = stResult
+	coins = score / 50
 	if win {
-		Tip.say "胜利！你消灭了全部敌人！按 R 再玩一次"
+		coins += 100
+	}
+	doubled = false
+	broadcast "gameEnd"
+	showResult
+}
+
+func showResult() {
+	name := "result_lose_"
+	if won {
+		name = "result_win_"
+	}
+	if doubled {
+		name += "done"
 	} else {
-		Tip.say "游戏结束！按 R 重新开始"
+		name += "plain"
+	}
+	setScreen name
+	broadcast "hud" // 刷新金币数
+}
+
+// 确认键：主页开始、复活询问时看视频、结算时看视频翻倍
+func confirm() {
+	switch state {
+	case stHome:
+		startGame
+	case stRevive:
+		watchAd rewardRevive
+	case stResult:
+		if !doubled {
+			watchAd rewardDouble
+		}
+	}
+}
+
+// ---------- 路演演示模式 ----------
+
+// 敌人汇报自己的位置，自动驾驶只记住离玩家最近的那辆
+func seeEnemy(x, y float64) {
+	d := math.Abs(x-Player.xpos) + math.Abs(y-Player.ypos)
+	if tgtAge > 0.3 || d < tgtDist {
+		tgtX = x
+		tgtY = y
+		tgtDist = d
+		tgtAge = 0
+	}
+}
+
+// 自动驾驶选方向：先和最近的敌人对齐到同一行或同一列，然后朝它开（一直在开火，砖墙会被打穿）。
+// 撞墙后随机绕一会儿路
+func autopilotDir(dt float64) int {
+	tgtAge += dt
+	tgtDist += 60 * dt // 让旧目标慢慢“变远”，更近的敌人能接替
+	if apTimer > 0 {
+		apTimer -= dt
+		return apDir
+	}
+	if tgtAge > 0.5 {
+		return 0 // 暂时没有敌人：往上走
+	}
+	dx := tgtX - Player.xpos
+	dy := tgtY - Player.ypos
+	if math.Abs(dx) < 8 {
+		if dy > 0 {
+			return 0
+		}
+		return 180
+	}
+	if math.Abs(dy) < 8 || math.Abs(dx) < math.Abs(dy) {
+		if dx > 0 {
+			return 90
+		}
+		return -90
+	}
+	if dy > 0 {
+		return 0
+	}
+	return 180
+}
+
+// 自动驾驶撞墙了：随机选个方向绕一会儿路
+func autopilotBlocked() {
+	if apTimer > 0 {
+		return
+	}
+	n := rand(1, 4)
+	if n == 1 {
+		apDir = 0
+	} else if n == 2 {
+		apDir = 90
+	} else if n == 3 {
+		apDir = -90
+	} else {
+		apDir = 180
+	}
+	apTimer = rand(0.4, 0.9)
+}
+
+// 等到画面进入状态 st（最多等 secs 秒），用于演示脚本按实际状态推进
+func waitState(st int, secs float64) {
+	for secs > 0 && state != st {
+		wait 0.2
+		secs -= 0.2
 	}
 }
 
@@ -223,13 +489,13 @@ func baseDestroyed() {
 		return
 	}
 	baseDown = true
-	Base.setCostume baseLook()
+	broadcast "baseChanged"
 	sfx "basefall"
 	if theme == 1 {
 		broadcast "baseCam"
 	}
-	Boom.explodeAt Base.xpos, Base.ypos, 1.5
-	endGame false
+	Boom.explodeAt baseX, baseY, 1.5
+	defeat
 }
 
 func enemyKilled(points int) {
@@ -237,6 +503,10 @@ func enemyKilled(points int) {
 	killed++
 	enemiesAlive--
 	enemiesLeft = totalEnemy - killed
+	if score > best {
+		best = score
+	}
+	broadcast "hud"
 	if killed >= totalEnemy {
 		endGame true
 	}
@@ -257,7 +527,7 @@ func spawnEnemy() {
 	enemiesAlive++
 }
 
-// 根据 levelMap 生成砖墙、钢墙和基地
+// 根据 levelMap 生成砖墙、钢墙和基地（都是 Tile 的克隆）
 func buildMap() {
 	grid = make([]int, rows*cols)
 	for r := 0; r < rows; r++ {
@@ -267,16 +537,31 @@ func buildMap() {
 			switch line[c] {
 			case 'B':
 				grid[i] = 1
-				Brick.build cellX(c), cellY(r), i
+				Tile.build cellX(c), cellY(r), 1, i
 			case 'S':
 				grid[i] = 2
-				Steel.build cellX(c), cellY(r)
+				Tile.build cellX(c), cellY(r), 2, i
+			case 'W':
+				grid[i] = 4
+				Tile.build cellX(c), cellY(r), 4, i
+			case 'G':
+				grid[i] = 5
+				Tile.build cellX(c), cellY(r), 5, i
 			case 'E':
 				grid[i] = 9
-				Base.setXYpos cellX(c), cellY(r)
+				baseX = cellX(c)
+				baseY = cellY(r)
+				baseIdx = i
+				Tile.build baseX, baseY, 9, i
 			}
 		}
 	}
+}
+
+// v2 默认使用现代画风（按 T 可以切到 1985 经典像素风）
+func initTheme() {
+	theme = 1
+	setBackdrop look("field")
 }
 
 func startGame() {
@@ -291,18 +576,25 @@ func startGame() {
 	pbCount = 0
 	enemiesLeft = totalEnemy
 	baseDown = false
-	Base.setCostume baseLook()
+	revived = false
+	state = stPlay
+	setScreen ""
 	Camera.setZoom 1
 	Camera.setXYpos 0, 0
 	buildMap
+	broadcast "hud"
 	Player.respawn
 	sfx "start"
-	Tip.say "方向键 / WASD 移动，空格键开火，按 T 切换经典 / 现代画风！", 3
+	toast "msg.start", 3
 	gameOver = false
 }
 
 onKey KeyT, => {
 	switchTheme
+}
+
+onKey KeyL, => {
+	switchLang
 }
 
 // 震屏：镜头快速抖动几下再回到中心
@@ -320,7 +612,7 @@ onMsg "shake", => {
 // 现代画风下基地被摧毁：镜头推近特写
 onMsg "baseCam", => {
 	camBusy = true
-	Camera.setXYpos Base.xpos, Base.ypos
+	Camera.setXYpos baseX, baseY
 	Camera.setZoom 1.8
 	wait 2
 	Camera.setZoom 1
@@ -328,17 +620,124 @@ onMsg "baseCam", => {
 	camBusy = false
 }
 
-onKey KeyR, => {
-	if gameOver {
+onKey KeyEnter, => {
+	confirm
+}
+
+onKey KeyJ, => {
+	confirm
+}
+
+onKey KeySpace, => {
+	if state == stHome {
 		startGame
 	}
+}
+
+onKey KeyEscape, => {
+	if state == stRevive {
+		endGame false
+	}
+}
+
+onKey KeyR, => {
+	if state == stResult {
+		startGame
+	}
+}
+
+onKey KeyP, => {
+	if state == stHome {
+		broadcast "demoFlow"
+	}
+}
+
+onKey KeyH, => {
+	if state == stResult {
+		goHome
+	}
+}
+
+// 复活询问：倒计时结束还没选择就直接结算
+onMsg "reviveFlow", => {
+	wait 2.2 // 先让爆炸和镜头特写播完
+	for n := reviveSeconds; n >= 1; n-- {
+		if state != stRevive {
+			return
+		}
+		setScreen "revive_" + strconv.Itoa(n)
+		wait 1
+	}
+	if state == stRevive {
+		endGame false
+	}
+}
+
+// 模拟的激励视频：倒计时结束后发放奖励（正式版接入 Google H5 Games Ads）
+onMsg "adFlow", => {
+	for n := adSeconds; n >= 1; n-- {
+		setScreen "adplay_" + strconv.Itoa(n)
+		wait 1
+	}
+	if adReward == rewardRevive {
+		revive
+	} else {
+		coins *= 2
+		doubled = true
+		state = stResult
+		showResult
+	}
+}
+
+// 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → 回主页。
+// 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
+onMsg "demoFlow", => {
+	startGame
+	autopilot = true
+	apTimer = 0
+	tgtAge = 9
+	wait 9
+	switchTheme // 经典画风（情怀）
+	wait 4
+	switchTheme // 回到现代画风
+	wait 2
+	switchLang // English
+	wait 5
+	switchLang // 中文
+	wait 3
+	if state == stPlay {
+		baseDestroyed // 演示脚本安排的“防线失守”
+	}
+	waitState stRevive, 10
+	wait 3
+	if state == stRevive {
+		watchAd rewardRevive
+	}
+	waitState stPlay, 10
+	wait 7
+	if state == stPlay {
+		endGame true
+	}
+	waitState stResult, 5
+	wait 3
+	if state == stResult && !doubled {
+		watchAd rewardDouble
+	}
+	waitState stResult, 10
+	wait 4
+	autopilot = false
+	broadcast "demoDone"
+}
+
+onMsg "demoDone", => {
+	goHome
 }
 
 // 游戏结束后，等爆炸声播完再放胜利 / 失败音乐
 onMsg "gameEnd", => {
 	wait 1.2
-	if !gameOver {
-		return // 已经按 R 重新开始了
+	if state != stResult {
+		return // 已经重新开始或回到主页了
 	}
 	if won {
 		sfx "win"
@@ -348,7 +747,9 @@ onMsg "gameEnd", => {
 }
 
 onStart => {
-	startGame
+	initTheme
+	buildHud
+	goHome
 	for {
 		wait 2
 		if !gameOver && spawned < totalEnemy && enemiesAlive < maxAlive {
