@@ -36,8 +36,8 @@
       "style": "scratch",
       "sliderMin": 0,
       "sliderMax": 100,
-      "x": 122,
-      "y": 150,
+      "x": 104,
+      "y": 146,
       "isDiscrete": true,
       "visible": true
     },
@@ -53,8 +53,8 @@
       "style": "scratch",
       "sliderMin": 0,
       "sliderMax": 100,
-      "x": 122,
-      "y": 120,
+      "x": 104,
+      "y": 116,
       "isDiscrete": true,
       "visible": true
     },
@@ -70,8 +70,8 @@
       "style": "scratch",
       "sliderMin": 0,
       "sliderMax": 100,
-      "x": 122,
-      "y": 90,
+      "x": 104,
+      "y": 86,
       "isDiscrete": true,
       "visible": true
     }
