@@ -113,6 +113,37 @@ def steel_m():
     return svg(C, C, "".join(s), defs)
 
 
+def water_m():
+    defs = lin("w", "#1b6fa8", "#0d3f66", vertical=False)
+    s = [f'<rect width="{C}" height="{C}" fill="url(#w)"/>',
+         '<path d="M3 8q3-2.5 6 0t6 0M8 16q3-2.5 6 0t6 0" stroke="#7fd4ff" stroke-opacity="0.55" stroke-width="1" fill="none"/>']
+    return svg(C, C, "".join(s), defs)
+
+
+def water_classic():
+    s = [f'<rect width="{C}" height="{C}" fill="#1f3fbf"/>',
+         '<path d="M2 6h4M10 6h4M18 6h4M6 12h4M14 12h4M2 18h4M10 18h4M18 18h4" stroke="#9fb6ff" stroke-width="2"/>']
+    return svg(C, C, "".join(s))
+
+
+def grass_m():
+    s = []
+    for i in range(7):  # 几团树丛，边缘留一点缝隙，能隐约看到下面的坦克
+        x = 3 + (i * 8) % 20
+        y = 3 + (i * 11) % 18
+        s.append(f'<circle cx="{x}" cy="{y}" r="{5 + i % 3}" fill="{["#2f7d3a", "#3c9a46", "#256b30"][i % 3]}"/>')
+    s.append('<circle cx="9" cy="8" r="2.4" fill="#6fd06a" fill-opacity="0.5"/>')
+    return svg(C, C, "".join(s))
+
+
+def grass_classic():
+    s = [f'<rect width="{C}" height="{C}" fill="#0b5a12" fill-opacity="0.9"/>']
+    for y in range(0, C, 6):
+        for x in range(0, C, 6):
+            s.append(f'<rect x="{x + (3 if (y // 6) % 2 else 0)}" y="{y}" width="3" height="3" fill="#5ccf3a"/>')
+    return svg(C, C, "".join(s))
+
+
 EAGLE = "M12 4.5l2.8 3.7 5.5-1.8-2.8 5.5 3.7 1.8-6.5 1.8-2.7 4.6-2.7-4.6-6.5-1.8 3.7-1.8-2.8-5.5 5.5 1.8z"
 
 
@@ -592,6 +623,10 @@ def main():
         write("sprites/Tile/brick_m.svg", brick_m()),
         write("sprites/Tile/cracked_m.svg", brick_m(True)),
         write("sprites/Tile/steel_m.svg", steel_m()),
+        write("sprites/Tile/water.svg", water_classic()),
+        write("sprites/Tile/water_m.svg", water_m()),
+        write("sprites/Tile/grass.svg", grass_classic()),
+        write("sprites/Tile/grass_m.svg", grass_m()),
         write("sprites/Tile/eagle_m.svg", eagle_m()),
         write("sprites/Tile/broken_m.svg", broken_m()),
         write("sprites/Player/player_m.svg", tank_m(*TANKS["player"])),

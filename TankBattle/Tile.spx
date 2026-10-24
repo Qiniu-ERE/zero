@@ -1,7 +1,10 @@
-// 地图上的静态格子：砖墙、钢墙、基地。它们只负责显示，碰撞都由舞台的 grid 判断。
+// 地图上的静态格子：砖墙、钢墙、水面、草丛、基地。它们只负责显示，碰撞都由舞台的 grid 判断。
 // 合并成一个精灵类型、字段只保留两个 int（16 字节），都是为了节省解释器的方法表（原因见 UI.spx）。
+//
+// 注意：spx 4.0 里通用的 onMsg (msg, data) 只会在原型上运行、克隆体收不到，
+// 所以这里只用具体的 onMsg "xxx"，并且砖墙状态不通过消息参数传递，而是收到 "gridChanged" 后自己去读 grid。
 var (
-	kind int // 和 grid 的编号一致：1 砖墙，2 钢墙，9 基地
+	kind int // 和 grid 的编号一致：1 砖墙，2 钢墙，4 水面，5 草丛，9 基地；原型（非克隆）始终是 0
 	idx  int // 这一格在地图中的编号
 )
 
@@ -11,6 +14,7 @@ func build(x, y float64, k, i int) {
 	idx = i
 	setXYpos x, y
 	clone
+	kind = 0 // 原型不是地图上的格子，不响应下面的消息
 }
 
 // 按类型、砖墙状态和当前画风换造型
@@ -24,32 +28,52 @@ func apply() {
 		}
 	case 2:
 		setCostume look("steel")
+	case 4:
+		setCostume look("water")
+	case 5:
+		setCostume look("grass")
 	case 9:
 		setCostume baseLook()
 	}
 }
 
+// 砖墙和 grid 保持一致：被打碎就消失，裂开就换造型
+func sync() {
+	if kind == 1 && grid[idx] == 0 {
+		destroy
+		return
+	}
+	apply
+}
+
 onCloned => {
 	apply
+	if kind == 5 {
+		setLayer Front // 草丛盖在坦克和子弹上面，坦克开进去就能藏身
+	}
 	show
 }
 
-onMsg (msg, data) => {
-	if !isCloned {
-		return
+onMsg "gridChanged", => {
+	if kind == 1 {
+		sync
 	}
-	switch msg {
-	case "themeChanged", "baseChanged":
+}
+
+onMsg "themeChanged", => {
+	if kind != 0 {
 		apply
-	case "brickCracked":
-		if data == idx {
-			apply
-		}
-	case "brickBroken":
-		if data == idx {
-			destroy
-		}
-	case "clear":
+	}
+}
+
+onMsg "baseChanged", => {
+	if kind == 9 {
+		apply
+	}
+}
+
+onMsg "clear", => {
+	if kind != 0 {
 		destroy
 	}
 }
