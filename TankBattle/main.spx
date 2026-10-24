@@ -20,8 +20,8 @@ var (
 const (
 	cols       = 13     // 地图列数
 	rows       = 13     // 地图行数
-	fieldLeft  = -216.0 // 战场左边界
-	fieldTop   = 156.0  // 战场上边界
+	fieldLeft  = -228.0 // 战场左边界
+	fieldTop   = 150.0  // 战场上边界
 	totalEnemy = 20     // 每关敌人总数
 	maxAlive   = 4      // 场上最多同时存在的敌人数量
 )

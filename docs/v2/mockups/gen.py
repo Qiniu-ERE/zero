@@ -17,9 +17,10 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
-from i18n import STRINGS, tr
-
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools", "assets"))
+from strings import STRINGS, tr  # noqa: E402  文案表和游戏共用
+
 W, H = 480, 360
 C = 24                  # 格子边长，与游戏一致
 FX, FY = 12, 30         # 战场左上角（13x13 = 312）
