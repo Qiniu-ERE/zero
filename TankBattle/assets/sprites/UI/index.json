@@ -169,6 +169,146 @@
       "bitmapResolution": 4
     },
     {
+      "name": "tag.1p_zh",
+      "path": "tag.1p_zh.svg",
+      "x": 4.0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tag.1p_en",
+      "path": "tag.1p_en.svg",
+      "x": 4.0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tag.2p_zh",
+      "path": "tag.2p_zh.svg",
+      "x": 4.0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tag.2p_en",
+      "path": "tag.2p_en.svg",
+      "x": 4.0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.1.co_zh",
+      "path": "stage.1.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.1.co_en",
+      "path": "stage.1.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.2.co_zh",
+      "path": "stage.2.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.2.co_en",
+      "path": "stage.2.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.3.co_zh",
+      "path": "stage.3.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.3.co_en",
+      "path": "stage.3.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.4.co_zh",
+      "path": "stage.4.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.4.co_en",
+      "path": "stage.4.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.5.co_zh",
+      "path": "stage.5.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.5.co_en",
+      "path": "stage.5.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.6.co_zh",
+      "path": "stage.6.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.6.co_en",
+      "path": "stage.6.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.7.co_zh",
+      "path": "stage.7.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.7.co_en",
+      "path": "stage.7.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.8.co_zh",
+      "path": "stage.8.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.8.co_en",
+      "path": "stage.8.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "hint.move_zh",
       "path": "hint.move_zh.svg",
       "x": 0,
@@ -220,6 +360,34 @@
     {
       "name": "hint.lang_en",
       "path": "hint.lang_en.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.p1_zh",
+      "path": "hint.p1_zh.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.p1_en",
+      "path": "hint.p1_en.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.p2_zh",
+      "path": "hint.p2_zh.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.p2_en",
+      "path": "hint.p2_en.svg",
       "x": 0,
       "y": 32.8,
       "bitmapResolution": 4
@@ -305,6 +473,20 @@
       "name": "msg.revived_en",
       "path": "msg.revived_en.svg",
       "x": 258.15,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.coop_zh",
+      "path": "msg.coop_zh.svg",
+      "x": 454.71,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.coop_en",
+      "path": "msg.coop_en.svg",
+      "x": 390.27,
       "y": 44.0,
       "bitmapResolution": 4
     },
@@ -675,6 +857,20 @@
     {
       "name": "life_off",
       "path": "life_off.svg",
+      "x": 24,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "life2_on",
+      "path": "life2_on.svg",
+      "x": 24,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "life2_off",
+      "path": "life2_off.svg",
       "x": 24,
       "y": 24,
       "bitmapResolution": 4
