@@ -3,7 +3,7 @@
 # - 推送 v* 标签（例如 v3.0.0）：打全部平台，并创建 GitHub Release，把安装包挂上去
 # - 手动运行（Actions 页面 → Release → Run workflow）：打全部平台，产物在这次运行的 Artifacts 里，不发布
 # - 推送到 feat/v3-release 分支时，只在提交信息里带 [ci 平台] 才打对应平台（调试用，节省 Actions 分钟数）：
-#   [ci desktop] [ci web] [ci android] [ci ios] [ci all]
+#   [ci desktop] [ci web] [ci android] [ci ios] [ci all]；[ci smoke] 再加冒烟测试（安卓模拟器、Linux 虚拟显示器里启动并截图）
 #
 # 打包脚本在 tools/export/，本地也能用同样的命令打包。
 name: Release
@@ -34,6 +34,7 @@ jobs:
       web: ${{ steps.p.outputs.web }}
       android: ${{ steps.p.outputs.android }}
       ios: ${{ steps.p.outputs.ios }}
+      smoke: ${{ steps.p.outputs.smoke }}
     steps:
       - id: p
         env:
@@ -47,7 +48,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           all=false
           if [ "${{ github.ref_type }}" = tag ] || [ "${{ github.event_name }}" = workflow_dispatch ] || [[ "$MSG" == *"[ci all]"* ]]; then all=true; fi
-          for t in desktop web android ios; do
+          for t in desktop web android ios smoke; do
             if $all || [[ "$MSG" == *"[ci $t]"* ]]; then echo "$t=true"; else echo "$t=false"; fi >> "$GITHUB_OUTPUT"
           done
           echo "version $version"; cat "$GITHUB_OUTPUT"
@@ -186,6 +187,74 @@ jobs:
           name: ios
           path: dist/*
           if-no-files-found: error
+
+  # 冒烟测试：在安卓模拟器里安装 APK 并启动，截图作为证据
+  smoke-android:
+    needs: [plan, android]
+    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android
+          path: apk
+      - name: 开启 KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30          # Android 11 的 x86_64 镜像能通过 ARM 转译运行 arm64 应用
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install -r apk/*.apk
+            adb shell monkey -p com.qiniu.tankbattle -c android.intent.category.LAUNCHER 1
+            sleep 40
+            adb exec-out screencap -p > smoke-android-1.png
+            adb shell input tap 400 300
+            sleep 10
+            adb exec-out screencap -p > smoke-android-2.png
+            adb logcat -d > logcat.txt || true
+            adb shell pidof com.qiniu.tankbattle || echo "app not running"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-android
+          path: |
+            smoke-android-*.png
+            logcat.txt
+
+  # 冒烟测试：Linux 版在虚拟显示器 + 软件 Vulkan（lavapipe）里启动并截图
+  smoke-linux:
+    needs: [plan, desktop]
+    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.desktop == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-Linux
+          path: pkg
+      - run: sudo apt-get update -q && sudo apt-get install -y -q xvfb mesa-vulkan-drivers libgl1-mesa-dri imagemagick libasound2t64 || sudo apt-get install -y -q xvfb mesa-vulkan-drivers libgl1-mesa-dri imagemagick
+      - name: 启动并截图
+        run: |
+          cd pkg && tar -xzf *.tar.gz
+          Xvfb :99 -screen 0 1280x960x24 &
+          export DISPLAY=:99
+          sleep 2
+          (./TankBattle > run.log 2>&1 &)
+          sleep 40
+          import -window root ../smoke-linux.png
+          pgrep -f TankBattle > /dev/null && echo "running" || { echo "not running"; tail -50 run.log; }
+          cp run.log ../smoke-linux.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-linux
+          path: |
+            smoke-linux.png
+            smoke-linux.log
 
   release:
     needs: [plan, desktop, web, android, ios]
