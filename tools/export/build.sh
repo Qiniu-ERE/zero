@@ -23,6 +23,8 @@ prepare() {
   mkdir -p "$G"
   (cd "$ROOT/TankBattle" && tar --exclude .temp --exclude project --exclude .builds --exclude go.mod --exclude go.sum -cf - .) | (cd "$G" && tar -xf -)
   cp "$SPX_DIR/gox.mod" "$G/gox.mod"   # project main.spx / pack assets，buildlauncher 需要
+  local spx_path="$SPX_DIR"
+  command -v cygpath >/dev/null && spx_path="$(cygpath -m "$SPX_DIR")"  # Windows：/d/a/... → D:/a/...，Go 才认得
   cat > "$G/go.mod" <<EOF
 module github.com/goplus/spxdemo
 
@@ -30,7 +32,7 @@ go 1.26.0
 
 require github.com/goplus/spx/v4 v4.0.0 //xgo:class
 
-replace github.com/goplus/spx/v4 => $SPX_DIR
+replace github.com/goplus/spx/v4 => $spx_path
 EOF
   cp "$SPX_DIR/go.sum" "$G/go.sum"
 }
