@@ -101,7 +101,7 @@ spx run .
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、流程状态机、资源管线、spx 解释器的限制与对策、测试方法、分工 |
 | [设计方案](docs/v2/DESIGN.md) | 2026 年的玩法、画风、商业化设计，附中英文效果图 |
 | [演示视频](docs/demo/tankbattle-v2-demo.mp4) | 约 1 分钟的完整流程演示 |
-| [v3.0 跨平台规划](docs/v3/CROSS_PLATFORM.md) | 树莓派 / iPhone / Android / Windows / Mac 运行方案与可行性评估，附 macOS 和 Web 实测截图 |
+| [v3.0 规划](docs/v3/PLAN.md) | 7 个关卡（已实现）、[AI 生成关卡](docs/v3/AI_LEVELS.md)、[跨平台运行](docs/v3/CROSS_PLATFORM.md)（iPhone / Android / Windows / Mac）的方案与可行性评估 |
 
 ## 项目结构
 
@@ -124,7 +124,7 @@ tools/
 docs/
 ├── ARCHITECTURE.md       # 架构文档
 ├── v2/                   # 设计方案、效果图、实机截图
-├── v3/stages/            # v3.0 的 7 个关卡截图
+├── v3/                   # v3.0 规划：PLAN.md 总览、AI_LEVELS.md、CROSS_PLATFORM.md，关卡和实测截图
 └── demo/                 # 演示视频和动图
 ```
 
