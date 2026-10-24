@@ -25,6 +25,8 @@ var (
 	baseX        float64 // 基地位置（基地是 Tile 的一个克隆）
 	baseY        float64
 	baseIdx      int     // 基地所在的格子编号（复活时修复基地用）
+	stage        int     // 当前关卡：1…lastStage
+	stageScore   int     // 进入本关时的得分（重打本关时从这里开始）
 
 	// 流程与广告（见 docs/ARCHITECTURE.md 的「游戏流程」）
 	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
@@ -66,12 +68,129 @@ const (
 	fieldLeft  = -228.0 // 战场左边界
 	fieldTop   = 150.0  // 战场上边界
 	totalEnemy = 20     // 每关敌人总数
-	maxAlive   = 4      // 场上最多同时存在的敌人数量
+	lastStage  = 8      // 关卡总数
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
 // . 空地   B 砖墙（可打碎）   S 钢墙（打不碎）   W 水面（坦克过不去，子弹能飞过）   G 草丛（能藏身）   E 基地（老鹰）
+// 规则：第 0 行的第 0、6、12 列是敌人出生点，第 12 行第 4 列是玩家出生点，都必须是空地；基地固定在第 12 行第 6 列。
+// 改完地图运行 python3 tools/levels/check.py 检查（出生点、连通性等）
 func levelMap() []string {
+	switch stage {
+	case 2: // 水乡迷宫：大片水面分割战场，坦克要绕路，子弹却能隔河对射
+		return []string{
+			".............",
+			".B.B.....B.B.",
+			".B.B.WWW.B.B.",
+			"......B......",
+			"WWW.BBBBB.WWW",
+			".............",
+			".BB.WW.WW.BB.",
+			".BB.......BB.",
+			"WW..B.S.B..WW",
+			"....B...B....",
+			".WW.......WW.",
+			".....BBB.....",
+			".....BEB.....",
+		}
+	case 3: // 丛林伏击：草丛遍地，快速坦克从草里冲出来
+		return []string{
+			".............",
+			".GGG.B.B.GGG.",
+			".GBG.B.B.GBG.",
+			".GGG.....GGG.",
+			"...GGG.GGG...",
+			"BB.G.BSB.G.BB",
+			"...G.....G...",
+			".GGGGB.BGGGG.",
+			".G.........G.",
+			".G.BB.G.BB.G.",
+			"GG.B.GGG.B.GG",
+			"G....BBB....G",
+			"G....BEB....G",
+		}
+	case 4: // 钢铁堡垒：钢墙林立，重型坦克为主
+		return []string{
+			".............",
+			".S.S.SSS.S.S.",
+			".S.S.....S.S.",
+			"...B.S.S.B...",
+			"SS.B.....B.SS",
+			"...BSS.SSB...",
+			".B.........B.",
+			".B.SSB.BSS.B.",
+			".B.........B.",
+			"SSB.B.S.B.BSS",
+			"...B.....B...",
+			"..S..BBB..S..",
+			"..S..BEB..S..",
+		}
+	case 5: // 砖城巷战：密集的砖墙街区，要自己打出一条路
+		return []string{
+			".............",
+			".BBB.BBB.BBB.",
+			".B.B.B.B.B.B.",
+			".BBB.B.B.BBB.",
+			".............",
+			"BB.BBB.BBB.BB",
+			"...B.....B...",
+			".B.B.BBB.B.B.",
+			".B...B.B...B.",
+			".BBB.B.B.BBB.",
+			".............",
+			".BB..BBB..BB.",
+			".B...BEB...B.",
+		}
+	case 6: // 闪电突袭：开阔地，敌军出动更快、快速坦克更多
+		return []string{
+			".............",
+			".............",
+			"..S.......S..",
+			"....B...B....",
+			".............",
+			"GG..S.B.S..GG",
+			".............",
+			"WW..S.B.S..WW",
+			".............",
+			"....B...B....",
+			"..S.......S..",
+			".....BBB.....",
+			".....BEB.....",
+		}
+	case 7: // 双子要塞：左右两座砖堡，中间一道水渠，小心交叉火力
+		return []string{
+			".............",
+			".SBBS...SBBS.",
+			".B..B...B..B.",
+			".B..B.G.B..B.",
+			".SB.S...S.BS.",
+			"......W......",
+			"GG.B..W..B.GG",
+			"......W......",
+			".BB.S...S.BB.",
+			"..B.......B..",
+			"B...B.S.B...B",
+			".....BBB.....",
+			".....BEB.....",
+		}
+	case 8: // 最终决战：各种地形都有，出兵最密集
+		return []string{
+			".............",
+			".B.S.B.B.S.B.",
+			".B.S.B.B.S.B.",
+			".B...GGG...B.",
+			"...WW...WW...",
+			"SB.WW.S.WW.BS",
+			"...GG...GG...",
+			".BB..BBB..BB.",
+			".B..B...B..B.",
+			"GG..B.S.B..GG",
+			"...SB...BS...",
+			"...S.BBB.S...",
+			"...S.BEB.S...",
+		}
+	}
+	// 第 1 关：钢铁峡谷
 	return []string{
 		".............",
 		".B.B.B.B.B.B.",
@@ -87,6 +206,35 @@ func levelMap() []string {
 		".B.B.BBB.B.B.",
 		".....BEB.....",
 	}
+}
+
+// 本关的敌军配置：重型坦克占比（%）、快速坦克占比（%）、出兵间隔（秒）、场上最多几辆
+func stageTune() (int, int, float64, int) {
+	switch stage {
+	case 2:
+		return 20, 30, 2.0, 4
+	case 3:
+		return 10, 60, 1.8, 4
+	case 4:
+		return 50, 10, 2.2, 4
+	case 5:
+		return 30, 30, 1.8, 4
+	case 6:
+		return 10, 70, 1.2, 5
+	case 7:
+		return 30, 50, 1.5, 5
+	case 8:
+		return 45, 45, 1.3, 5
+	}
+	return 20, 30, 2.0, 4
+}
+
+// 每关开始时的提示（文案 key 见 tools/assets/strings.py）
+func stageTip() string {
+	if stage == 1 {
+		return "msg.start"
+	}
+	return "msg.stage" + strconv.Itoa(stage)
 }
 
 // 第 c 列格子中心的 x 坐标
@@ -202,7 +350,7 @@ func toast(k string, secs float64) {
 // 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
 func buildHud() {
 	// 顶栏：关卡名、敌军剩余、语言按钮
-	UI.label -228, 160, "stage.1"
+	UI.label -228, 160, "stage" // 关卡名：造型是 "stage.<关卡号>_<语言>"
 	UI.label -36, 160, "enemies"
 	for i := 0; i < totalEnemy; i++ {
 		UI.icon kPip, -29+float64(i)*5.8, 163, i
@@ -387,7 +535,9 @@ func endGame(win bool) {
 
 func showResult() {
 	name := "result_lose_"
-	if won {
+	if won && stage == lastStage {
+		name = "result_final_" // 全部通关
+	} else if won {
 		name = "result_win_"
 	}
 	if doubled {
@@ -399,11 +549,30 @@ func showResult() {
 	broadcast "hud" // 刷新金币数
 }
 
+// 结算后的“再来一局”按钮（R）：赢了进下一关；全部通关后从第 1 关重新开始；输了重打本关
+func again() {
+	if won && stage < lastStage {
+		stage++
+		stageScore = score
+	} else if won {
+		stage = 1
+		stageScore = 0
+	}
+	startGame
+}
+
+// 从主页进入第 n 关（得分从 0 开始）
+func playStage(n int) {
+	stage = n
+	stageScore = 0
+	startGame
+}
+
 // 确认键：主页开始、复活询问时看视频、结算时看视频翻倍
 func confirm() {
 	switch state {
 	case stHome:
-		startGame
+		playStage 1
 	case stRevive:
 		watchAd rewardRevive
 	case stResult:
@@ -512,14 +681,15 @@ func enemyKilled(points int) {
 	}
 }
 
-// 轮流在左上、中上、右上三个出生点放出敌人
+// 轮流在左上、中上、右上三个出生点放出敌人，坦克类型按本关配置随机
 func spawnEnemy() {
+	heavy, fast, _, _ := stageTune()
 	c := (spawned % 3) * 6
 	kind := 0 // 0 普通坦克，1 快速坦克，2 重型坦克
-	n := rand(1, 10)
-	if n <= 2 {
+	n := rand(1, 100)
+	if n <= heavy {
 		kind = 2
-	} else if n <= 5 {
+	} else if n <= heavy+fast {
 		kind = 1
 	}
 	Enemy.spawn cellX(c), cellY(0), kind
@@ -568,7 +738,7 @@ func startGame() {
 	gameOver = true // 先暂停，等地图搭好再开始
 	broadcastAndWait "clear"
 	stopAllSounds
-	score = 0
+	score = stageScore
 	lives = 3
 	spawned = 0
 	enemiesAlive = 0
@@ -585,7 +755,7 @@ func startGame() {
 	broadcast "hud"
 	Player.respawn
 	sfx "start"
-	toast "msg.start", 3
+	toast stageTip(), 3
 	gameOver = false
 }
 
@@ -630,7 +800,14 @@ onKey KeyJ, => {
 
 onKey KeySpace, => {
 	if state == stHome {
-		startGame
+		playStage 1
+	}
+}
+
+// 主页按 1~8 直接进入对应关卡
+onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
+	if state == stHome {
+		playStage int(key) - int(Key0)
 	}
 }
 
@@ -642,7 +819,7 @@ onKey KeyEscape, => {
 
 onKey KeyR, => {
 	if state == stResult {
-		startGame
+		again
 	}
 }
 
@@ -692,7 +869,7 @@ onMsg "adFlow", => {
 // 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
-	startGame
+	playStage 1
 	autopilot = true
 	apTimer = 0
 	tgtAge = 9
@@ -747,11 +924,13 @@ onMsg "gameEnd", => {
 }
 
 onStart => {
+	stage = 1
 	initTheme
 	buildHud
 	goHome
 	for {
-		wait 2
+		_, _, gap, maxAlive := stageTune()
+		wait gap
 		if !gameOver && spawned < totalEnemy && enemiesAlive < maxAlive {
 			spawnEnemy
 		}

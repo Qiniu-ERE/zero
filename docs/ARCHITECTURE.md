@@ -61,11 +61,11 @@ flowchart LR
 
 | 分组 | 主要内容 |
 |---|---|
-| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
-| 地图 | `levelMap()`、`buildMap()`、`cellX/cellY/cellIndex/cellAt`、`tankBlocked()`、`blocksTank()` |
+| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8）`stageScore`（进关时的得分）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
+| 地图 | `levelMap()`（按 `stage` 返回 8 张地图之一）、`stageTune()`（本关的重型 / 快速坦克占比、出兵间隔、场上上限）、`stageTip()`、`buildMap()`、`cellX/cellY/cellIndex/cellAt`、`tankBlocked()`、`blocksTank()` |
 | 子弹判定 | `bulletHit()`（弹头左右两个检测点）→ `hitPoint()` → `breakBrick()` / `baseDestroyed()` |
-| 规则 | `spawnEnemy()`（左中右轮流出生，最多同时 4 辆）、`enemyKilled()`、`defeat()`、`endGame()` |
-| 流程 | `goHome()`、`startGame()`、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
+| 规则 | `spawnEnemy()`（左中右轮流出生，类型和数量按 `stageTune()`）、`enemyKilled()`、`defeat()`、`endGame()` |
+| 流程 | `goHome()`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头 |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
 | 路演演示 | `demoFlow` 消息处理、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
@@ -87,13 +87,13 @@ flowchart LR
 
 | kind | 用途 | 造型名 | 刷新时机 |
 |---|---|---|---|
-| `kLabel` | 文字标签 | `<key>_<zh\|en>` | `langChanged` |
+| `kLabel` | 文字标签；key 为 `stage` 时显示当前关卡名 | `<key>_<zh\|en>`、`stage.<n>_<zh\|en>` | `langChanged`、`hud` |
 | `kScore` / `kBest` / `kCoin` | 数字的一个字符位（每个数字由多个克隆组成） | `S0`…`S9` `Scomma`，`B…`，`C…` | `hud` |
 | `kPip` / `kLife` | 敌军剩余格子 / 生命图标 | `pip_on/off`、`life_on/off` | `hud` |
 | `kLang` | 中 \| EN 按钮（可点击） | `toggle_<lang>` | `langChanged`、`screen` |
 | `kToast` | 提示条（自动隐藏） | `msg.*_<lang>` | `toast` |
 | `kAd` | 广告位：原生广告卡 `card` / 主页横幅 `banner`（可点击、可关闭） | `card_<lang>`、`banner_<lang>` | `screen`、`langChanged` |
-| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`revive_<n>`、`adplay_<n>`、`result_<win\|lose>_<plain\|done>`，再加 `_<lang>` | `screen` |
+| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose>_<plain\|done>`，再加 `_<lang>` | `screen` |
 
 ### 3.4 构建工具 `tools/`
 
@@ -102,6 +102,7 @@ flowchart LR
 | `assets/strings.py` | 中英文案表（唯一来源），游戏和效果图共用 |
 | `assets/textpath.py` | 把文字转成 SVG 路径；字体固定到 google/fonts 的某个提交并校验 sha256；缺字直接报错 |
 | `assets/build.py` | 生成：两套背景、现代画风的所有造型、经典画风的水面和草丛、`UI` 精灵的全部造型和 `index.json`、`UI.spx` 里的 `GENERATED widths` / `GENERATED hit` 区块 |
+| `levels/check.py` | 检查 `levelMap()` 里的每一关：13×13、出生点和基地位置、从出生点能到达基地、玩家能到达出生点、基地旁边没有钢墙和水面。规划中的地图编辑器也用这套规则 |
 | `package_xbp.sh` | 打包 `TankBattle.xbp` |
 | `dev/shot.sh` | 本地运行游戏，只截取游戏窗口（不截整个屏幕），自动裁出 4:3 画面 |
 | `dev/record_demo.sh` | 录制路演演示视频（见[第 10 节](#10-测试与演示视频)） |
@@ -131,16 +132,17 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> 主页: onStart
-  主页 --> 对局: Enter / 空格 / 点击开始
+  主页 --> 对局: Enter / 空格 / 点击开始（第 1 关）；1~8 选关
   主页 --> 对局: P（路演演示，自动驾驶）
   对局 --> 复活询问: 基地被毁 / 生命用完（本局第一次）
   对局 --> 结算: 再次战败 / 消灭 20 辆（胜利）
+  结算 --> 对局: R / 点击下一关（胜利，进入下一关，得分保留）
   复活询问 --> 播放广告: J / Enter / 点击「看视频复活」
   复活询问 --> 结算: Esc / 点击放弃 / 7 秒倒计时结束
   播放广告 --> 对局: 奖励：修复基地 + 1 条命
   结算 --> 播放广告: J / Enter / 点击「金币 ×2」（未翻倍时）
   播放广告 --> 结算: 奖励：金币翻倍
-  结算 --> 对局: R / 点击再来一局
+  结算 --> 对局: R / 点击再来一局（战败重打本关；全部通关后从第 1 关开始）
   结算 --> 主页: H / 点击主页
 ```
 
@@ -238,6 +240,13 @@ stateDiagram-v2
 | #4 | 广告位 + 游戏流程（主页、复活、激励视频、结算） |
 | #5 | 草丛和水面地形；修复格子收不到消息 |
 | #6 | 路演演示模式、默认现代画风、演示视频、架构文档、README、`.xbp` |
+
+### v3.0 的 PR 记录
+
+| PR | 内容 |
+|---|---|
+| #9 | v3.0 规划：总览、跨平台运行方案（文档，附实测截图） |
+| #10 | 8 个关卡（新增 7 关）、按关卡配置敌军、选关、下一关、关卡检查工具 |
 
 ### 分工
 
