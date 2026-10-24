@@ -24,10 +24,13 @@ log "给 spx 模板打补丁（包名、版本、图标、iOS 不签名）"
 python3 "$EXPORT_DIR/patch_spx.py" "$SPX_DIR" "$APP_ID" "$APP_TITLE" "$APP_VERSION"
 
 log "xgo $XGO_VERSION"
-if ! xgo version 2>/dev/null | grep -q "${XGO_VERSION#v}"; then
-  go install "github.com/goplus/xgo/cmd/xgo@$XGO_VERSION"
-fi
-xgo version 2>/dev/null | head -1 || true
+# 注意：不要写成 xgo version | grep -q ...，开了 pipefail 时 grep 提前退出会让 xgo 收到 SIGPIPE（退出码 141）
+xgo_ver="$(xgo version 2>/dev/null || true)"
+case "$xgo_ver" in
+  *"${XGO_VERSION#v}"*) ;;
+  *) go install "github.com/goplus/xgo/cmd/xgo@$XGO_VERSION"; xgo_ver="$(xgo version 2>/dev/null || true)" ;;
+esac
+echo "${xgo_ver%%$'\n'*}"
 
 # 直接调用 spx 的 buildctl（和 make setup 相同；Windows 的 Git Bash 里没有 make）
 log "编译 buildctl"
@@ -55,4 +58,5 @@ for target in "$@"; do
 done
 
 log "spx 已就绪：$(command -v spx)"
-spx version | head -1
+spx_ver="$(spx version 2>&1 || true)"
+echo "${spx_ver%%$'\n'*}"

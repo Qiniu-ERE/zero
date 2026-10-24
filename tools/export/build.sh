@@ -147,6 +147,19 @@ build_ios() {
   local proj; proj=$(find "$G/project/.builds/ios" -maxdepth 1 -name '*.xcodeproj' | head -1)
   [ -n "$proj" ] || { echo "没有找到导出的 Xcode 工程" >&2; exit 1; }
   local scheme; scheme=$(basename "$proj" .xcodeproj)
+  # Xcode 工程引用的 MoltenVK.xcframework：用 Khronos 发布的静态版本
+  local ios_dir; ios_dir=$(dirname "$proj")
+  if grep -q MoltenVK "$proj/project.pbxproj" && [ ! -d "$ios_dir/MoltenVK.xcframework" ]; then
+    local tarball="$CACHE_DIR/MoltenVK-ios-$MOLTENVK_VERSION.tar"
+    if [ ! -f "$tarball" ]; then
+      log "下载 MoltenVK $MOLTENVK_VERSION"
+      curl -fsSL -o "$tarball.tmp" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-ios.tar"
+      mv "$tarball.tmp" "$tarball"
+    fi
+    rm -rf "$BUILD_DIR/moltenvk" && mkdir -p "$BUILD_DIR/moltenvk"
+    tar -xf "$tarball" -C "$BUILD_DIR/moltenvk" MoltenVK/MoltenVK/static/MoltenVK.xcframework
+    cp -R "$BUILD_DIR/moltenvk/MoltenVK/MoltenVK/static/MoltenVK.xcframework" "$ios_dir/"
+  fi
   log "xcodebuild（不签名）：$scheme"
   local dd="$BUILD_DIR/ios-derived"
   rm -rf "$dd"

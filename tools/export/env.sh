@@ -27,4 +27,10 @@ if [ -z "${XGOROOT:-}" ] && [ -d "$(go env GOMODCACHE)/github.com/goplus/xgo@$XG
 fi
 export PATH="$(go env GOPATH)/bin:$PATH"
 
+# Windows 上 Python 默认用系统编码（cp1252）输出，打印中文会报错
+export PYTHONUTF8=1 PYTHONIOENCODING=utf-8
+
+# iOS 模板的 Xcode 工程引用了 MoltenVK.xcframework（Vulkan 在 iOS 上的实现），导出模板里没有，要另外下载
+MOLTENVK_VERSION="v1.3.0"  # 2025-05，和 spx 用的 Godot 4.4.1 时间最接近
+
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
