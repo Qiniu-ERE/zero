@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="560" height="1100" viewBox="0 0 560 1100" font-family="PingFang SC, Noto Sans SC, sans-serif">
+  <rect width="560" height="1100" fill="#eef1f5"/>
+  <text x="280" y="44" text-anchor="middle" font-size="24" font-weight="700" fill="#16181d">竖屏 · 掌机布局（概念示意）</text>
+  <rect x="70" y="70" width="420" height="900" rx="64" fill="#16181d"/>
+  <rect x="82" y="82" width="396" height="876" rx="54" fill="#1d2230"/>
+  <rect x="220" y="96" width="120" height="30" rx="15" fill="#000"/>
+  <!-- 上半屏：游戏 -->
+  <rect x="82" y="150" width="396" height="300" fill="#0b0d12"/>
+  <image xlink:href="../screens/web-chrome-play-zh.png" x="82" y="153" width="396" height="297"/>
+  <!-- 下半屏：FC 手柄风格 -->
+  <g transform="translate(180 640)">
+    <rect x="-24" y="-78" width="48" height="156" rx="8" fill="#2c3245"/>
+    <rect x="-78" y="-24" width="156" height="48" rx="8" fill="#2c3245"/>
+    <g fill="#8892a8"><path d="M0 -64 l11 15 h-22z"/><path d="M0 64 l11 -15 h-22z"/><path d="M-64 0 l15 11 v-22z"/><path d="M64 0 l-15 11 v-22z"/></g>
+  </g>
+  <g font-weight="700" text-anchor="middle" fill="#fff">
+    <circle cx="410" cy="600" r="40" fill="#d2342c"/><text x="410" y="611" font-size="28">A</text>
+    <circle cx="340" cy="680" r="32" fill="#9a2a24"/><text x="340" y="690" font-size="24">B</text>
+    <text x="410" y="664" font-size="16" fill="#8892a8">开火</text>
+    <text x="340" y="734" font-size="16" fill="#8892a8">画风</text>
+  </g>
+  <g font-size="15" font-weight="600" fill="#8892a8" text-anchor="middle">
+    <rect x="196" y="820" width="72" height="22" rx="11" fill="#2c3245"/><text x="232" y="860">SELECT</text>
+    <rect x="292" y="820" width="72" height="22" rx="11" fill="#2c3245"/><text x="328" y="860">START</text>
+  </g>
+  <text x="280" y="1010" text-anchor="middle" font-size="18" fill="#3a4250">上：真实游戏画面（480×360 等比放大）</text>
+  <text x="280" y="1040" text-anchor="middle" font-size="18" fill="#3a4250">下：HTML 覆盖层按钮，按下时向游戏发送</text>
+  <text x="280" y="1066" text-anchor="middle" font-size="18" fill="#3a4250">方向键 / J / T 键盘事件，游戏代码不用改</text>
+</svg>
