@@ -194,7 +194,11 @@ func refreshNumber() {
 func refresh() {
 	switch kind {
 	case kLabel:
-		setCostume key + "_" + langCode()
+		if key == "stage" {
+			setCostume "stage." + strconv.Itoa(stage) + "_" + langCode() // 关卡名随关卡变化
+		} else {
+			setCostume key + "_" + langCode()
+		}
 		show
 	case kScore, kBest, kCoin:
 		refreshNumber
@@ -266,7 +270,7 @@ func clickScreen() {
 	switch state {
 	case stHome:
 		if hit("home.start", x, y) {
-			startGame
+			playStage 1
 		}
 	case stRevive:
 		if hit("revive.ad", x, y) {
@@ -278,7 +282,7 @@ func clickScreen() {
 		if hit("result.ad", x, y) && !doubled {
 			watchAd rewardDouble
 		} else if hit("result.again", x, y) {
-			startGame
+			again
 		} else if hit("result.home", x, y) {
 			goHome
 		}
