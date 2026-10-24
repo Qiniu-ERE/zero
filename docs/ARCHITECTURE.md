@@ -61,8 +61,8 @@ flowchart LR
 
 | 分组 | 主要内容 |
 |---|---|
-| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~7）`stageScore`（进关时的得分）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
-| 地图 | `levelMap()`（按 `stage` 返回 7 张地图之一）、`stageTune()`（本关的重型 / 快速坦克占比、出兵间隔、场上上限）、`stageTip()`、`buildMap()`、`cellX/cellY/cellIndex/cellAt`、`tankBlocked()`、`blocksTank()` |
+| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8）`stageScore`（进关时的得分）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
+| 地图 | `levelMap()`（按 `stage` 返回 8 张地图之一）、`stageTune()`（本关的重型 / 快速坦克占比、出兵间隔、场上上限）、`stageTip()`、`buildMap()`、`cellX/cellY/cellIndex/cellAt`、`tankBlocked()`、`blocksTank()` |
 | 子弹判定 | `bulletHit()`（弹头左右两个检测点）→ `hitPoint()` → `breakBrick()` / `baseDestroyed()` |
 | 规则 | `spawnEnemy()`（左中右轮流出生，类型和数量按 `stageTune()`）、`enemyKilled()`、`defeat()`、`endGame()` |
 | 流程 | `goHome()`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
@@ -132,7 +132,7 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> 主页: onStart
-  主页 --> 对局: Enter / 空格 / 点击开始（第 1 关）；1~7 选关
+  主页 --> 对局: Enter / 空格 / 点击开始（第 1 关）；1~8 选关
   主页 --> 对局: P（路演演示，自动驾驶）
   对局 --> 复活询问: 基地被毁 / 生命用完（本局第一次）
   对局 --> 结算: 再次战败 / 消灭 20 辆（胜利）
@@ -246,7 +246,7 @@ stateDiagram-v2
 | PR | 内容 |
 |---|---|
 | #9 | v3.0 规划：跨平台运行方案、AI 生成关卡可行性（文档） |
-| #10 | 7 个关卡（新增 6 关）、按关卡配置敌军、选关、下一关、关卡检查工具 |
+| #10 | 8 个关卡（新增 7 关）、按关卡配置敌军、选关、下一关、关卡检查工具 |
 
 ### 分工
 

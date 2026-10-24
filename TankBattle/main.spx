@@ -68,7 +68,7 @@ const (
 	fieldLeft  = -228.0 // 战场左边界
 	fieldTop   = 150.0  // 战场上边界
 	totalEnemy = 20     // 每关敌人总数
-	lastStage  = 7      // 关卡总数
+	lastStage  = 8      // 关卡总数
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
@@ -157,7 +157,23 @@ func levelMap() []string {
 			".....BBB.....",
 			".....BEB.....",
 		}
-	case 7: // 最终决战：各种地形都有，场上同时最多 5 辆敌人
+	case 7: // 双子要塞：左右两座砖堡，中间一道水渠，小心交叉火力
+		return []string{
+			".............",
+			".SBBS...SBBS.",
+			".B..B...B..B.",
+			".B..B.G.B..B.",
+			".SB.S...S.BS.",
+			"......W......",
+			"GG.B..W..B.GG",
+			"......W......",
+			".BB.S...S.BB.",
+			"..B.......B..",
+			"B...B.S.B...B",
+			".....BBB.....",
+			".....BEB.....",
+		}
+	case 8: // 最终决战：各种地形都有，出兵最密集
 		return []string{
 			".............",
 			".B.S.B.B.S.B.",
@@ -206,7 +222,9 @@ func stageTune() (int, int, float64, int) {
 	case 6:
 		return 10, 70, 1.2, 5
 	case 7:
-		return 40, 40, 1.5, 5
+		return 30, 50, 1.5, 5
+	case 8:
+		return 45, 45, 1.3, 5
 	}
 	return 20, 30, 2.0, 4
 }
@@ -786,8 +804,8 @@ onKey KeySpace, => {
 	}
 }
 
-// 主页按 1~7 直接进入对应关卡
-onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7], (key) => {
+// 主页按 1~8 直接进入对应关卡
+onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 	if state == stHome {
 		playStage int(key) - int(Key0)
 	}
