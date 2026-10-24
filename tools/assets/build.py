@@ -429,7 +429,7 @@ def home(lang):
     c, cw = chip(0, 0, "Enter", dark=True)
     s.append(f'<g transform="translate({186-10-cw:.2f},96)">{c}</g>')
     # 其他模式：即将推出
-    for i, k in enumerate(("m.daily", "m.coop", "m.ai")):
+    for i, k in enumerate(("m.daily", "m.coop", "m.maker")):
         y = 144 + i * 44
         s.append(f'<rect x="16.3" y="{y+0.3}" width="169.4" height="37.4" rx="8" fill="#ffffff" fill-opacity="0.035" stroke="#263046" stroke-width="0.6"/>')
         s.append(text(28, y + 17, tr(k, lang), 10.5, "#7f8ba3", True))
