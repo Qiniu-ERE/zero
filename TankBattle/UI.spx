@@ -91,6 +91,24 @@ func hit(name string, x, y float64) bool {
 	switch name {
 	case "home.start":
 		return x >= -224 && x <= -54 && y >= 46 && y <= 96
+	case "home.ai":
+		return x >= -224 && x <= -54 && y >= -90 && y <= -52
+	case "ai.t1":
+		return x >= -224 && x <= -80 && y >= 34 && y <= 114
+	case "ai.t2":
+		return x >= -72 && x <= 72 && y >= 34 && y <= 114
+	case "ai.t3":
+		return x >= 80 && x <= 224 && y >= 34 && y <= 114
+	case "ai.t4":
+		return x >= -224 && x <= -80 && y >= -54 && y <= 26
+	case "ai.t5":
+		return x >= -72 && x <= 72 && y >= -54 && y <= 26
+	case "ai.t6":
+		return x >= 80 && x <= 224 && y >= -54 && y <= 26
+	case "ai.custom":
+		return x >= -224 && x <= 224 && y >= -80 && y <= -54
+	case "ai.back":
+		return x >= -224 && x <= -144 && y >= -124 && y <= -106
 	case "revive.ad":
 		return x >= -162 && x <= 18 && y >= -32 && y <= -4
 	case "revive.giveup":
@@ -194,7 +212,9 @@ func refreshNumber() {
 func refresh() {
 	switch kind {
 	case kLabel:
-		if key == "stage" {
+		if key == "stage" && stage == aiStage {
+			setCostume "stage.ai" + strconv.Itoa(aiTheme) + "_" + langCode() // AI 关卡：显示主题
+		} else if key == "stage" {
 			setCostume "stage." + strconv.Itoa(stage) + "_" + langCode() // 关卡名随关卡变化
 		} else {
 			setCostume key + "_" + langCode()
@@ -271,6 +291,20 @@ func clickScreen() {
 	case stHome:
 		if hit("home.start", x, y) {
 			playStage 1
+		} else if hit("home.ai", x, y) {
+			openAIMaker
+		}
+	case stAIMaker:
+		for n := 1; n <= 6; n++ {
+			if hit("ai.t"+strconv.Itoa(n), x, y) {
+				startAI n, ""
+				return
+			}
+		}
+		if hit("ai.custom", x, y) {
+			broadcast "aiInputFlow"
+		} else if hit("ai.back", x, y) {
+			goHome
 		}
 	case stRevive:
 		if hit("revive.ad", x, y) {
@@ -341,8 +375,8 @@ onMsg "toast", => {
 	if isCloned && kind == kToast {
 		key = toastKey
 		left = toastSecs
-		if state == stHome {
-			setXYpos 0, -118 // 主页：菜单和横幅之间的空白处
+		if state == stHome || state == stAIMaker {
+			setXYpos 0, -118 // 主页、AI 造关页面：下方的空白处
 		} else {
 			setXYpos -72, 20 // 战场上方
 		}

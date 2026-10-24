@@ -1,6 +1,7 @@
 import (
 	"math"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -28,6 +29,13 @@ var (
 	stage        int     // 当前关卡：1…lastStage
 	stageScore   int     // 进入本关时的得分（重打本关时从这里开始）
 
+	// AI 造关（见 docs/v3/AI_LEVELS.md）
+	aiRows    []string // AI 关卡的地图
+	aiTheme   int      // 0 自己描述（没有识别出主题），1~6 主题
+	aiPrompt  string   // 玩家输入的描述
+	aiBusy    bool     // XBuilder 版的 AIMaker 精灵正在请求大模型
+	aiByModel bool     // 这张地图是大模型设计的（否则是本地程序化生成）
+
 	// 流程与广告（见 docs/ARCHITECTURE.md 的「游戏流程」）
 	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
 	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
@@ -54,6 +62,9 @@ const (
 	stRevive = 2 // 询问是否看视频复活
 	stAd     = 3 // 正在播放（模拟的）激励视频
 	stResult = 4 // 结算
+	stAIMaker = 5 // AI 造关页面：选主题或自己描述
+	stAIInput = 6 // 正在底部的输入框里输入描述
+	stAIThink = 7 // AI 正在设计地图
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
@@ -69,6 +80,7 @@ const (
 	fieldTop   = 150.0  // 战场上边界
 	totalEnemy = 20     // 每关敌人总数
 	lastStage  = 8      // 关卡总数
+	aiStage    = 9      // AI 关卡的编号（不在 1~lastStage 里）
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
@@ -76,6 +88,9 @@ const (
 // 规则：第 0 行的第 0、6、12 列是敌人出生点，第 12 行第 4 列是玩家出生点，都必须是空地；基地固定在第 12 行第 6 列。
 // 改完地图运行 python3 tools/levels/check.py 检查（出生点、连通性等）
 func levelMap() []string {
+	if stage == aiStage && len(aiRows) == rows {
+		return aiRows
+	}
 	switch stage {
 	case 2: // 水乡迷宫：大片水面分割战场，坦克要绕路，子弹却能隔河对射
 		return []string{
@@ -210,6 +225,21 @@ func levelMap() []string {
 
 // 本关的敌军配置：重型坦克占比（%）、快速坦克占比（%）、出兵间隔（秒）、场上最多几辆
 func stageTune() (int, int, float64, int) {
+	if stage == aiStage {
+		switch aiTheme {
+		case 1:
+			return 20, 30, 2.0, 4
+		case 2:
+			return 40, 20, 2.0, 4
+		case 3:
+			return 10, 60, 1.8, 4
+		case 4:
+			return 30, 30, 1.8, 4
+		case 5:
+			return 10, 70, 1.4, 5
+		}
+		return 30, 40, 1.8, 4
+	}
 	switch stage {
 	case 2:
 		return 20, 30, 2.0, 4
@@ -231,10 +261,232 @@ func stageTune() (int, int, float64, int) {
 
 // 每关开始时的提示（文案 key 见 tools/assets/strings.py）
 func stageTip() string {
+	if stage == aiStage {
+		if aiByModel {
+			return "msg.ai.ready"
+		}
+		return "msg.ai.local"
+	}
 	if stage == 1 {
 		return "msg.start"
 	}
 	return "msg.stage" + strconv.Itoa(stage)
+}
+
+// ---------- AI 造关：地图检查（和 tools/levels/check.py 相同的规则）与本地程序化生成 ----------
+
+func tankCanPass(ch byte) bool {
+	return ch == '.' || ch == 'G' || ch == 'B' // 砖墙能打掉，算作能通过
+}
+
+// 从 (r, c) 出发，坦克能到达哪些格子
+func reachable(m []string, r0, c0 int) []bool {
+	seen := make([]bool, rows*cols)
+	seen[r0*cols+c0] = true
+	queue := []int{r0*cols + c0}
+	for len(queue) > 0 {
+		i := queue[0]
+		queue = queue[1:]
+		r := i / cols
+		c := i % cols
+		for d := 0; d < 4; d++ {
+			nr := r
+			nc := c
+			if d == 0 {
+				nr--
+			} else if d == 1 {
+				nr++
+			} else if d == 2 {
+				nc--
+			} else {
+				nc++
+			}
+			if nr >= 0 && nr < rows && nc >= 0 && nc < cols && !seen[nr*cols+nc] && tankCanPass(m[nr][nc]) {
+				seen[nr*cols+nc] = true
+				queue = append(queue, nr*cols+nc)
+			}
+		}
+	}
+	return seen
+}
+
+// 地图有什么问题，"" 表示合格。说明文字也会作为反馈发给大模型，让它改正
+func mapProblem(m []string) string {
+	if len(m) != rows {
+		return "地图必须正好 13 行"
+	}
+	bases := 0
+	for r := 0; r < rows; r++ {
+		if len(m[r]) != cols {
+			return "第 " + strconv.Itoa(r) + " 行必须正好 13 个字符"
+		}
+		for c := 0; c < cols; c++ {
+			if !strings.ContainsRune(".BSWGE", rune(m[r][c])) {
+				return "第 " + strconv.Itoa(r) + " 行有不认识的字符，只能用 . B S W G E"
+			}
+			if m[r][c] == 'E' {
+				bases++
+			}
+		}
+	}
+	if bases != 1 || m[12][6] != 'E' {
+		return "基地 E 必须有且只有一个，在第 12 行第 6 列"
+	}
+	if m[0][0] != '.' || m[0][6] != '.' || m[0][12] != '.' {
+		return "第 0 行第 0、6、12 列是敌人出生点，必须是 ."
+	}
+	if m[12][4] != '.' {
+		return "第 12 行第 4 列是玩家出生点，必须是 ."
+	}
+	for _, ch := range []byte{m[11][6], m[12][5], m[12][7]} {
+		if ch == 'S' || ch == 'W' {
+			return "基地上方和左右两格不能是钢墙 S 或水面 W"
+		}
+	}
+	player := reachable(m, 12, 4)
+	for _, c := range []int{0, 6, 12} {
+		if !player[c] {
+			return "玩家从出生点开不到第 0 行第 " + strconv.Itoa(c) + " 列的敌人出生点"
+		}
+		s := reachable(m, 0, c)
+		if !s[11*cols+6] && !s[12*cols+5] && !s[12*cols+7] {
+			return "从第 0 行第 " + strconv.Itoa(c) + " 列的出生点到不了基地（被钢墙或水面堵死了）"
+		}
+	}
+	return ""
+}
+
+// 从玩家的描述里认出主题：1 河流 2 钢铁 3 草丛 4 砖城 5 开阔，认不出返回 0
+func themeOf(p string) int {
+	p = strings.ToLower(p)
+	keys := []string{
+		"河 水 湖 海 护城 river water lake moat sea",
+		"钢 铁 金属 steel iron metal",
+		"草 丛 林 森 树 grass forest jungle bush tree",
+		"砖 城 迷宫 巷 brick maze city street",
+		"开阔 空旷 平原 open field plain",
+	}
+	for i, line := range keys {
+		for _, w := range strings.Fields(line) {
+			if strings.Contains(p, w) {
+				return i + 1
+			}
+		}
+	}
+	return 0
+}
+
+// 各主题的地形权重：砖、钢、水、草（%），以及奇数列 / 偶数列放墙的概率（%）
+func themeWeights(t int) (int, int, int, int, int, int) {
+	switch t {
+	case 1:
+		return 40, 10, 45, 5, 45, 25
+	case 2:
+		return 45, 50, 0, 5, 50, 20
+	case 3:
+		return 30, 5, 0, 65, 55, 35
+	case 4:
+		return 90, 10, 0, 0, 70, 30
+	}
+	return 55, 30, 5, 10, 25, 5 // 5 开阔战场
+}
+
+func pickTile(wb, ws, ww int) string {
+	n := rand(1, 100)
+	if n <= wb {
+		return "B"
+	} else if n <= wb+ws {
+		return "S"
+	} else if n <= wb+ws+ww {
+		return "W"
+	}
+	return "G"
+}
+
+func reversed(s string) string {
+	out := ""
+	for i := len(s) - 1; i >= 0; i-- {
+		out += s[i : i+1]
+	}
+	return out
+}
+
+// 随机生成一张左右对称的地图（不保证合格）
+func genTry(theme int) []string {
+	t := theme
+	if t < 1 || t > 5 {
+		t = rand(1, 5) // 随机惊喜、没认出主题：随便选一种风格
+	}
+	wb, ws, ww, _, dOdd, dEven := themeWeights(t)
+	m := []string{"............."}
+	for r := 1; r <= 10; r++ {
+		half := ""
+		for c := 0; c <= 6; c++ {
+			d := dEven
+			if c%2 == 1 {
+				d = dOdd
+			}
+			if rand(1, 100) <= d {
+				half += pickTile(wb, ws, ww)
+			} else {
+				half += "."
+			}
+		}
+		m = append(m, half+reversed(half[:6]))
+	}
+	side := func() string {
+		out := ""
+		for c := 0; c < 4; c++ {
+			if rand(1, 100) <= dEven {
+				out += pickTile(wb, ws, ww)
+			} else {
+				out += "."
+			}
+		}
+		return out
+	}
+	a := side()
+	b := side()
+	m = append(m, a+".BBB."+reversed(a), b+".BEB."+reversed(b))
+	return m
+}
+
+// 本地程序化生成：随机生成并检查，直到合格（通常几次之内），实在不行就用第 1 关
+func genMap(theme int) []string {
+	for try := 0; try < 80; try++ {
+		m := genTry(theme)
+		if mapProblem(m) == "" {
+			return m
+		}
+	}
+	keep := stage
+	stage = 1
+	m := levelMap()
+	stage = keep
+	return m
+}
+
+// 进入 AI 造关页面
+func openAIMaker() {
+	state = stAIMaker
+	autopilot = false
+	gameOver = true
+	broadcastAndWait "clear"
+	stopAllSounds
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
+	setScreen "aimaker"
+}
+
+// 开始设计地图：theme 是主题（0 表示自己描述且没认出主题），prompt 是玩家的描述
+func startAI(theme int, prompt string) {
+	if state != stAIMaker && state != stAIInput {
+		return
+	}
+	aiTheme = theme
+	aiPrompt = prompt
+	state = stAIThink
+	broadcast "aiFlow"
 }
 
 // 第 c 列格子中心的 x 坐标
@@ -535,7 +787,9 @@ func endGame(win bool) {
 
 func showResult() {
 	name := "result_lose_"
-	if won && stage == lastStage {
+	if won && stage == aiStage {
+		name = "result_aiwin_" // AI 关卡：再造一关
+	} else if won && stage == lastStage {
 		name = "result_final_" // 全部通关
 	} else if won {
 		name = "result_win_"
@@ -551,6 +805,14 @@ func showResult() {
 
 // 结算后的“再来一局”按钮（R）：赢了进下一关；全部通关后从第 1 关重新开始；输了重打本关
 func again() {
+	if stage == aiStage {
+		if won {
+			openAIMaker // 再造一关
+		} else {
+			startGame // 同一张 AI 地图再来一局
+		}
+		return
+	}
 	if won && stage < lastStage {
 		stage++
 		stageScore = score
@@ -573,6 +835,8 @@ func confirm() {
 	switch state {
 	case stHome:
 		playStage 1
+	case stAIMaker:
+		broadcast "aiInputFlow"
 	case stRevive:
 		watchAd rewardRevive
 	case stResult:
@@ -759,12 +1023,17 @@ func startGame() {
 	gameOver = false
 }
 
+// 在输入框里打字时不响应快捷键
 onKey KeyT, => {
-	switchTheme
+	if state != stAIInput {
+		switchTheme
+	}
 }
 
 onKey KeyL, => {
-	switchLang
+	if state != stAIInput {
+		switchLang
+	}
 }
 
 // 震屏：镜头快速抖动几下再回到中心
@@ -806,14 +1075,26 @@ onKey KeySpace, => {
 
 // 主页按 1~8 直接进入对应关卡
 onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
+	n := int(key) - int(Key0)
 	if state == stHome {
-		playStage int(key) - int(Key0)
+		playStage n
+	} else if state == stAIMaker && n <= 6 {
+		startAI n, "" // AI 造关页面：选主题
+	}
+}
+
+// 主页按 A 进入 AI 造关
+onKey KeyA, => {
+	if state == stHome {
+		openAIMaker
 	}
 }
 
 onKey KeyEscape, => {
 	if state == stRevive {
 		endGame false
+	} else if state == stAIMaker {
+		goHome
 	}
 }
 
@@ -833,6 +1114,51 @@ onKey KeyH, => {
 	if state == stResult {
 		goHome
 	}
+}
+
+// AI 造关：在底部的输入框里输入一句话（ask 会一直等到玩家按 Enter）
+onMsg "aiInputFlow", => {
+	if state != stAIMaker {
+		return
+	}
+	state = stAIInput
+	setScreen "aiinput"
+	ask "" // 提示文字画在页面上，引擎的输入框只负责输入
+	p := strings.TrimSpace(answer)
+	if p == "" {
+		openAIMaker
+		return
+	}
+	startAI themeOf(p), p
+}
+
+// AI 造关：设计地图。XBuilder 版里 AIMaker 精灵收到 "aiDesign" 后会请求大模型（设置 aiBusy，完成后填好 aiRows）；
+// 没有 AIMaker（本地运行、导出的 App）或者大模型失败时，用本地程序化生成
+onMsg "aiFlow", => {
+	aiRows = nil
+	aiBusy = false
+	aiByModel = false
+	broadcast "aiDesign"
+	n := 1
+	t := 0.0
+	for {
+		setScreen "aithink_" + strconv.Itoa(n)
+		n = n%3 + 1
+		wait 0.3
+		t += 0.3
+		if aiBusy {
+			if aiRows != nil || t > 25 {
+				break
+			}
+		} else if t >= 1.5 {
+			break
+		}
+	}
+	if aiRows == nil || mapProblem(aiRows) != "" {
+		aiRows = genMap(aiTheme)
+		aiByModel = false
+	}
+	playStage aiStage
 }
 
 // 复活询问：倒计时结束还没选择就直接结算

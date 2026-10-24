@@ -18,5 +18,9 @@
     "EBullet",
     "Boom",
     "UI"
+  ],
+  "fontPreferences": [
+    "default",
+    "Noto Sans SC"
   ]
 }

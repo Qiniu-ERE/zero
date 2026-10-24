@@ -240,6 +240,7 @@ def text_costume(s, size, fill, bold, anchor, pad=1.0):
 # 标签：key -> (字号, 颜色, 粗体, 对齐)
 LABELS = {
     **{f"stage.{n}": (10, "#ffffff", True, "start") for n in range(1, 9)},
+    **{f"stage.ai{n}": (10, "#ffffff", True, "start") for n in range(0, 7)},
     "enemies": (7.5, MUTED, False, "end"),
     "score": (6.8, MUTED, True, "start"),
     "best": (6.8, MUTED, True, "start"),
@@ -428,8 +429,8 @@ def home(lang):
     s.append(text(28, 122, tr("home.start.d", lang), 6.8, "#fff2e0"))
     c, cw = chip(0, 0, "Enter", dark=True)
     s.append(f'<g transform="translate({186-10-cw:.2f},96)">{c}</g>')
-    # 其他模式：即将推出
-    for i, k in enumerate(("m.daily", "m.coop", "m.ai")):
+    # 其他模式：每日挑战、双人合作即将推出；AI 造关可以玩
+    for i, k in enumerate(("m.daily", "m.coop")):
         y = 144 + i * 44
         s.append(f'<rect x="16.3" y="{y+0.3}" width="169.4" height="37.4" rx="8" fill="#ffffff" fill-opacity="0.035" stroke="#263046" stroke-width="0.6"/>')
         s.append(text(28, y + 17, tr(k, lang), 10.5, "#7f8ba3", True))
@@ -437,6 +438,16 @@ def home(lang):
         sw = width(tr("soon", lang), 5.8, True) + 10
         s.append(f'<rect x="{186-10-sw:.2f}" y="{y+8}" width="{sw:.2f}" height="11" rx="5.5" fill="#2c3850"/>')
         s.append(text(186 - 10 - sw / 2, y + 15.6, tr("soon", lang), 5.8, MUTED, True, "middle"))
+    y = 232
+    button("home.ai", 16, y, 170, 38)
+    s.append(f'<rect x="16.4" y="{y+0.4}" width="169.2" height="37.2" rx="8" fill="#3ee8ff" fill-opacity="0.08" stroke="#3ee8ff" stroke-opacity="0.7" stroke-width="0.8"/>')
+    s.append(text(28, y + 17, tr("m.ai", lang), 10.5, "#ffffff", True))
+    s.append(text(28, y + 29, tr("m.ai.d", lang), 6.2, "#9fdcea"))
+    nw = width(tr("new", lang), 5.8, True) + 10
+    c, cw = chip(0, 0, "A", dark=True)
+    s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
+    s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
+    s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
     # 路演演示模式提示
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
@@ -517,11 +528,11 @@ COIN_POS = (MX + 50, MY + 70)  # 结算弹窗里金币数字的锚点（SVG 坐�
 
 
 def result(kind, done, lang):
-    """kind：win 过关（按钮是“下一关”）、final 最后一关也赢了（全部通关）、lose 战败"""
+    """kind：win 过关（按钮是“下一关”）、final 最后一关也赢了（全部通关）、aiwin AI 关卡胜利（再造一关）、lose 战败"""
     win = kind != "lose"
     m = MX + MW / 2
     s = [f'<rect width="{W}" height="{H}" fill="#05070c" fill-opacity="0.5"/>', modal_frame("#f2c94c" if win else "#3a4660")]
-    title = {"win": "rs.win", "final": "rs.final", "lose": "rs.lose"}[kind]
+    title = {"win": "rs.win", "final": "rs.final", "aiwin": "rs.win", "lose": "rs.lose"}[kind]
     s.append(text(m, MY + 34, tr(title, lang), 18, "#ffe27a" if win else "#c8d2e3", True, "middle"))
     # 金币（数字由 UI 克隆显示在 COIN_POS）
     s.append(f'<rect x="{MX+20}" y="{MY+48}" width="{MW-40}" height="32" rx="8" fill="#ffffff" fill-opacity="0.05"/>')
@@ -546,7 +557,7 @@ def result(kind, done, lang):
     ax, ay, aw, ah = MX + 20, MY + 128, MW - 40, 30
     button("result.again", ax, ay, aw, ah)
     s.append(f'<rect x="{ax}" y="{ay}" width="{aw}" height="{ah}" rx="15" fill="url(#cta)"/>')
-    s.append(text(m - 6, ay + 19.5, tr("rs.next" if kind == "win" else "rs.again", lang), 10, "#ffffff", True, "middle"))
+    s.append(text(m - 6, ay + 19.5, tr({"win": "rs.next", "aiwin": "rs.newmap"}.get(kind, "rs.again"), lang), 10, "#ffffff", True, "middle"))
     c, cw = chip(0, 0, "R", dark=True)
     s.append(f'<g transform="translate({ax+aw-10-cw:.2f},{ay+10})">{c}</g>')
     # 主页
@@ -560,17 +571,124 @@ def result(kind, done, lang):
     return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 
+# ---------- AI 造关 ----------
+# 主题卡片上的小地图（示意），和 main.spx 里程序化生成的风格一致
+THEME_MAPS = {
+    1: [".............", ".B.........B.", "...WWW.WWW...", "..W.......W..", "..W.SBBBS.W..", "....B...B....", "..W.B.S.B.W..",
+        "..W.SB.BS.W..", "...WWW.WWW...", ".B.........B.", ".BB..B.B..BB.", ".....BBB.....", ".....BEB....."],
+    2: [".............", ".S.........S.", "..S...B...S..", "...S.....S...", "....S.B.S....", ".B...S.S...B.", ".B.B..S..B.B.",
+        ".B...S.S...B.", "....S.B.S....", "...S.....S...", "..S.......S..", ".S...BBB...S.", ".....BEB....."],
+    3: [".............", ".GGGB.G.BGGG.", ".G...GGG...G.", ".G.BB...BB.G.", "...BGGBGGB...", "GGG.......GGG", "..B.BGSGB.B..",
+        "GGG.......GGG", "...BGGBGGB...", ".G.BB...BB.G.", ".G...GGG...G.", ".GGG.BBB.GGG.", ".....BEB....."],
+    4: [".............", ".BBB.BBB.BBB.", ".B.B.B.B.B.B.", ".BBB.B.B.BBB.", ".............", "BB.BBB.BBB.BB", "...B.....B...",
+        ".B.B.BBB.B.B.", ".B...B.B...B.", ".BBB.B.B.BBB.", ".............", ".BB..BBB..BB.", ".B...BEB...B."],
+    5: [".............", ".............", "..S.......S..", "....B...B....", ".............", "GG..S.B.S..GG", ".............",
+        "WW..S.B.S..WW", ".............", "....B...B....", "..S.......S..", ".....BBB.....", ".....BEB....."],
+}
+MINI = {"B": "#c8643a", "S": "#a9b4bf", "W": "#1b6fa8", "G": "#3c9a46", "E": "#ffd23a"}
+AI_TOP = 262  # 页面内容只用到这里，下面留给引擎的输入条（ask，固定在底部，约 90px 高）
+
+
+def mini_map(rows, x, y, cell):
+    s = [f'<rect x="{x}" y="{y}" width="{13*cell}" height="{13*cell}" rx="2" fill="#0a0e14" stroke="#2a3446" stroke-width="0.5"/>']
+    for r, line in enumerate(rows):
+        for c, ch in enumerate(line):
+            if ch in MINI:
+                s.append(f'<rect x="{x+c*cell:.2f}" y="{y+r*cell:.2f}" width="{cell-0.4:.2f}" height="{cell-0.4:.2f}" fill="{MINI[ch]}"/>')
+    return "".join(s)
+
+
+def fit(s, size, bold, room):
+    """字号 size 放不下时，缩小到正好放得下的字号"""
+    w = width(s, size, bold)
+    return size if w <= room else round(size * room / w, 2)
+
+
+def aimaker(lang, inputting=False):
+    """AI 造关页面：6 个主题 + 自己描述。inputting 时上面变暗，提示在下方的输入条里输入"""
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>',
+         '<circle cx="400" cy="40" r="120" fill="#3ee8ff" fill-opacity="0.04"/>']
+    t = tr("ai.title", lang)
+    s.append(text(16, 38, t, 18, "#ffffff", True))
+    bw = width("BETA", 6, True) + 8
+    s.append(f'<rect x="{16+width(t, 18, True)+6:.2f}" y="26" width="{bw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
+    s.append(text(16 + width(t, 18, True) + 6 + bw / 2, 33.6, "BETA", 6, "#06232b", True, "middle"))
+    s.append(text(16, 54, tr("ai.sub", lang), 7.5, "#9aa6bd"))
+    cw_, ch_ = 144, 80
+    for i in range(6):
+        n = i + 1
+        x = 16 + (i % 3) * (cw_ + 8)
+        y = 66 + (i // 3) * (ch_ + 8)
+        button(f"ai.t{n}", x, y, cw_, ch_)
+        s.append(f'<rect x="{x+0.3}" y="{y+0.3}" width="{cw_-0.6}" height="{ch_-0.6}" rx="8" fill="#ffffff" fill-opacity="0.04" stroke="#2c3850" stroke-width="0.7"/>')
+        if n in THEME_MAPS:
+            s.append(mini_map(THEME_MAPS[n], x + 10, y + 12, 4.3))
+        else:  # 随机：画一个问号骰子
+            s.append(f'<rect x="{x+12}" y="{y+14}" width="52" height="52" rx="8" fill="#3ee8ff" fill-opacity="0.12" stroke="#3ee8ff" stroke-opacity="0.6" stroke-width="0.8"/>')
+            s.append(text(x + 38, y + 50, "?", 30, "#3ee8ff", True, "middle"))
+        room = cw_ - 74 - 8  # 文字区宽度，放不下就缩小字号，保证不超出卡片
+        name, desc = tr(f"ai.t{n}", lang), tr(f"ai.t{n}.d", lang)
+        s.append(text(x + 74, y + 30, name, fit(name, 10, True, room), "#ffffff", True))
+        s.append(text(x + 74, y + 43, desc, fit(desc, 6.2, False, room), MUTED))
+        c, _ = chip(x + 74, y + 54, str(n))
+        s.append(c)
+    # 自己描述
+    y = 244 - 10
+    button("ai.custom", 16, y, 448, 26)
+    s.append(f'<rect x="16" y="{y}" width="448" height="26" rx="13" fill="url(#cta)"/>')
+    tt = tr("ai.custom", lang)
+    s.append(text(32, y + 17.5, tt, 10, "#ffffff", True))
+    s.append(text(32 + width(tt, 10, True) + 8, y + 17, tr("ai.custom.d", lang), 7, "#fff2e0"))
+    c, cw = chip(0, 0, "Enter", dark=True)
+    s.append(f'<g transform="translate({464-12-cw:.2f},{y+8})">{c}</g>')
+    if not inputting:
+        # 底部：返回、说明
+        c, cw = chip(16, 290, "Esc")
+        s.append(c + text(16 + cw + 5, 297.4, tr("ai.back", lang), 7, "#7f8ba3"))
+        button("ai.back", 16, 286, 80, 18)
+        s.append(text(464, 297.4, tr("ai.note", lang), 6.2, "#5a6680", False, "end"))
+    else:
+        s.append(f'<rect width="{W}" height="{AI_TOP}" fill="#05070c" fill-opacity="0.72"/>')
+        m = W / 2
+        s.append(f'<rect x="60" y="150" width="360" height="96" rx="12" fill="#121826" stroke="#3ee8ff" stroke-opacity="0.6" stroke-width="0.8"/>')
+        s.append(text(m, 182, tr("ai.in.title", lang), 13, "#ffffff", True, "middle"))
+        s.append(text(m, 200, tr("ai.in.eg", lang), 7.5, "#9aa6bd", False, "middle"))
+        s.append(text(m, 222, tr("ai.in.ok", lang), 7.5, "#3ee8ff", True, "middle"))
+        s.append(f'<path d="M{m-8} 252l8 8 8-8" fill="none" stroke="#3ee8ff" stroke-width="2"/>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def aithink(n, lang):
+    """AI 正在设计地图（3 帧动画）"""
+    m = W / 2
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    cx, cy, r = m, 140, 46
+    s.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="#3ee8ff" fill-opacity="0.05" stroke="#3ee8ff" stroke-opacity="0.35" stroke-width="0.8"/>')
+    s.append(f'<circle cx="{cx}" cy="{cy}" r="{r*0.6:.1f}" fill="none" stroke="#3ee8ff" stroke-opacity="0.2" stroke-width="0.6"/>')
+    a = math.radians(-90 + (n - 1) * 120)
+    x2, y2 = cx + r * math.cos(a), cy + r * math.sin(a)
+    s.append(f'<path d="M{cx} {cy}L{x2:.2f} {y2:.2f}" stroke="#3ee8ff" stroke-width="2" stroke-linecap="round"/>')
+    s.append(mini_map(THEME_MAPS[(n % 5) + 1], cx - 19.5, cy - 19.5, 3))
+    s.append(text(m, 216, tr("ai.think", lang) + "." * n, 14, "#ffffff", True, "middle"))
+    s.append(text(m, 236, tr("ai.think.d", lang), 7.5, "#9aa6bd", False, "middle"))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
 def screen_costumes():
     out = []
     for lang in LANGS:
         out.append((f"card_{lang}", *native_card(lang)))
         out.append((f"banner_{lang}", *banner(lang)))
         out.append((f"home_{lang}", *home(lang), 2))
+        out.append((f"aimaker_{lang}", *aimaker(lang), 2))
+        out.append((f"aiinput_{lang}", *aimaker(lang, True), 2))
+        for n in range(1, 4):
+            out.append((f"aithink_{n}_{lang}", *aithink(n, lang), 2))
         for n in range(1, 8):
             out.append((f"revive_{n}_{lang}", *revive(n, lang), 2))
         for n in range(1, 6):
             out.append((f"adplay_{n}_{lang}", *adplay(n, lang), 2))
-        for kind in ("win", "final", "lose"):
+        for kind in ("win", "final", "aiwin", "lose"):
             for done in (False, True):
                 name = f"result_{kind}_{'done' if done else 'plain'}_{lang}"
                 out.append((name, *result(kind, done, lang), 2))
@@ -630,6 +748,42 @@ def build_hud():
     return write_sprite("UI", costumes)
 
 
+FONT_FAMILY = "Noto Sans SC"
+
+
+def build_font():
+    """引擎输入框（AI 造关的 ask）要显示玩家输入的中文：打包 Noto Sans SC 子集（GB2312 一级汉字 + ASCII + 常用标点）。
+    界面文字仍然烘焙成路径，这个字体只给引擎自带的输入框用"""
+    from fontTools import subset
+    from textpath import CACHE, font
+    font("medium")  # 确保已经生成了 500 字重的静态字体
+    chars = {chr(c) for c in range(0x20, 0x7F)} | set("，。！？：；、“”‘’（）《》·—…【】")
+    for hi in range(0xB0, 0xD8):
+        for lo in range(0xA1, 0xFF):
+            try:
+                chars.add(bytes([hi, lo]).decode("gb2312"))
+            except UnicodeDecodeError:
+                pass
+    d = os.path.join(ASSETS, "fonts", FONT_FAMILY)
+    os.makedirs(d, exist_ok=True)
+    opts = subset.Options()
+    opts.name_IDs = ["*"]
+    opts.notdef_outline = True
+    f = subset.load_font(os.path.join(CACHE, "NotoSansSC-500.ttf"), opts)
+    sub = subset.Subsetter(opts)
+    sub.populate(text="".join(sorted(chars)))
+    sub.subset(f)
+    subset.save_font(f, os.path.join(d, "noto-sc.ttf"), opts)
+    with open(os.path.join(d, "index.json"), "w", encoding="utf-8") as fp:
+        fp.write(json.dumps({"faces": [{"path": "noto-sc.ttf"}]}, indent=2) + "\n")
+    p = os.path.join(ASSETS, "index.json")
+    with open(p, encoding="utf-8") as fp:
+        cfg = json.load(fp)
+    cfg["fontPreferences"] = ["default", FONT_FAMILY]
+    with open(p, "w", encoding="utf-8") as fp:
+        fp.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
+
+
 def main():
     out = [
         write("field.svg", backdrop_classic()),
@@ -653,6 +807,7 @@ def main():
     for i in range(3):
         out.append(write(f"sprites/Boom/b{i+1}_m.svg", boom_m(i)))
     hud = build_hud()
+    build_font()
     print(f"generated {len(out)} art files, {hud} HUD costumes")
 
 
