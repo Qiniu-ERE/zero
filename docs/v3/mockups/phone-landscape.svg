@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1400" height="720" viewBox="0 0 1400 720" font-family="PingFang SC, Noto Sans SC, sans-serif">
+  <rect width="1400" height="720" fill="#eef1f5"/>
+  <!-- 手机外壳（横屏，19.5:9） -->
+  <rect x="50" y="60" width="1300" height="600" rx="90" fill="#16181d"/>
+  <rect x="66" y="76" width="1268" height="568" rx="76" fill="#0b0d12"/>
+  <rect x="96" y="320" width="16" height="80" rx="8" fill="#000"/>
+  <!-- 游戏画面 4:3，等比放大居中 -->
+  <image xlink:href="../screens/web-chrome-play.png" x="345" y="92" width="715" height="536" preserveAspectRatio="xMidYMid meet"/>
+  <!-- 左侧：虚拟方向键 -->
+  <g transform="translate(205 420)" fill="#ffffff" fill-opacity="0.14" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2">
+    <circle r="92"/>
+    <path d="M-22 -80 h44 v58 h58 v44 h-58 v58 h-44 v-58 h-58 v-44 h58z" fill-opacity="0.22"/>
+  </g>
+  <g transform="translate(205 420)" fill="#fff" fill-opacity="0.8">
+    <path d="M0 -70 l12 16 h-24z"/><path d="M0 70 l12 -16 h-24z"/><path d="M-70 0 l16 12 v-24z"/><path d="M70 0 l-16 12 v-24z"/>
+  </g>
+  <!-- 右侧：开火 + 功能键 -->
+  <g transform="translate(1195 430)">
+    <circle r="64" fill="#ff6a2a" fill-opacity="0.85" stroke="#fff" stroke-opacity="0.5" stroke-width="3"/>
+    <text y="12" text-anchor="middle" font-size="34" font-weight="700" fill="#fff">开火</text>
+  </g>
+  <g font-size="20" font-weight="600" fill="#fff" text-anchor="middle">
+    <rect x="1110" y="150" width="70" height="44" rx="22" fill="#fff" fill-opacity="0.16"/><text x="1145" y="179">画风</text>
+    <rect x="1200" y="150" width="70" height="44" rx="22" fill="#fff" fill-opacity="0.16"/><text x="1235" y="179">中/EN</text>
+    <rect x="160" y="150" width="90" height="44" rx="22" fill="#fff" fill-opacity="0.16"/><text x="205" y="179">Ⅱ 暂停</text>
+  </g>
+  <!-- 标注 -->
+  <g font-size="22" fill="#3a4250">
+    <text x="700" y="40" text-anchor="middle" font-size="26" font-weight="700" fill="#16181d">iPhone / Android 横屏 · 虚拟按键方案（概念示意）</text>
+    <text x="700" y="700" text-anchor="middle">中间为 Web 导出版的真实画面；两侧黑边（19.5:9 屏幕放 4:3 画面）正好放触控按钮，不遮挡战场</text>
+  </g>
+</svg>
