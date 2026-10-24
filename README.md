@@ -22,6 +22,21 @@
 |---|---|---|---|
 | ![](docs/v2/screens/home-zh.png) | ![](docs/v2/screens/hud-en-modern.png) | ![](docs/v2/screens/revive-zh.png) | ![](docs/v2/screens/result-win-doubled-zh.png) |
 
+## 下载安装
+
+到仓库的 [Releases](https://github.com/Qiniu-ERE/zero/releases) 下载对应平台的安装包（每个包里都有安装说明）：
+
+| 平台 | 安装包 |
+|---|---|
+| Windows 10 / 11 | `TankBattle-<版本>-windows-x64.zip`，解压后双击 `TankBattle.exe` |
+| macOS（Apple 芯片） | `TankBattle-<版本>-macos-arm64.zip`，第一次右键 → 打开 |
+| Linux | `TankBattle-<版本>-linux-x64.tar.gz` |
+| iPhone / 安卓 / 浏览器 | `TankBattle-<版本>-web.zip`：网页版（PWA），带触屏虚拟按键，放到 HTTPS 网站后手机“添加到主屏幕” |
+| Android | `TankBattle-<版本>-android.apk`，直接安装 |
+| iPhone / iPad | `TankBattle-<版本>-ios-unsigned.ipa`，用 Sideloadly / AltStore 签名安装 |
+
+安装包由 GitHub Actions 自动打包，打包方法见 [跨平台文档](docs/v3/CROSS_PLATFORM.md#七实现结果)。
+
 ## 快速开始
 
 ### 方式一：在 XBuilder 里运行（推荐，零安装）
@@ -123,6 +138,7 @@ tools/
 ├── assets/               # 美术与文案生成器：build.py、textpath.py、strings.py（中英文案表）
 ├── dev/                  # 本地截图、录制演示视频的脚本
 ├── levels/check.py       # 关卡地图检查：出生点、基地、连通性
+├── export/               # 各平台打包：setup_spx.sh、build.sh、网页版外壳 web/、安装说明
 └── package_xbp.sh        # 打包 TankBattle.xbp
 docs/
 ├── ARCHITECTURE.md       # 架构文档
@@ -146,6 +162,13 @@ cd TankBattle && spx run .
 
 # 重新打包 .xbp，导入 XBuilder
 ./tools/package_xbp.sh
+
+# 打各平台的安装包（第一次先运行 setup_spx.sh）
+tools/export/setup_spx.sh web
+tools/export/build.sh desktop   # 或 web / android / ios
+
+# 发布：推送 v* 标签，GitHub Actions 打全部平台并创建 Release
+git tag v3.0.0 && git push origin v3.0.0
 
 # 重新录制演示视频（需要 ffmpeg）
 ./tools/dev/record_demo.sh

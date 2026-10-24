@@ -95,6 +95,7 @@ flowchart LR
 | `kToast` | 提示条（自动隐藏） | `msg.*_<lang>` | `toast` |
 | `kAd` | 广告位：原生广告卡 `card` / 主页横幅 `banner`（可点击、可关闭） | `card_<lang>`、`banner_<lang>` | `screen`、`langChanged` |
 | `kLife2` | 2P 的生命图标 | `life2_on/off` | `hud` |
+| `kTouchPad` | 触屏模式（手机 App，`touchUI` 为 true）的方向键，替换右侧的按键说明 | `touchpad_<lang>` | `hud`、`screen` |
 | `kEdSel` `kEdSwitch` `kEdStatus` `kEdCursor` `kEdMark` | 地图编辑器的小部件：工具选中框、对称开关和对称线、检查结果、光标、问题标记 | `edsel` `edsw_on/off` `edline` `edok/edbad1/edbad2_<lang>` `edcursor` `edmark` | `edit`、`edCursor` |
 | `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`editor`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`，再加 `_<lang>` | `screen` |
 
@@ -107,6 +108,10 @@ flowchart LR
 | `assets/build.py` | 生成：两套背景、现代画风的所有造型、经典画风的水面和草丛、`UI` 精灵的全部造型和 `index.json`、`UI.spx` 里的 `GENERATED widths` / `GENERATED hit` 区块 |
 | `levels/check.py` | 检查 `levelMap()` 里的每一关：13×13、出生点和基地位置、从出生点能到达基地、玩家能到达出生点、基地旁边没有钢墙和水面。规划中的地图编辑器也用这套规则 |
 | `package_xbp.sh` | 打包 `TankBattle.xbp` |
+| `export/setup_spx.sh` | 准备打包环境：固定提交的 spx 源码、`patch_spx.py` 改模板（包名、版本、图标、iOS 不签名）、xgo、`buildctl setup` |
+| `export/build.sh` | `desktop`（buildlauncher 单文件，macOS 包成 .app）、`web`（exportweb + 外壳页面）、`android`（APK，触屏模式）、`ios`（不签名 IPA，触屏模式） |
+| `export/web/` | 网页版外壳：自动启动、4:3 铺满、多点触控虚拟按键、PWA |
+| `.github/workflows/release.yml` | 推送 `v*` 标签时打全部平台并创建 GitHub Release |
 | `dev/shot.sh` | 本地运行游戏，只截取游戏窗口（不截整个屏幕），自动裁出 4:3 画面 |
 | `dev/record_demo.sh` | 录制路演演示视频（见[第 10 节](#10-测试与演示视频)） |
 | `docs/v2/mockups/gen.py` | 生成设计效果图 |
@@ -262,6 +267,7 @@ stateDiagram-v2
 | #12 | v3.0 规划：自己做地图、双人合作的评估（文档和效果图） |
 | #13 | 双人合作：2P 坦克、按键、规则、HUD、主页入口 |
 | #14 | 自己做地图：编辑器、绘制、实时检查、随机起点、复制关卡、试玩、PC 保存 |
+| #15 | 跨平台打包与发布：Windows / macOS / Linux / 网页版 / Android / iOS，手机 App 的触屏模式 |
 
 ### 分工
 

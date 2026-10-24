@@ -87,7 +87,11 @@ body.playing #start { display: none; }
 #pad .fire.p2 { background: rgba(79, 227, 193, .8); }
 #pad .fire.down { filter: brightness(1.3); transform: scale(.94); }
 /* 功能按钮放在左上角（右上角是游戏自己的“中 | EN”切换） */
-#pad .top { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); display: flex; gap: 8px; }
+/* 横屏：左侧空白区里竖着排；竖屏：屏幕底部横着排 */
+#pad .top { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+@media (orientation: portrait) {
+	#pad .top { top: auto; bottom: max(10px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); flex-direction: row; }
+}
 #pad .small {
 	padding: 6px 12px;
 	border: 1px solid rgba(255, 255, 255, .25);
