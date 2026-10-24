@@ -7,3 +7,6 @@ render() { "$CHROME" --headless --disable-gpu --hide-scrollbars --allow-file-acc
 render phone-landscape.svg 1400,720
 render phone-portrait.svg 560,1100
 ls -la *.png
+# v3.0 效果图（先运行 gen_v3.py 生成 SVG）
+for f in v3-*.svg; do render "$f" 1440,1080; done
+ls -la v3-*.png
