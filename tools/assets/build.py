@@ -7,8 +7,14 @@
 文字一律通过 textpath 转成路径，运行时不依赖字体。
 布局：舞台 480x360，战场 13x13 格、每格 24px，左上角在 SVG 坐标 (12, 30)，右侧面板 x=336 起。
 """
+import json
 import math
 import os
+import re
+import sys
+
+from strings import STRINGS
+from textpath import text, width
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
@@ -20,8 +26,9 @@ FX, FY = 12, 30
 PX, PY, PW, PH = 336, 26, 132, 320
 
 
-def svg(w, h, body, defs=""):
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">'
+def svg(w, h, body, defs="", res=1):
+    """res 是 bitmapResolution：图片按 res 倍尺寸声明，引擎会按 res 倍光栅化再缩回逻辑尺寸，文字更清晰"""
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{w*res:g}" height="{h*res:g}" viewBox="0 0 {w:g} {h:g}">'
             f'<defs>{defs}</defs>{body}</svg>')
 
 
@@ -133,7 +140,8 @@ TANKS = {
 }
 
 
-def tank_m(main, dark, light, heavy=False):
+def tank_body(main, dark, light, heavy=False):
+    """朝上的坦克图形（24x24），返回 (defs, body)"""
     defs = rad("sh", [(0, "#000", 0.45), (0.7, "#000", 0.2), (1, "#000", 0)])
     s = ['<ellipse cx="12.8" cy="13.4" rx="11.2" ry="10.6" fill="url(#sh)"/>']
     for x in (1, 17.5):  # 履带
@@ -150,7 +158,12 @@ def tank_m(main, dark, light, heavy=False):
     s.append('<rect x="9.6" y="0" width="4.8" height="2.4" rx="0.7" fill="#2a2a2e"/>')
     s.append(f'<circle cx="12" cy="13" r="5" fill="{dark}"/><circle cx="12" cy="12.4" r="4.6" fill="{main}"/>')
     s.append(f'<circle cx="10.6" cy="11" r="1.7" fill="{light}" fill-opacity="0.8"/>')
-    return svg(C, C, f'<g transform="rotate(90 12 12)">{"".join(s)}</g>', defs)
+    return defs, "".join(s)
+
+
+def tank_m(main, dark, light, heavy=False):
+    defs, body = tank_body(main, dark, light, heavy)
+    return svg(C, C, f'<g transform="rotate(90 12 12)">{body}</g>', defs)
 
 
 # ---------- 子弹与爆炸 ----------
@@ -173,15 +186,161 @@ def boom_m(phase):
     return svg(40, 40, "".join(s), defs)
 
 
+# ---------- HUD（文字全部转成路径；res=4 保证放大后清晰） ----------
+HR = 4  # HUD 造型的 bitmapResolution
+LANGS = ("zh", "en")
+MUTED = "#8a96ad"
+
+
+def tr(key, lang):
+    return STRINGS[key][LANGS.index(lang)]
+
+
+def text_costume(s, size, fill, bold, anchor, pad=1.0):
+    """单行文字造型，返回 (svg, pivot)。pivot 是文字锚点（基线上的起点 / 中点 / 终点）"""
+    w = width(s, size, bold)
+    h = size * 1.45
+    base = size * 1.1
+    body = text(pad, base, s, size, fill, bold)
+    ax = {"start": pad, "middle": pad + w / 2, "end": pad + w}[anchor]
+    return svg(w + 2 * pad, h, body, res=HR), (ax, base)
+
+
+# 标签：key -> (字号, 颜色, 粗体, 对齐)
+LABELS = {
+    "stage.1": (10, "#ffffff", True, "start"),
+    "enemies": (7.5, MUTED, False, "end"),
+    "score": (6.8, MUTED, True, "start"),
+    "best": (6.8, MUTED, True, "start"),
+    "lives": (6.8, MUTED, True, "start"),
+}
+# 按键提示：key -> 按键
+HINTS = {"hint.move": "WASD", "hint.fire": "J", "hint.style": "T", "hint.lang": "L"}
+
+
+def hint_costume(key, label):
+    kw = width(key, 6.5, True) + 6
+    body = (f'<rect x="0" y="0" width="{kw:.2f}" height="11" rx="2.5" fill="#ffffff" fill-opacity="0.1"/>'
+            + text(kw / 2, 8.2, key, 6.5, "#ffffff", True, "middle")
+            + text(kw + 5, 8.2, label, 6.8, MUTED))
+    w = kw + 5 + width(label, 6.8) + 1
+    return svg(w, 12, body, res=HR), (0, 8.2)
+
+
+def toast_costume(s):
+    tw = width(s, 9, True)
+    w, h = tw + 24, 22
+    body = (f'<rect x="0.5" y="0.5" width="{w-1:.2f}" height="{h-1}" rx="{(h-1)/2}" fill="#0b0f18" fill-opacity="0.88" stroke="#3ee8ff" stroke-opacity="0.5" stroke-width="0.8"/>'
+            + text(w / 2, 14.6, s, 9, "#ffffff", True, "middle"))
+    return svg(w, h, body, res=HR), (w / 2, h / 2)
+
+
+def toggle_costume(lang):
+    hx = 1 if lang == "zh" else 20
+    body = ('<rect x="0.3" y="0.3" width="39.4" height="13.4" rx="6.7" fill="#ffffff" fill-opacity="0.06" stroke="#2c3850" stroke-width="0.6"/>'
+            f'<rect x="{hx}" y="1" width="19" height="12" rx="6" fill="#3ee8ff" fill-opacity="0.9"/>'
+            + text(10.5, 10, "中", 7.5, "#06232b" if lang == "zh" else MUTED, True, "middle")
+            + text(29.5, 10, "EN", 7.5, "#06232b" if lang == "en" else MUTED, True, "middle"))
+    return svg(40, 14, body, res=HR), (20, 7)
+
+
+# 数字样式：名字 -> (字号, 颜色)
+NUM_STYLES = {"S": (18, "#ffffff"), "B": (8, "#ffe27a")}
+DIGITS = "0123456789"
+
+
+def num_costumes():
+    """数字造型：数字等宽（字形在格子里居中），逗号单独一个窄格。返回 (造型列表, 宽度表)"""
+    out, widths = [], {}
+    for st, (size, fill) in NUM_STYLES.items():
+        dw = max(width(d, size, True) for d in DIGITS)
+        cw = width(",", size, True)
+        widths[st] = (dw, cw)
+        for ch in DIGITS + ",":
+            cell = cw if ch == "," else dw
+            gx = (cell - width(ch, size, True)) / 2
+            body = text(gx, size * 1.1, ch, size, fill, True)
+            name = st + ("comma" if ch == "," else ch)
+            out.append((name, svg(cell, size * 1.45, body, res=HR), (0, size * 1.1)))
+    return out, widths
+
+
+def icon_costumes():
+    out = []
+    for name, col in (("pip_on", "#ff5a4a"), ("pip_off", "#3a4256")):
+        out.append((name, svg(4, 8, f'<rect width="4" height="8" rx="1" fill="{col}"/>', res=HR), (2, 4)))
+    defs, body = tank_body(*TANKS["player"])
+    for name, op in (("life_on", 1), ("life_off", 0.22)):
+        out.append((name, svg(12, 12, f'<g opacity="{op}" transform="scale(0.5)">{body}</g>', defs, res=HR), (6, 6)))
+    return out
+
+
+def write_sprite(name, costumes, res=HR, x=0, y=0, visible=False):
+    """写一个由生成器完全管理的精灵：造型文件 + index.json（会删掉不再使用的旧造型）"""
+    d = os.path.join(ASSETS, "sprites", name)
+    os.makedirs(d, exist_ok=True)
+    keep = set()
+    configs = []
+    for cname, content, (px, py) in costumes:
+        fname = re.sub(r"[^A-Za-z0-9_.-]", "_", cname) + ".svg"
+        keep.add(fname)
+        with open(os.path.join(d, fname), "w", encoding="utf-8") as f:
+            f.write(content)
+        configs.append({"name": cname, "path": fname, "x": round(px * res, 2), "y": round(py * res, 2), "bitmapResolution": res})
+    for old in os.listdir(d):
+        if old.endswith(".svg") and old not in keep:
+            os.remove(os.path.join(d, old))
+    cfg = {"costumes": configs, "costumeIndex": 0, "heading": 90, "isDraggable": False,
+           "rotationStyle": "normal", "size": 1, "visible": visible, "x": x, "y": y}
+    with open(os.path.join(d, "index.json"), "w", encoding="utf-8") as f:
+        f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
+    return len(costumes)
+
+
+def update_generated_block(path, lines):
+    """替换 .spx 文件里 BEGIN GENERATED / END GENERATED 之间的内容"""
+    with open(path, encoding="utf-8") as f:
+        src = f.read()
+    new, n = re.subn(r"(// BEGIN GENERATED[^\n]*\n).*?(\t*// END GENERATED)", lambda m: m.group(1) + "".join(lines) + m.group(2), src, flags=re.S)
+    if n != 1:
+        sys.exit(f"{path} 里没有找到 GENERATED 区块")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(new)
+
+
+def build_hud():
+    """所有界面造型都放进一个 UI 精灵（spx 解释器对精灵类型数量有上限，见 UI.spx）"""
+    costumes = []
+    for key, (size, fill, bold, anchor) in LABELS.items():
+        for lang in LANGS:
+            c, piv = text_costume(tr(key, lang), size, fill, bold, anchor)
+            costumes.append((f"{key}_{lang}", c, piv))
+    for key, k in HINTS.items():
+        for lang in LANGS:
+            c, piv = hint_costume(k, tr(key, lang))
+            costumes.append((f"{key}_{lang}", c, piv))
+    for key in STRINGS:
+        if key.startswith("msg."):
+            for lang in LANGS:
+                costumes.append((f"{key}_{lang}", *toast_costume(tr(key, lang))))
+    costumes += [(f"toggle_{lang}", *toggle_costume(lang)) for lang in LANGS]
+    nums, widths = num_costumes()
+    costumes += nums
+    costumes += icon_costumes()
+    update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
+        f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])
+    return write_sprite("UI", costumes)
+
+
 def main():
     out = [
         write("field.svg", backdrop_classic()),
         write("field_m.svg", backdrop_modern()),
-        write("sprites/Brick/brick_m.svg", brick_m()),
-        write("sprites/Brick/cracked_m.svg", brick_m(True)),
-        write("sprites/Steel/steel_m.svg", steel_m()),
-        write("sprites/Base/eagle_m.svg", eagle_m()),
-        write("sprites/Base/broken_m.svg", broken_m()),
+        write("sprites/Tile/brick_m.svg", brick_m()),
+        write("sprites/Tile/cracked_m.svg", brick_m(True)),
+        write("sprites/Tile/steel_m.svg", steel_m()),
+        write("sprites/Tile/eagle_m.svg", eagle_m()),
+        write("sprites/Tile/broken_m.svg", broken_m()),
         write("sprites/Player/player_m.svg", tank_m(*TANKS["player"])),
         write("sprites/Enemy/basic_m.svg", tank_m(*TANKS["basic"])),
         write("sprites/Enemy/fast_m.svg", tank_m(*TANKS["fast"])),
@@ -191,7 +350,8 @@ def main():
     ]
     for i in range(3):
         out.append(write(f"sprites/Boom/b{i+1}_m.svg", boom_m(i)))
-    print(f"generated {len(out)} files")
+    hud = build_hud()
+    print(f"generated {len(out)} art files, {hud} HUD costumes")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,418 @@
+{
+  "costumes": [
+    {
+      "name": "stage.1_zh",
+      "path": "stage.1_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.1_en",
+      "path": "stage.1_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "enemies_zh",
+      "path": "enemies_zh.svg",
+      "x": 64.0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "enemies_en",
+      "path": "enemies_en.svg",
+      "x": 126.01,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "score_zh",
+      "path": "score_zh.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "score_en",
+      "path": "score_en.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "best_zh",
+      "path": "best_zh.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "best_en",
+      "path": "best_en.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lives_zh",
+      "path": "lives_zh.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lives_en",
+      "path": "lives_en.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.move_zh",
+      "path": "hint.move_zh.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.move_en",
+      "path": "hint.move_en.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.fire_zh",
+      "path": "hint.fire_zh.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.fire_en",
+      "path": "hint.fire_en.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.style_zh",
+      "path": "hint.style_zh.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.style_en",
+      "path": "hint.style_en.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.lang_zh",
+      "path": "hint.lang_zh.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "hint.lang_en",
+      "path": "hint.lang_en.svg",
+      "x": 0,
+      "y": 32.8,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.start_zh",
+      "path": "msg.start_zh.svg",
+      "x": 275.77,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.start_en",
+      "path": "msg.start_en.svg",
+      "x": 351.39,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.modern_zh",
+      "path": "msg.modern_zh.svg",
+      "x": 120.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.modern_en",
+      "path": "msg.modern_en.svg",
+      "x": 164.95,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.classic_zh",
+      "path": "msg.classic_zh.svg",
+      "x": 120.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.classic_en",
+      "path": "msg.classic_en.svg",
+      "x": 157.71,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.lang_zh",
+      "path": "msg.lang_zh.svg",
+      "x": 156.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.lang_en",
+      "path": "msg.lang_en.svg",
+      "x": 225.53,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.win_zh",
+      "path": "msg.win_zh.svg",
+      "x": 212.72,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.win_en",
+      "path": "msg.win_en.svg",
+      "x": 309.13,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.lose_zh",
+      "path": "msg.lose_zh.svg",
+      "x": 248.72,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.lose_en",
+      "path": "msg.lose_en.svg",
+      "x": 310.82,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "toggle_zh",
+      "path": "toggle_zh.svg",
+      "x": 80,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "toggle_en",
+      "path": "toggle_en.svg",
+      "x": 80,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S0",
+      "path": "S0.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S1",
+      "path": "S1.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S2",
+      "path": "S2.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S3",
+      "path": "S3.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S4",
+      "path": "S4.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S5",
+      "path": "S5.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S6",
+      "path": "S6.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S7",
+      "path": "S7.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S8",
+      "path": "S8.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "S9",
+      "path": "S9.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "Scomma",
+      "path": "Scomma.svg",
+      "x": 0,
+      "y": 79.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B0",
+      "path": "B0.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B1",
+      "path": "B1.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B2",
+      "path": "B2.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B3",
+      "path": "B3.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B4",
+      "path": "B4.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B5",
+      "path": "B5.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B6",
+      "path": "B6.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B7",
+      "path": "B7.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B8",
+      "path": "B8.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "B9",
+      "path": "B9.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "Bcomma",
+      "path": "Bcomma.svg",
+      "x": 0,
+      "y": 35.2,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "pip_on",
+      "path": "pip_on.svg",
+      "x": 8,
+      "y": 16,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "pip_off",
+      "path": "pip_off.svg",
+      "x": 8,
+      "y": 16,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "life_on",
+      "path": "life_on.svg",
+      "x": 24,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "life_off",
+      "path": "life_off.svg",
+      "x": 24,
+      "y": 24,
+      "bitmapResolution": 4
+    }
+  ],
+  "costumeIndex": 0,
+  "heading": 90,
+  "isDraggable": false,
+  "rotationStyle": "normal",
+  "size": 1,
+  "visible": false,
+  "x": 0,
+  "y": 0
+}

@@ -3,6 +3,7 @@ import "math"
 var (
 	grid         []int // 地图格子：0 空地，1 砖墙，2 钢墙，3 裂开的砖墙，9 基地
 	score        int   // 得分
+	best         int   // 本次运行的最高分
 	lives        int   // 玩家剩余生命
 	enemiesLeft  int   // 还需要消灭的敌人数量
 	spawned      int   // 已经出场的敌人数量
@@ -12,9 +13,14 @@ var (
 	gameOver     bool  // 游戏是否结束
 	won          bool  // 是否胜利
 	theme        int   // 画风：0 经典像素，1 现代 3D 风格（按 T 切换）
+	lang         int   // 语言：0 中文，1 English（按 L 或点右上角切换）
+	toastKey     string  // 提示条要显示的文案 key
+	toastSecs    float64 // 提示条显示多久
 	baseDown     bool  // 基地是否已被摧毁
 	camBusy      bool  // 镜头特写进行中（此时不震屏）
 	shakePower   float64
+	baseX        float64 // 基地位置（基地是 Tile 的一个克隆）
+	baseY        float64
 )
 
 const (
@@ -130,6 +136,53 @@ func sfxLoop(name string) {
 	play look(name), true
 }
 
+// 当前语言代码，HUD 造型名用它做后缀："score_zh"、"score_en"
+func langCode() string {
+	if lang == 1 {
+		return "en"
+	}
+	return "zh"
+}
+
+func switchLang() {
+	lang = 1 - lang
+	broadcast "langChanged"
+	toast "msg.lang", 1.2
+}
+
+// 显示提示条（文案 key 见 tools/assets/strings.py 的 msg.*）
+func toast(k string, secs float64) {
+	toastKey = k
+	toastSecs = secs
+	broadcast "toast"
+}
+
+// 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
+func buildHud() {
+	// 顶栏：关卡名、敌军剩余、语言按钮
+	UI.label -228, 160, "stage.1"
+	UI.label -36, 160, "enemies"
+	for i := 0; i < totalEnemy; i++ {
+		UI.icon kPip, -29+float64(i)*5.8, 163, i
+	}
+	UI.langButton 208, 164
+	// 右侧面板：得分、最高分、生命、按键提示
+	UI.label 104, 140, "score"
+	UI.number kScore, 104, 120, 9
+	UI.label 104, 104, "best"
+	UI.number kBest, 220, 104, 9
+	UI.label 104, 80, "lives"
+	for i := 0; i < 3; i++ {
+		UI.icon kLife, 110+float64(i)*16, 68, i
+	}
+	UI.label 104, 46, "hint.move"
+	UI.label 104, 30, "hint.fire"
+	UI.label 104, 14, "hint.style"
+	UI.label 104, -2, "hint.lang"
+	// 战场上方的提示条
+	UI.toastBar -72, 20
+}
+
 func baseLook() string {
 	if baseDown {
 		return look("broken")
@@ -141,12 +194,11 @@ func baseLook() string {
 func switchTheme() {
 	theme = 1 - theme
 	setBackdrop look("field")
-	Base.setCostume baseLook()
 	broadcast "themeChanged"
 	if theme == 1 {
-		Tip.say "现代画风", 1
+		toast "msg.modern", 1.2
 	} else {
-		Tip.say "经典画风", 1
+		toast "msg.classic", 1.2
 	}
 }
 
@@ -212,9 +264,9 @@ func endGame(win bool) {
 	won = win
 	broadcast "gameEnd"
 	if win {
-		Tip.say "胜利！你消灭了全部敌人！按 R 再玩一次"
+		toast "msg.win", 9999
 	} else {
-		Tip.say "游戏结束！按 R 重新开始"
+		toast "msg.lose", 9999
 	}
 }
 
@@ -223,12 +275,12 @@ func baseDestroyed() {
 		return
 	}
 	baseDown = true
-	Base.setCostume baseLook()
+	broadcast "baseChanged"
 	sfx "basefall"
 	if theme == 1 {
 		broadcast "baseCam"
 	}
-	Boom.explodeAt Base.xpos, Base.ypos, 1.5
+	Boom.explodeAt baseX, baseY, 1.5
 	endGame false
 }
 
@@ -237,6 +289,10 @@ func enemyKilled(points int) {
 	killed++
 	enemiesAlive--
 	enemiesLeft = totalEnemy - killed
+	if score > best {
+		best = score
+	}
+	broadcast "hud"
 	if killed >= totalEnemy {
 		endGame true
 	}
@@ -257,7 +313,7 @@ func spawnEnemy() {
 	enemiesAlive++
 }
 
-// 根据 levelMap 生成砖墙、钢墙和基地
+// 根据 levelMap 生成砖墙、钢墙和基地（都是 Tile 的克隆）
 func buildMap() {
 	grid = make([]int, rows*cols)
 	for r := 0; r < rows; r++ {
@@ -267,13 +323,15 @@ func buildMap() {
 			switch line[c] {
 			case 'B':
 				grid[i] = 1
-				Brick.build cellX(c), cellY(r), i
+				Tile.build cellX(c), cellY(r), 1, i
 			case 'S':
 				grid[i] = 2
-				Steel.build cellX(c), cellY(r)
+				Tile.build cellX(c), cellY(r), 2, i
 			case 'E':
 				grid[i] = 9
-				Base.setXYpos cellX(c), cellY(r)
+				baseX = cellX(c)
+				baseY = cellY(r)
+				Tile.build baseX, baseY, 9, i
 			}
 		}
 	}
@@ -291,18 +349,22 @@ func startGame() {
 	pbCount = 0
 	enemiesLeft = totalEnemy
 	baseDown = false
-	Base.setCostume baseLook()
 	Camera.setZoom 1
 	Camera.setXYpos 0, 0
 	buildMap
+	broadcast "hud"
 	Player.respawn
 	sfx "start"
-	Tip.say "方向键 / WASD 移动，空格键开火，按 T 切换经典 / 现代画风！", 3
+	toast "msg.start", 3
 	gameOver = false
 }
 
 onKey KeyT, => {
 	switchTheme
+}
+
+onKey KeyL, => {
+	switchLang
 }
 
 // 震屏：镜头快速抖动几下再回到中心
@@ -320,7 +382,7 @@ onMsg "shake", => {
 // 现代画风下基地被摧毁：镜头推近特写
 onMsg "baseCam", => {
 	camBusy = true
-	Camera.setXYpos Base.xpos, Base.ypos
+	Camera.setXYpos baseX, baseY
 	Camera.setZoom 1.8
 	wait 2
 	Camera.setZoom 1
@@ -348,6 +410,7 @@ onMsg "gameEnd", => {
 }
 
 onStart => {
+	buildHud
 	startGame
 	for {
 		wait 2

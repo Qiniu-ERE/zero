@@ -91,6 +91,7 @@ onMsg "playerHit", => {
 	}
 	dead = true
 	lives--
+	broadcast "hud"
 	setEngine 0
 	sfx "playerdie"
 	Boom.explodeAt xpos, ypos, 1.2

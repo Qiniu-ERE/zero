@@ -1,0 +1,55 @@
+// 地图上的静态格子：砖墙、钢墙、基地。它们只负责显示，碰撞都由舞台的 grid 判断。
+// 合并成一个精灵类型、字段只保留两个 int（16 字节），都是为了节省解释器的方法表（原因见 UI.spx）。
+var (
+	kind int // 和 grid 的编号一致：1 砖墙，2 钢墙，9 基地
+	idx  int // 这一格在地图中的编号
+)
+
+// 在 (x, y) 放一个 k 类型的格子（克隆），i 是格子编号
+func build(x, y float64, k, i int) {
+	kind = k
+	idx = i
+	setXYpos x, y
+	clone
+}
+
+// 按类型、砖墙状态和当前画风换造型
+func apply() {
+	switch kind {
+	case 1:
+		if grid[idx] == 3 {
+			setCostume look("cracked")
+		} else {
+			setCostume look("brick")
+		}
+	case 2:
+		setCostume look("steel")
+	case 9:
+		setCostume baseLook()
+	}
+}
+
+onCloned => {
+	apply
+	show
+}
+
+onMsg (msg, data) => {
+	if !isCloned {
+		return
+	}
+	switch msg {
+	case "themeChanged", "baseChanged":
+		apply
+	case "brickCracked":
+		if data == idx {
+			apply
+		}
+	case "brickBroken":
+		if data == idx {
+			destroy
+		}
+	case "clear":
+		destroy
+	}
+}

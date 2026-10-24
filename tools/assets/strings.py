@@ -8,7 +8,19 @@ STRINGS = {
     "hint.style": ("切换画风", "Art style"),
     "hint.lang": ("中 / EN", "中 / EN"),
     "go": ("去挑战", "Play"),
-    # 对局 HUD
+    # 对局 HUD（游戏）
+    "stage.1": ("第 1 关 · 钢铁峡谷", "Stage 1 · Steel Canyon"),
+    "best": ("最高分", "BEST"),
+    "hint.move": ("移动", "Move"),
+    "hint.fire": ("开火", "Fire"),
+    # 提示条（游戏）
+    "msg.start": ("消灭 20 辆敌军，守住基地！", "Destroy 20 tanks. Guard the base!"),
+    "msg.modern": ("现代画风", "Modern style"),
+    "msg.classic": ("经典画风", "Classic style"),
+    "msg.lang": ("已切换到中文", "Switched to English"),
+    "msg.win": ("胜利！按 R 再玩一次", "Victory! Press R to play again"),
+    "msg.lose": ("游戏结束！按 R 重新开始", "Game over! Press R to restart"),
+    # 对局 HUD（效果图）
     "stage": ("第 3 关 · 钢铁峡谷", "Stage 3 · Steel Canyon"),
     "enemies": ("敌军", "Enemies"),
     "score": ("得分", "SCORE"),
