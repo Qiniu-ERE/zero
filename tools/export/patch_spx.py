@@ -22,8 +22,11 @@ tpl = os.path.join(spx, "cmd", "spx", "template", "project")
 
 shutil.copyfile(os.path.join(here, "icon.png"), os.path.join(tpl, "engine", "icons", "logo.png"))
 
-major, minor, patch = (version.split(".") + ["0", "0"])[:3]
-code = int(major) * 10000 + int(minor) * 100 + int(patch)
+# 开发版的版本号像 3.0.0-dev.12：版本代码和 iOS 版本号只能用纯数字部分
+m = re.match(r"(\d+)(?:\.(\d+))?(?:\.(\d+))?", version)
+major, minor, patch = (int(g or 0) for g in m.groups())
+base = f"{major}.{minor}.{patch}"
+code = major * 10000 + minor * 100 + patch
 ICON = "res://engine/icons/logo.png"
 OPTIONS = {
     "Android": {
@@ -37,14 +40,14 @@ OPTIONS = {
     "iOS": {
         "application/app_store_team_id": "TANKBATTLE",
         "application/bundle_identifier": app_id,
-        "application/short_version": version,
-        "application/version": version,
+        "application/short_version": base,
+        "application/version": base,
         "application/export_project_only": "true",
     },
     "Mac": {
         "application/bundle_identifier": app_id,
-        "application/short_version": version,
-        "application/version": version,
+        "application/short_version": base,
+        "application/version": base,
     },
 }
 

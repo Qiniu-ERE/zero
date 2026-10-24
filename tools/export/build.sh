@@ -78,7 +78,8 @@ build_desktop() {
         sips -z $((s * 2)) $((s * 2)) "$EXPORT_DIR/icon.png" --out "$iconset/icon_${s}x${s}@2x.png" >/dev/null
       done
       iconutil -c icns "$iconset" -o "$app/Contents/Resources/icon.icns"
-      sed -e "s/@NAME@/$APP_NAME/g" -e "s/@TITLE@/$APP_TITLE/g" -e "s/@ID@/$APP_ID/g" -e "s/@VERSION@/$APP_VERSION/g" \
+      local base="${APP_VERSION%%-*}"   # Info.plist 的版本号只能是数字（去掉 -dev.N）
+      sed -e "s/@NAME@/$APP_NAME/g" -e "s/@TITLE@/$APP_TITLE/g" -e "s/@ID@/$APP_ID/g" -e "s/@VERSION@/$base/g" \
         "$EXPORT_DIR/Info.plist" > "$app/Contents/Info.plist"
       codesign --force --deep -s - "$app" 2>/dev/null || true  # ad-hoc 签名，Apple Silicon 必须有签名才能运行
       readme macOS > "$out/安装说明.txt"
