@@ -20,8 +20,11 @@ SPX_DIR="${SPX_DIR:-$CACHE_DIR/spx}"
 BUILD_DIR="${BUILD_DIR:-$ROOT/.build/work}"
 DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 
-# xgo 命令行要知道自己的源码在哪（XGOROOT），否则 spx 调用它生成代码时会 panic
-export XGOROOT="${XGOROOT:-$(go env GOMODCACHE)/github.com/goplus/xgo@$XGO_VERSION}"
+# 用 go install 装的 xgo 要知道自己的源码在哪（XGOROOT），否则 spx 调用它生成代码时会 panic。
+# CI 里用 goplus/setup-xgo 安装的 xgo 自己知道，这时不要设置（指向不存在的目录同样会 panic）
+if [ -z "${XGOROOT:-}" ] && [ -d "$(go env GOMODCACHE)/github.com/goplus/xgo@$XGO_VERSION" ]; then
+  export XGOROOT="$(go env GOMODCACHE)/github.com/goplus/xgo@$XGO_VERSION"
+fi
 export PATH="$(go env GOPATH)/bin:$PATH"
 
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
