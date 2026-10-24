@@ -1,9 +1,21 @@
+// 玩家坦克。原型是 1P；双人合作时克隆出一个当 2P（用 isCloned 区分按键、颜色和出生点）。
+// 不另建 Player2 精灵、不加大字段：每出现一种新的“字段总大小”都会多占解释器的方法表（见 UI.spx）。
+// fireHeld 放在 dead 后面，正好占用对齐留下的空隙，字段总大小仍是 32 字节。
 var (
-	face   int     // 朝向：0 上，90 右，180 下，-90 左
-	shield float64 // 出生保护剩余时间（秒）
-	dead   bool
-	engine int // 引擎声：0 无声，1 怠速，2 行驶
+	face     int     // 朝向：0 上，90 右，180 下，-90 左
+	shield   float64 // 活着时：出生保护剩余时间；死了以后：离重生还有多久（秒）
+	dead     bool
+	fireHeld bool // 2P：开火键是否还按着（开火键要松开再按才能再开火）
+	engine   int  // 引擎声：0 无声，1 怠速，2 行驶
 )
+
+// 造型名：1P 黄色，2P 青绿色
+func myLook() string {
+	if isCloned {
+		return look("player2")
+	}
+	return look("player")
+}
 
 // 切换引擎声
 func setEngine(s int) {
@@ -22,16 +34,29 @@ func setEngine(s int) {
 	}
 }
 
-// 在基地左边出生
+// 出生：1P 在基地左边，2P 在基地右边
 func respawn() {
 	dead = false
 	engine = 0 // 重新开始时声音已全部停止
-	setCostume look("player")
+	setCostume myLook()
 	face = 0
 	setHeading 0
-	setXYpos cellX(4), cellY(12)
+	if isCloned {
+		setXYpos cellX(8), cellY(12)
+	} else {
+		setXYpos cellX(4), cellY(12)
+	}
 	shield = 3
 	show
+}
+
+// 双人合作：克隆出 2P（已经有了就不再克隆）
+func spawnP2() {
+	if p2Exists {
+		return
+	}
+	p2Exists = true
+	clone
 }
 
 // 转向，并对齐到半格
@@ -59,81 +84,107 @@ func drive(d int, dt float64) {
 	}
 }
 
-// 开火：场上同时只能有一发玩家子弹
+// 开火：每人场上同时只能有一发子弹
 func shoot() {
-	if gameOver || dead || pbCount > 0 {
+	if gameOver || dead {
 		return
 	}
-	PBullet.fire xpos, ypos, face
+	if isCloned {
+		if pbCount2 > 0 {
+			return
+		}
+		PBullet.fire xpos, ypos, face, 2
+	} else {
+		if pbCount > 0 {
+			return
+		}
+		PBullet.fire xpos, ypos, face, 1
+	}
 	sfx "fire"
 }
 
-onKey KeySpace, => {
-	shoot
-}
-
-onKey KeyJ, => {
-	shoot
-}
-
-// 切换画风：换造型，并让引擎声换成对应风格
-onMsg "themeChanged", => {
-	setCostume look("player")
-	s := engine
-	setEngine 0
-	setEngine s
-}
-
-// 被敌人子弹击中
-onMsg "playerHit", => {
-	if dead || gameOver || shield > 0 || autopilot { // 路演演示时不会被击毁
-		return
+// 告诉舞台自己在哪（敌人子弹靠它判断打中的是谁）；死了就报一个很远的位置
+func report() {
+	x := xpos
+	y := ypos
+	if dead {
+		x = 9999
+		y = 9999
 	}
-	dead = true
-	lives--
-	broadcast "hud"
-	setEngine 0
-	sfx "playerdie"
-	Boom.explodeAt xpos, ypos, 1.2
-	hide
-	if lives <= 0 {
-		defeat
-		return
-	}
-	wait 1.5
-	if !gameOver {
-		respawn
+	if isCloned {
+		p2x = x
+		p2y = y
+	} else {
+		p1x = x
+		p1y = y
 	}
 }
 
-onStart => {
-	for {
-		waitNextFrame
-		if gameOver || dead {
-			setEngine 0
-			continue
-		}
-		dt := deltaTime
-		if dt > 0.05 {
-			dt = 0.05
-		}
-		// 出生保护：闪烁
-		if shield > 0 {
+// 自己还剩几条命
+func myLives() int {
+	if isCloned {
+		return lives2
+	}
+	return lives
+}
+
+// 每帧：重生倒计时、出生保护闪烁、按键或自动驾驶移动、2P 开火
+func step() {
+	report()
+	dt := deltaTime
+	if dt > 0.05 {
+		dt = 0.05
+	}
+	if gameOver || dead {
+		setEngine 0
+		// 重生倒计时放在每帧里，而不是在 "playerHit" 里 wait：
+		// 双人时另一个人中弹会再次广播 "playerHit"，正在 wait 的处理会被打断，就再也不会重生了
+		if dead && !gameOver && myLives() > 0 {
 			shield -= dt
-			if shield > 0 && int(shield*10)%2 == 0 {
-				setGraphicEffect GhostEffect, 60
-			} else {
-				clearGraphicEffects
+			if shield <= 0 {
+				respawn
 			}
 		}
-		d := -1
-		if keyPressed(KeyUp) || keyPressed(KeyW) {
+		return
+	}
+	// 出生保护：闪烁
+	if shield > 0 {
+		shield -= dt
+		if shield > 0 && int(shield*10)%2 == 0 {
+			setGraphicEffect GhostEffect, 60
+		} else {
+			clearGraphicEffects
+		}
+	}
+	d := -1
+	if isCloned {
+		// 2P：方向键移动，Enter 开火
+		if keyPressed(KeyUp) {
 			d = 0
-		} else if keyPressed(KeyDown) || keyPressed(KeyS) {
+		} else if keyPressed(KeyDown) {
 			d = 180
-		} else if keyPressed(KeyLeft) || keyPressed(KeyA) {
+		} else if keyPressed(KeyLeft) {
 			d = -90
-		} else if keyPressed(KeyRight) || keyPressed(KeyD) {
+		} else if keyPressed(KeyRight) {
+			d = 90
+		}
+		if keyPressed(KeyEnter) {
+			if !fireHeld {
+				shoot
+			}
+			fireHeld = true
+		} else {
+			fireHeld = false
+		}
+	} else {
+		// 1P：WASD；单人模式下方向键也可以
+		if keyPressed(KeyW) || (!coop && keyPressed(KeyUp)) {
+			d = 0
+		} else if keyPressed(KeyS) || (!coop && keyPressed(KeyDown)) {
+			d = 180
+		} else if keyPressed(KeyA) || (!coop && keyPressed(KeyLeft)) {
+			d = -90
+		} else if keyPressed(KeyD) || (!coop && keyPressed(KeyRight)) {
 			d = 90
 		}
 		if autopilot {
@@ -141,16 +192,99 @@ onStart => {
 			d = autopilotDir(dt)
 			shoot
 		}
-		if d != -1 {
-			setEngine 2
-			x0 := xpos
-			y0 := ypos
-			drive d, dt
-			if autopilot && xpos == x0 && ypos == y0 {
-				autopilotBlocked
-			}
-		} else {
-			setEngine 1
+	}
+	if d != -1 {
+		setEngine 2
+		x0 := xpos
+		y0 := ypos
+		drive d, dt
+		if autopilot && !isCloned && xpos == x0 && ypos == y0 {
+			autopilotBlocked
 		}
+	} else {
+		setEngine 1
+	}
+}
+
+// 1P 开火（2P 的 Enter 在 step 里处理）
+onKey KeySpace, => {
+	if !isCloned {
+		shoot
+	}
+}
+
+onKey KeyJ, => {
+	if !isCloned {
+		shoot
+	}
+}
+
+// 切换画风：换造型，并让引擎声换成对应风格
+onMsg "themeChanged", => {
+	setCostume myLook()
+	s := engine
+	setEngine 0
+	setEngine s
+}
+
+// 被敌人子弹击中（hitWho 由敌人子弹算出：1 是 1P，2 是 2P）
+onMsg "playerHit", => {
+	if (hitWho == 2) != isCloned {
+		return
+	}
+	if dead || gameOver || shield > 0 || autopilot { // 路演演示时不会被击毁
+		return
+	}
+	dead = true
+	left := 0
+	if isCloned {
+		lives2--
+		left = lives2
+	} else {
+		lives--
+		left = lives
+	}
+	report()
+	broadcast "hud"
+	setEngine 0
+	sfx "playerdie"
+	Boom.explodeAt xpos, ypos, 1.2
+	hide
+	shield = 1.5 // 1.5 秒后重生（在 step 里倒计时）
+	if left <= 0 && (!coop || (lives <= 0 && lives2 <= 0)) {
+		defeat // 单人命用完，或者两个人的命都用完
+	}
+}
+
+// 2P 重新出生（开局、复活时由舞台广播）
+onMsg "p2respawn", => {
+	if isCloned && lives2 > 0 {
+		fireHeld = true // 开局时 Enter 可能还按着，先松开才能开火
+		respawn
+	}
+}
+
+// 离开双人模式：去掉 2P
+onMsg "p2off", => {
+	if isCloned {
+		p2Exists = false
+		setEngine 0
+		destroy
+	}
+}
+
+onCloned => {
+	fireHeld = true
+	respawn
+	for {
+		waitNextFrame
+		step
+	}
+}
+
+onStart => {
+	for {
+		waitNextFrame
+		step
 	}
 }

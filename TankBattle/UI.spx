@@ -26,6 +26,7 @@ const (
 	kAd     = 8  // 广告位：对局中的原生广告卡（key "card"）或主页横幅（key "banner"）
 	kScreen = 9  // 全屏 / 弹窗画面：主页、复活、模拟广告、结算（造型名在舞台的 screen 里）
 	kCoin   = 10 // 结算弹窗里金币数的一个字符位（金色，左对齐）
+	kLife2  = 11 // 2P 的生命图标（只在双人时显示）
 )
 
 // ---------- 创建 ----------
@@ -91,6 +92,8 @@ func hit(name string, x, y float64) bool {
 	switch name {
 	case "home.start":
 		return x >= -224 && x <= -54 && y >= 46 && y <= 96
+	case "home.coop":
+		return x >= -224 && x <= -54 && y >= -2 && y <= 36
 	case "revive.ad":
 		return x >= -162 && x <= 18 && y >= -32 && y <= -4
 	case "revive.giveup":
@@ -194,11 +197,21 @@ func refreshNumber() {
 func refresh() {
 	switch kind {
 	case kLabel:
+		k := key
 		if key == "stage" {
-			setCostume "stage." + strconv.Itoa(stage) + "_" + langCode() // 关卡名随关卡变化
-		} else {
-			setCostume key + "_" + langCode()
+			k = "stage." + strconv.Itoa(stage) // 关卡名随关卡变化
+			if coop {
+				k += ".co" // 带「双人」标签
+			}
+		} else if coop && key == "hint.move" {
+			k = "hint.p1"
+		} else if coop && key == "hint.fire" {
+			k = "hint.p2"
+		} else if !coop && (key == "tag.1p" || key == "tag.2p") {
+			hide
+			return
 		}
+		setCostume k + "_" + langCode()
 		show
 	case kScore, kBest, kCoin:
 		refreshNumber
@@ -214,6 +227,22 @@ func refresh() {
 			setCostume "life_on"
 		} else {
 			setCostume "life_off"
+		}
+		x := 110.0
+		if coop {
+			x = 124 // 双人时左边留出「1P」标签的位置
+		}
+		setXYpos x+float64(slot)*16, 68
+		show
+	case kLife2:
+		if !coop {
+			hide
+			return
+		}
+		if slot < lives2 {
+			setCostume "life2_on"
+		} else {
+			setCostume "life2_off"
 		}
 		show
 	case kLang:
@@ -270,7 +299,9 @@ func clickScreen() {
 	switch state {
 	case stHome:
 		if hit("home.start", x, y) {
-			playStage 1
+			newGame 1, false
+		} else if hit("home.coop", x, y) {
+			newGame 1, true
 		}
 	case stRevive:
 		if hit("revive.ad", x, y) {
