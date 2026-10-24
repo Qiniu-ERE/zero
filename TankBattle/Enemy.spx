@@ -116,6 +116,9 @@ onCloned => {
 			dt = 0.05
 		}
 		drive dt
+		if autopilot {
+			seeEnemy xpos, ypos // 路演演示：告诉自动驾驶自己在哪
+		}
 		turnCD -= dt
 		if turnCD <= 0 {
 			pickFace

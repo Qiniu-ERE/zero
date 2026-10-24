@@ -24,6 +24,7 @@ STRINGS = {
     "home.start": ("开始战役", "Start"),
     "home.start.d": ("消灭 20 辆敌军，守住基地", "Destroy 20 tanks, guard the base"),
     "soon": ("即将推出", "SOON"),
+    "home.demo": ("路演演示模式", "Demo mode"),
     # 复活弹窗（游戏）
     "rv.title": ("防线失守！", "Defense broken!"),
     "rv.sub": ("看一段视频，可以复活一次", "Watch a short ad to revive once"),

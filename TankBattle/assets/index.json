@@ -9,7 +9,7 @@
       "path": "field_m.svg"
     }
   ],
-  "backdropIndex": 0,
+  "backdropIndex": 1,
   "zorder": [
     "Tile",
     "Enemy",
