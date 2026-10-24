@@ -3,7 +3,8 @@
 # - 推送 v* 标签（例如 v3.0.0）：打全部平台，并创建 GitHub Release，把安装包挂上去
 # - 手动运行（Actions 页面 → Release → Run workflow）：打全部平台，产物在这次运行的 Artifacts 里，不发布
 # - 推送到 feat/v3-release 分支时，只在提交信息里带 [ci 平台] 才打对应平台（调试用，节省 Actions 分钟数）：
-#   [ci desktop] [ci web] [ci android] [ci ios] [ci all]；[ci smoke] 再加冒烟测试（安卓模拟器、Linux 虚拟显示器里启动并截图）
+#   [ci desktop] [ci web] [ci android] [ci ios] [ci all]；[ci smoke] 再加桌面版冒烟测试（启动游戏并截图）
+#   （APK 没法在 CI 的 x86_64 安卓模拟器里测：Godot 的安卓模板只有 ARM 引擎库，而模拟器的 ARM 转译不支持 Go 运行时读取 CPU 型号的指令）
 #
 # 打包脚本在 tools/export/，本地也能用同样的命令打包。
 name: Release
@@ -188,44 +189,6 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  # 冒烟测试：在安卓模拟器里安装 APK 并启动，截图作为证据
-  smoke-android:
-    needs: [plan, android]
-    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.android == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: android
-          path: apk
-      - name: 开启 KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
-      - uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 30          # Android 11 的 x86_64 镜像能通过 ARM 转译运行 arm64 应用
-          arch: x86_64
-          target: google_apis
-          disable-animations: true
-          script: |
-            adb install -r apk/*.apk
-            adb shell monkey -p com.qiniu.tankbattle -c android.intent.category.LAUNCHER 1
-            sleep 40
-            adb exec-out screencap -p > smoke-android-1.png
-            adb shell input tap 400 300
-            sleep 10
-            adb exec-out screencap -p > smoke-android-2.png
-            adb logcat -d > logcat.txt || true
-            adb shell pidof com.qiniu.tankbattle || echo "app not running"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: smoke-android
-          path: |
-            smoke-android-*.png
-            logcat.txt
-
   # 冒烟测试：Linux 版在虚拟显示器 + 软件 Vulkan（lavapipe）里启动并截图
   smoke-linux:
     needs: [plan, desktop]
@@ -255,6 +218,61 @@ jobs:
           path: |
             smoke-linux.png
             smoke-linux.log
+
+  # 冒烟测试：Windows 版启动后截屏（没有显卡时 Godot 会用 D3D12 的软件渲染）
+  smoke-windows:
+    needs: [plan, desktop]
+    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.desktop == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-Windows
+          path: pkg
+      - name: 启动并截图
+        shell: pwsh
+        run: |
+          Get-ChildItem pkg -Filter *.zip | Expand-Archive -DestinationPath game
+          Start-Process -FilePath game\TankBattle.exe -WorkingDirectory game
+          Start-Sleep -Seconds 45
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$PWD\smoke-windows.png")
+          Get-Process | Where-Object { $_.Name -like 'TankBattle*' -or $_.Name -like 'gdspx*' } | Format-Table Name, Id, WS -AutoSize
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-windows
+          path: smoke-windows.png
+
+  # 冒烟测试：macOS 版启动后截屏
+  smoke-macos:
+    needs: [plan, desktop]
+    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.desktop == 'true'
+    runs-on: macos-15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-macOS
+          path: pkg
+      - name: 启动并截图
+        run: |
+          ditto -x -k pkg/*.zip game
+          app=$(find game -maxdepth 1 -name '*.app' | head -1)
+          ("$app/Contents/MacOS/TankBattle" > run.log 2>&1 &)
+          sleep 45
+          screencapture -x smoke-macos.png || true
+          pgrep -fl gdspxrt || { echo "not running"; tail -50 run.log; }
+          cp run.log smoke-macos.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-macos
+          path: |
+            smoke-macos.png
+            smoke-macos.log
 
   release:
     needs: [plan, desktop, web, android, ios]
