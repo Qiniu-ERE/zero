@@ -86,7 +86,7 @@ onMsg "themeChanged", => {
 
 // 被敌人子弹击中
 onMsg "playerHit", => {
-	if dead || gameOver || shield > 0 {
+	if dead || gameOver || shield > 0 || autopilot { // 路演演示时不会被击毁
 		return
 	}
 	dead = true
@@ -136,9 +136,19 @@ onStart => {
 		} else if keyPressed(KeyRight) || keyPressed(KeyD) {
 			d = 90
 		}
+		if autopilot {
+			// 路演演示模式：自动驾驶，一直开火；撞墙了就马上换方向
+			d = autopilotDir(dt)
+			shoot
+		}
 		if d != -1 {
 			setEngine 2
+			x0 := xpos
+			y0 := ypos
 			drive d, dt
+			if autopilot && xpos == x0 && ypos == y0 {
+				autopilotBlocked
+			}
 		} else {
 			setEngine 1
 		}

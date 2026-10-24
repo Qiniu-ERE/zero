@@ -437,6 +437,9 @@ def home(lang):
         sw = width(tr("soon", lang), 5.8, True) + 10
         s.append(f'<rect x="{186-10-sw:.2f}" y="{y+8}" width="{sw:.2f}" height="11" rx="5.5" fill="#2c3850"/>')
         s.append(text(186 - 10 - sw / 2, y + 15.6, tr("soon", lang), 5.8, MUTED, True, "middle"))
+    # 路演演示模式提示
+    c, cw = chip(16, 290, "P")
+    s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
     # 展示台和坦克
     s.append('<ellipse cx="330" cy="236" rx="92" ry="20" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')
     defs, body = tank_body(*TANKS["player"])

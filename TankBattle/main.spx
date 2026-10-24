@@ -35,6 +35,15 @@ var (
 	adReward     int    // 正在播放的激励视频对应的奖励：rewardRevive / rewardDouble
 	cardClosed   bool   // 玩家关掉了对局中的原生广告卡
 	bannerClosed bool   // 玩家关掉了主页横幅
+
+	// 路演演示模式（主页按 P）：玩家坦克自动驾驶，脚本依次展示各项功能
+	autopilot bool
+	apDir     int     // 自动驾驶绕路时的方向
+	apTimer   float64 // 还要绕路多久（撞墙后随机走一会儿）
+	tgtX      float64 // 最近一辆敌人的位置（敌人每帧通过 seeEnemy 汇报）
+	tgtY      float64
+	tgtDist   float64
+	tgtAge    float64 // 距离上次汇报过了多久，太久说明目标已经没了
 )
 
 const (
@@ -280,7 +289,9 @@ func hitPoint(x, y float64, byPlayer bool) bool {
 		}
 		return true
 	case 9:
-		baseDestroyed()
+		if !autopilot { // 路演演示时基地不会被打掉，由演示脚本安排“防线失守”
+			baseDestroyed()
+		}
 		return true
 	}
 	return false
@@ -309,6 +320,7 @@ func setScreen(name string) {
 
 func goHome() {
 	state = stHome
+	autopilot = false
 	gameOver = true
 	broadcastAndWait "clear"
 	stopAllSounds
@@ -401,6 +413,77 @@ func confirm() {
 	}
 }
 
+// ---------- 路演演示模式 ----------
+
+// 敌人汇报自己的位置，自动驾驶只记住离玩家最近的那辆
+func seeEnemy(x, y float64) {
+	d := math.Abs(x-Player.xpos) + math.Abs(y-Player.ypos)
+	if tgtAge > 0.3 || d < tgtDist {
+		tgtX = x
+		tgtY = y
+		tgtDist = d
+		tgtAge = 0
+	}
+}
+
+// 自动驾驶选方向：先和最近的敌人对齐到同一行或同一列，然后朝它开（一直在开火，砖墙会被打穿）。
+// 撞墙后随机绕一会儿路
+func autopilotDir(dt float64) int {
+	tgtAge += dt
+	tgtDist += 60 * dt // 让旧目标慢慢“变远”，更近的敌人能接替
+	if apTimer > 0 {
+		apTimer -= dt
+		return apDir
+	}
+	if tgtAge > 0.5 {
+		return 0 // 暂时没有敌人：往上走
+	}
+	dx := tgtX - Player.xpos
+	dy := tgtY - Player.ypos
+	if math.Abs(dx) < 8 {
+		if dy > 0 {
+			return 0
+		}
+		return 180
+	}
+	if math.Abs(dy) < 8 || math.Abs(dx) < math.Abs(dy) {
+		if dx > 0 {
+			return 90
+		}
+		return -90
+	}
+	if dy > 0 {
+		return 0
+	}
+	return 180
+}
+
+// 自动驾驶撞墙了：随机选个方向绕一会儿路
+func autopilotBlocked() {
+	if apTimer > 0 {
+		return
+	}
+	n := rand(1, 4)
+	if n == 1 {
+		apDir = 0
+	} else if n == 2 {
+		apDir = 90
+	} else if n == 3 {
+		apDir = -90
+	} else {
+		apDir = 180
+	}
+	apTimer = rand(0.4, 0.9)
+}
+
+// 等到画面进入状态 st（最多等 secs 秒），用于演示脚本按实际状态推进
+func waitState(st int, secs float64) {
+	for secs > 0 && state != st {
+		wait 0.2
+		secs -= 0.2
+	}
+}
+
 func baseDestroyed() {
 	if gameOver {
 		return
@@ -473,6 +556,12 @@ func buildMap() {
 			}
 		}
 	}
+}
+
+// v2 默认使用现代画风（按 T 可以切到 1985 经典像素风）
+func initTheme() {
+	theme = 1
+	setBackdrop look("field")
 }
 
 func startGame() {
@@ -557,6 +646,12 @@ onKey KeyR, => {
 	}
 }
 
+onKey KeyP, => {
+	if state == stHome {
+		broadcast "demoFlow"
+	}
+}
+
 onKey KeyH, => {
 	if state == stResult {
 		goHome
@@ -594,6 +689,50 @@ onMsg "adFlow", => {
 	}
 }
 
+// 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → 回主页。
+// 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
+onMsg "demoFlow", => {
+	startGame
+	autopilot = true
+	apTimer = 0
+	tgtAge = 9
+	wait 9
+	switchTheme // 经典画风（情怀）
+	wait 4
+	switchTheme // 回到现代画风
+	wait 2
+	switchLang // English
+	wait 5
+	switchLang // 中文
+	wait 3
+	if state == stPlay {
+		baseDestroyed // 演示脚本安排的“防线失守”
+	}
+	waitState stRevive, 10
+	wait 3
+	if state == stRevive {
+		watchAd rewardRevive
+	}
+	waitState stPlay, 10
+	wait 7
+	if state == stPlay {
+		endGame true
+	}
+	waitState stResult, 5
+	wait 3
+	if state == stResult && !doubled {
+		watchAd rewardDouble
+	}
+	waitState stResult, 10
+	wait 4
+	autopilot = false
+	broadcast "demoDone"
+}
+
+onMsg "demoDone", => {
+	goHome
+}
+
 // 游戏结束后，等爆炸声播完再放胜利 / 失败音乐
 onMsg "gameEnd", => {
 	wait 1.2
@@ -608,6 +747,7 @@ onMsg "gameEnd", => {
 }
 
 onStart => {
+	initTheme
 	buildHud
 	goHome
 	for {
