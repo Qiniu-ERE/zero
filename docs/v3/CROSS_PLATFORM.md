@@ -1,9 +1,9 @@
 # 坦克大战 v3.0 · 跨平台运行规划（可行性评估）
 
 > 目标：XBuilder 做出来的游戏，不只在 x.qiniu.com 的网页里运行，还能
-> **插在电视上的树莓派像 FC 游戏机一样玩**、**在 iPhone / 安卓上直接玩**、**在 Windows / Mac 上双击就玩**。
+> **在 iPhone / 安卓上直接玩**、**在 Windows / Mac 上双击就玩**。
 >
-> 本文是 v3.0 的规划和可行性评估，**只做评估和文档，不改游戏代码**。文中的截图分两类，都已标明：
+> 本文是 [v3.0 规划](PLAN.md)中“跨平台”部分的可行性评估，**只做评估和文档，不改游戏代码**。文中的截图分两类，都已标明：
 > **实测**是 2026-10-24 在 macOS（M1 Pro）上真实导出并运行后截的图；**概念示意**是方案效果图，里面的游戏画面也是实测截图。
 
 ## 结论速览
@@ -17,9 +17,8 @@
 | **Linux x64** | 同上 | ✅ | 未测 | 无 | **高** |
 | **iPhone** | ① 自己托管 Web 包 + 添加到主屏幕（PWA）<br>② `spx exportios` 生成 Xcode 工程并签名 | ✅ | Web 包 ✅（桌面 Chrome）<br>iOS 未测（本机没装 Xcode） | 虚拟按键 | ① **高** ② 中（需要苹果账号） |
 | **Android** | ① 同 iPhone 的 Web 方案<br>② `spx exportapk` 生成 APK 直接安装 | ✅（arm64） | 未测（本机没装 SDK/NDK） | 虚拟按键 | **高** |
-| **树莓派（FC 游戏机）** | ① Chromium 全屏打开 Web 包（不用编译）<br>② 原生 linux-arm64 程序 + 开机自启 | ⚠️ 源码层预留，**官方没发布 arm64 运行时** | 未测（没有 Pi 设备） | 手柄映射成键盘 | ① 中（性能要实测）<br>② 中（要自编引擎） |
 
-一句话：**PC 三平台基本是现成的；手机走 Web 最快，只需要补一层虚拟按键；树莓派是 v3.0 唯一需要动手编译引擎的平台。**
+一句话：**PC 三平台基本是现成的；手机走 Web 最快，只需要补一层虚拟按键。**
 
 ---
 
@@ -59,9 +58,9 @@ TankBattle.xbp  ──解压──▶  *.spx 源码 + assets/
 
 | 有 | 没有 |
 |---|---|
-| `macos-arm64` `macos-x86_64` `windows-x86_64` `linux-x86_64` `android` `ios` `web` `web-threads` `web-worker` `web-minigame` | **`linux-arm64`（树莓派）**、`windows-arm64` |
+| `macos-arm64` `macos-x86_64` `windows-x86_64` `linux-x86_64` `android` `ios` `web` `web-threads` `web-worker` `web-minigame` | `linux-arm64`、`windows-arm64` |
 
-不过源码里已经给 linux-arm64 留了位置：`internal/scaffold/gdextension.go` 有 `gdspx-linux-arm64.so` 的映射，CI 脚本也能识别 `linux/arm64`。所以树莓派只是**官方没有发布**，并不是不支持，自己编译一份引擎就行（见 3.4）。
+本规划覆盖的平台（macOS、Windows x64、Linux x64、Android、iOS、Web）都有官方运行时。
 
 ### 1.3 XBuilder 网站在手机上不能用
 
@@ -115,7 +114,6 @@ XBuilder 前端（[goplus/builder](https://github.com/goplus/builder) `spx-gui/s
 
 - Android、iOS：本机没有装 Android SDK/NDK 和完整的 Xcode（都要好几个 GB），只做了源码层面的评估。
 - Windows、Linux：`buildlauncher` 和 `export` 都只能构建本机平台，需要在对应系统或 CI 上构建。
-- 树莓派：手边没有设备。
 - 手机浏览器真机：只在桌面 Chrome 上验证过，iOS Safari 的内存上限是主要风险（见第六节）。
 
 ### 2.6 工具链的坑（spx 4.0.0 刚发布，生态还没跟上）
@@ -158,43 +156,7 @@ v3.0 应该把这些步骤写进一个脚本（`tools/export/`），一条命令
 - **路线 B：APK**，`spx exportapk`（需要 NDK r23c 23.2.8568313、JDK 17、Android SDK）→ `game.apk`。安卓可以直接侧载（打开“允许安装未知来源应用”），也可以 `spx exportapk --install` 通过 USB 直接装到手机。只打包 arm64-v8a，覆盖 2017 年以后几乎所有手机。
 - 上架应用商店需要正式签名、隐私政策和广告 SDK 合规，不在 v3.0 范围内。
 
-### 3.4 树莓派：插电即玩的 FC 游戏机
-
-![树莓派方案（概念示意，屏幕里是实测画面）](mockups/raspberry-pi.png)
-
-**硬件**：建议 Raspberry Pi 5（4 GB 以上，也可以用 Pi 4）、HDMI 电视、USB FC 手柄（或 8BitDo 这类可以切成键盘模式的手柄）。
-
-**路线 A：Chromium 全屏打开 Web 包（不用编译，先验证）**
-
-```sh
-# Pi OS (64-bit) Desktop
-sudo apt install -y chromium-browser
-python3 -m http.server 8080 -d /home/pi/tankbattle-web &   # 或用 nginx
-chromium-browser --kiosk --noerrdialogs --autoplay-policy=no-user-gesture-required \
-  http://localhost:8080/play.html
-```
-
-- 优点：用的是官方运行时，当天就能试。
-- 风险：Pi 的 CPU 要跑两个 wasm（引擎 + 解释器），启动可能要 10 秒以上，帧率不确定。**这一条必须先在真机上测**，测完再决定要不要做路线 B。
-
-**路线 B：原生 linux-arm64（体验最好，像真的游戏机）**
-
-1. **编译引擎**：在 Pi 5 上，或者在 GitHub 的 `ubuntu-24.04-arm` 免费 arm64 runner 上，用 spx 源码执行 `make build-desktop`，得到 linux-arm64 的 Godot 4.4.1 template 和 runtime pack（Godot 官方本身支持 `platform=linuxbsd arch=arm64`）。
-2. **打包游戏**：在同一台 arm64 机器上执行 `spx buildlauncher`，得到 `TankBattle` 单文件。
-3. **开机自启**：Pi OS Lite + [cage](https://github.com/cage-kiosk/cage)（只运行一个程序的 Wayland kiosk 合成器）+ systemd 服务，上电后直接进入游戏主页，不显示桌面。
-4. **渲染**：Pi 的 GPU 跑 Godot 默认的 Forward+（Vulkan）比较吃力，建议切换到 `gl_compatibility`（OpenGL ES 3），要实测确认 spx 能否通过参数切换。
-
-**手柄**：spx 目前**没有手柄 API**（只有键盘、鼠标、单点触控），有三种办法：
-
-| 办法 | 改动 | 说明 |
-|---|---|---|
-| 手柄本身切成键盘模式（如 8BitDo） | 无 | 最简单，但要挑手柄 |
-| 系统层把手柄映射成键盘（`antimicrox`、`evsieve`、`keyd`） | 无 | 任何 USB 手柄都行，映射关系写进配置文件 |
-| 给 spx 引擎加 joypad → 按键的桥（Godot 本身支持手柄） | 改引擎 | 一劳永逸，可以作为给 spx 的上游贡献 |
-
-按键映射建议：方向键 → 方向键，A → J（开火），B → T（画风），START → Enter（开始、确认），SELECT → L（语言），START+SELECT → Esc。
-
-### 3.5 微信小游戏（v3.0 之后）
+### 3.4 微信小游戏（v3.0 之后）
 
 spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需要小游戏账号和审核，放到后续版本做。
 
@@ -202,7 +164,7 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 
 ## 四、游戏侧要做的适配
 
-### 4.1 Web 外壳页面（手机 / PWA / 树莓派路线 A 都用）
+### 4.1 Web 外壳页面（手机 / PWA）
 
 新建 `web-shell/`，只包外壳，不改 `.spx`：
 
@@ -223,10 +185,9 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 
 ### 4.3 其他
 
-- **画面**：继续用 480×360。手机横屏锁定，PC 和电视等比缩放。
+- **画面**：继续用 480×360。手机横屏锁定，PC 等比缩放。
 - **广告位**：现在的模拟广告在各平台保持原样（展示商业化设计）。接入真实广告 SDK（AdMob、穿山甲）要按平台分别做，不在 v3.0 范围内。
 - **最高分存档**：现在只保存在内存里，跨平台版本可以考虑持久化，v3.0 先不做。
-- **树莓派退出键**：kiosk 模式下 Esc 已经用作“放弃复活”，退出游戏要另外设计（例如长按 START+SELECT 3 秒）。
 
 ---
 
@@ -239,9 +200,8 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 | **P0** | 导出脚本 `tools/export/`（固化 2.6 的坑），`gox.mod` 进仓库；Mac 单文件程序 | `TankBattle-macos` | 0.5 天 |
 | **P0** | GitHub Actions 矩阵：macOS、Windows、Linux 单文件程序 + Web 包，上传到 Release | 4 个下载包 | 1 天 |
 | **P0** | Web 外壳页面 + 虚拟按键 + PWA，托管到七牛云 Kodo | 手机扫码就能玩 | 1~1.5 天 |
-| **P1** | 树莓派路线 A 真机测试 → 决定是否做路线 B；B：CI 编译 arm64 引擎 + cage 开机自启镜像说明 | Pi 演示视频 | 1~2 天 |
 | **P1** | Android APK（CI 安装 NDK） | `TankBattle.apk` | 0.5~1 天 |
-| **P2** | iOS（Xcode + 签名）、游戏内虚拟按键、spx 手柄 API、微信小游戏 | — | 视资源而定 |
+| **P2** | iOS（Xcode + 签名）、游戏内虚拟按键、微信小游戏 | — | 视资源而定 |
 
 ### 5.2 Web 包体积
 
@@ -263,8 +223,6 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 | 风险 | 影响 | 应对 |
 |---|---|---|
 | iOS Safari 内存上限，加载两个 wasm（解压后约 80 MB）可能被系统杀掉 | iPhone Web 路线不可用 | 先在真机测；不行就走 exportios 原生路线；或者向 spx 争取给 Web 版用编译模式代替解释器，去掉 48 MB 的 ispx.wasm |
-| 树莓派跑 Web 版太卡 | 路线 A 不可用 | 路线 B 原生 arm64 + gl_compatibility |
-| linux-arm64 引擎自编失败或很慢 | 树莓派延期 | 用 GitHub arm64 runner 编译并缓存；或者给 spx 提 issue，请官方发布 linux-arm64 运行时 |
 | spx 4.0 刚发布，工具链经常变（2.6） | 导出脚本失效 | 锁定 spx commit 和 runtime 版本，写进导出脚本 |
 | 解释器方法表上限（见 [架构文档 9.1](../ARCHITECTURE.md)） | `buildlauncher` 走解释器，限制和 XBuilder 一样 | 现有代码已经在限制内，v3.0 不新增大量方法 |
 | 苹果签名和应用商店审核 | iOS 原生分发受限 | 比赛演示用免费账号或 TestFlight，正式上架不在 v3.0 范围 |

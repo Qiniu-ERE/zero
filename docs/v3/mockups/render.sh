@@ -6,5 +6,4 @@ render() { "$CHROME" --headless --disable-gpu --hide-scrollbars --allow-file-acc
   --window-size="$2" --screenshot="$PWD/${1%.svg}.png" "file://$PWD/$1" 2>/dev/null; }
 render phone-landscape.svg 1400,720
 render phone-portrait.svg 560,1100
-render raspberry-pi.svg 1400,860
 ls -la *.png
