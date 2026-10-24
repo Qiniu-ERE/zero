@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""在电脑上试玩网页版：python3 本地试玩.py，然后浏览器打开 http://localhost:8080/
+"""在电脑上试玩网页版：python3 play-local.py，然后浏览器打开 http://localhost:8080/
 （直接双击 index.html 打不开：浏览器不允许 file:// 页面加载 wasm 和 game.zip）"""
 import functools
 import http.server

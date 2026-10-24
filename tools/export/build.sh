@@ -93,17 +93,18 @@ build_desktop() {
       sed -e "s/@NAME@/$APP_NAME/g" -e "s/@TITLE@/$APP_TITLE/g" -e "s/@ID@/$APP_ID/g" -e "s/@VERSION@/$base/g" \
         "$EXPORT_DIR/Info.plist" > "$app/Contents/Info.plist"
       codesign --force --deep -s - "$app" 2>/dev/null || true  # ad-hoc 签名，Apple Silicon 必须有签名才能运行
-      readme macOS > "$out/安装说明.txt"
-      (cd "$out" && ditto -c -k --sequesterRsrc --keepParent "$APP_TITLE.app" "$DIST_DIR/$name.zip" && zip -q "$DIST_DIR/$name.zip" 安装说明.txt)
+      readme macOS > "$out/README.txt"
+      (cd "$out" && ditto -c -k --sequesterRsrc --keepParent "$APP_TITLE.app" "$DIST_DIR/$name.zip" && zip -q "$DIST_DIR/$name.zip" README.txt)
       ;;
     windows-*)
-      readme Windows > "$out/安装说明.txt"
-      (cd "$out" && 7z a -tzip -mcu=on -bso0 "$DIST_DIR/$name.zip" "$APP_NAME.exe" 安装说明.txt)  # -mcu=on：中文文件名用 UTF-8
+      # 说明文件用英文文件名（Windows 上 Git Bash 传给 7z 的中文文件名会乱码），加 UTF-8 BOM 让记事本认出编码
+      { printf '\xEF\xBB\xBF'; readme Windows | sed 's/$/\r/'; } > "$out/README.txt"
+      (cd "$out" && 7z a -tzip -bso0 "$DIST_DIR/$name.zip" "$APP_NAME.exe" README.txt)
       ;;
     *)
-      readme Linux > "$out/安装说明.txt"
+      readme Linux > "$out/README.txt"
       chmod +x "$exe"
-      tar -C "$out" -czf "$DIST_DIR/$name.tar.gz" "$APP_NAME" 安装说明.txt
+      tar -C "$out" -czf "$DIST_DIR/$name.tar.gz" "$APP_NAME" README.txt
       ;;
   esac
 }
@@ -119,10 +120,10 @@ build_web() {
   cp -R "$EXPORT_DIR/web/." "$out/"
   # Service Worker 的缓存名带版本号，新版本发布后旧缓存自动失效
   sed -i.bak "s/@VERSION@/$APP_VERSION/g" "$out/sw.js" && rm -f "$out/sw.js.bak"
-  readme Web > "$BUILD_DIR/web/安装说明.txt"
-  cp "$EXPORT_DIR/serve.py" "$BUILD_DIR/web/本地试玩.py"
+  readme Web > "$BUILD_DIR/web/README.txt"
+  cp "$EXPORT_DIR/serve.py" "$BUILD_DIR/web/play-local.py"
   rm -f "$DIST_DIR/$APP_NAME-$APP_VERSION-web.zip"
-  (cd "$BUILD_DIR/web" && zip -q -r "$DIST_DIR/$APP_NAME-$APP_VERSION-web.zip" "$APP_NAME" 安装说明.txt 本地试玩.py)
+  (cd "$BUILD_DIR/web" && zip -q -r "$DIST_DIR/$APP_NAME-$APP_VERSION-web.zip" "$APP_NAME" README.txt play-local.py)
 }
 
 # 手机 App：打开游戏的触屏模式（右侧面板变成方向键，按住移动并自动开火）

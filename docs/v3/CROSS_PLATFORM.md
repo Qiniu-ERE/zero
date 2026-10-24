@@ -248,7 +248,7 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 | `TankBattle-<版本>-android.apk` | Android（arm64） | `spx exportapk`（NDK r23c、JDK 17），调试证书签名，**触屏模式** | 直接安装 |
 | `TankBattle-<版本>-ios-unsigned.ipa` | iPhone / iPad | `spx exportios` 只导出 Xcode 工程，`xcodebuild` 不签名编译，**触屏模式** | Sideloadly / AltStore 用自己的 Apple ID 签名安装 |
 
-每个包里都附带对应平台的“安装说明.txt”（来自 [`tools/export/INSTALL.md`](../../tools/export/INSTALL.md)），Release 里还有 `SHA256SUMS.txt`。
+每个包里都附带对应平台的README.txt（安装说明）（来自 [`tools/export/INSTALL.md`](../../tools/export/INSTALL.md)），Release 里还有 `SHA256SUMS.txt`。
 
 本地也能用同样的脚本打包：
 

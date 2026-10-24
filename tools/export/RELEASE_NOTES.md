@@ -9,11 +9,11 @@ XBuilder 复刻重铸版《坦克大战》：**8 个关卡、双人合作、自�
 | Windows 10 / 11（64 位） | `TankBattle-@VERSION@-windows-x64.zip` | 解压后双击 `TankBattle.exe`；SmartScreen 提示时点“更多信息 → 仍要运行” |
 | macOS（Apple 芯片） | `TankBattle-@VERSION@-macos-arm64.zip` | 解压后第一次用“右键 → 打开” |
 | Linux（x86_64） | `TankBattle-@VERSION@-linux-x64.tar.gz` | 解压后运行 `./TankBattle` |
-| iPhone / 安卓 / 浏览器 | `TankBattle-@VERSION@-web.zip` | 网页版（PWA），带触屏虚拟按键。上传到任意 HTTPS 静态网站后手机打开，“添加到主屏幕”即可像 App 一样使用；电脑上运行 `本地试玩.py` 试玩 |
+| iPhone / 安卓 / 浏览器 | `TankBattle-@VERSION@-web.zip` | 网页版（PWA），带触屏虚拟按键。上传到任意 HTTPS 静态网站后手机打开，“添加到主屏幕”即可像 App 一样使用；电脑上运行 `play-local.py` 试玩 |
 | Android（arm64） | `TankBattle-@VERSION@-android.apk` | 直接安装（调试证书签名）；触屏模式：右侧方向键按住移动并自动开火 |
 | iPhone / iPad | `TankBattle-@VERSION@-ios-unsigned.ipa` | 没有签名，需要用 Sideloadly / AltStore 以自己的 Apple ID 签名安装（免费账号 7 天有效） |
 
-每个安装包里都有一份“安装说明.txt”。`SHA256SUMS.txt` 是所有文件的校验和。
+每个安装包里都有一份README.txt（安装说明）。`SHA256SUMS.txt` 是所有文件的校验和。
 
 ### 玩法
 
