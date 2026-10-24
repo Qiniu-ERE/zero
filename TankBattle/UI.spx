@@ -1,0 +1,213 @@
+import "strconv"
+
+// 所有界面元素（标签、数字、图标、语言按钮、提示条）都是 UI 的克隆，用 kind 区分。
+//
+// 为什么这样写：spx 解释器（本地 spx run 和 XBuilder 网页版共用）的方法表有全局上限 2560。
+// 实测发现，每出现一种“新的字段总大小”的精灵类型，就要多占约 110 个位置，v1 已经接近上限。
+// 所以 UI 的字段总大小固定为 56 字节（和 Enemy 相同）：不要随意增删字段，新功能请复用下面这几个。
+// 详见 docs/ARCHITECTURE.md 的「解释器方法表上限」。
+var (
+	kind  int     // 见下面的 kind 常量
+	key   string  // 标签 / 提示条：文案 key，造型名是 "<key>_<语言>"
+	slot  int     // 数字：第几个字符；图标：第几个
+	baseX float64 // 数字：锚点
+	baseY float64
+	left  float64 // 提示条：还要显示多久（秒）
+)
+
+const (
+	kLabel = 1 // 文字标签
+	kScore = 2 // 得分的一个字符位（大号白色，左对齐）
+	kBest  = 3 // 最高分的一个字符位（小号金色，右对齐）
+	kPip   = 4 // 顶栏的敌军剩余格子
+	kLife  = 5 // 生命图标
+	kLang  = 6 // 中 | EN 语言按钮
+	kToast = 7 // 提示条
+)
+
+// ---------- 创建 ----------
+
+// 文字标签，(x, y) 是文字锚点（造型里已经按左 / 中 / 右对齐设好）
+func label(x, y float64, k string) {
+	kind = kLabel
+	key = k
+	setXYpos x, y
+	clone
+}
+
+// 数字，k 是 kScore 或 kBest，最多 n 个字符，每个字符位一个克隆
+func number(k int, x, y float64, n int) {
+	kind = k
+	baseX = x
+	baseY = y
+	for i := 0; i < n; i++ {
+		slot = i
+		clone
+	}
+}
+
+// 图标，k 是 kPip 或 kLife
+func icon(k int, x, y float64, i int) {
+	kind = k
+	slot = i
+	setXYpos x, y
+	clone
+}
+
+func langButton(x, y float64) {
+	kind = kLang
+	setXYpos x, y
+	clone
+}
+
+func toastBar(x, y float64) {
+	kind = kToast
+	setXYpos x, y
+	clone
+}
+
+// ---------- 数字 ----------
+
+// 数字宽度和逗号宽度（由 tools/assets/build.py 生成，和造型保持一致）
+func widths(st string) (float64, float64) {
+	// BEGIN GENERATED
+	if st == "S" {
+		return 10.782, 6.084
+	}
+	if st == "B" {
+		return 4.792, 2.704
+	}
+	// END GENERATED
+	return 0, 0
+}
+
+// 12450 -> "12,450"
+func withCommas(n int) string {
+	s := strconv.Itoa(n)
+	out := ""
+	for i := 0; i < len(s); i++ {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			out += ","
+		}
+		out += s[i : i+1]
+	}
+	return out
+}
+
+func refreshNumber() {
+	s := withCommas(score)
+	st := "S"
+	if kind == kBest {
+		s = withCommas(best)
+		st = "B"
+	}
+	if slot >= len(s) {
+		hide
+		return
+	}
+	dw, cw := widths(st)
+	total := 0.0
+	off := 0.0
+	for i := 0; i < len(s); i++ {
+		w := dw
+		if s[i:i+1] == "," {
+			w = cw
+		}
+		if i < slot {
+			off += w
+		}
+		total += w
+	}
+	x := baseX + off
+	if kind == kBest {
+		x = baseX - total + off // 最高分右对齐
+	}
+	ch := s[slot : slot+1]
+	if ch == "," {
+		ch = "comma"
+	}
+	setCostume st + ch
+	setXYpos x, baseY
+	show
+}
+
+// ---------- 刷新 ----------
+
+func refresh() {
+	switch kind {
+	case kLabel:
+		setCostume key + "_" + langCode()
+		show
+	case kScore, kBest:
+		refreshNumber
+	case kPip:
+		if slot < killed {
+			setCostume "pip_off"
+		} else {
+			setCostume "pip_on"
+		}
+		show
+	case kLife:
+		if slot < lives {
+			setCostume "life_on"
+		} else {
+			setCostume "life_off"
+		}
+		show
+	case kLang:
+		setCostume "toggle_" + langCode()
+		show
+	case kToast:
+		if left > 0 {
+			setCostume key + "_" + langCode()
+		}
+	}
+}
+
+// ---------- 事件 ----------
+
+onCloned => {
+	refresh
+	if kind != kToast {
+		return
+	}
+	// 提示条：到时间自动隐藏
+	for {
+		waitNextFrame
+		if left > 0 {
+			left -= deltaTime
+			if left <= 0 {
+				hide
+			}
+		}
+	}
+}
+
+onMsg "hud", => {
+	if isCloned {
+		refresh
+	}
+}
+
+onMsg "langChanged", => {
+	if isCloned {
+		refresh
+	}
+}
+
+// 显示提示条，内容在舞台的 toastKey / toastSecs 里
+onMsg "toast", => {
+	if isCloned && kind == kToast {
+		key = toastKey
+		left = toastSecs
+		refresh
+		setLayer Front
+		show
+	}
+}
+
+onClick => {
+	if isCloned && kind == kLang {
+		switchLang
+	}
+}

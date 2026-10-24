@@ -10,70 +10,13 @@
     }
   ],
   "backdropIndex": 0,
-  "fontPreferences": [
-    "basic-chinese",
-    "default"
-  ],
   "zorder": [
-    "Brick",
-    "Steel",
-    "Base",
+    "Tile",
     "Enemy",
     "Player",
     "PBullet",
     "EBullet",
     "Boom",
-    "Tip",
-    {
-      "type": "monitor",
-      "name": "scoreMonitor",
-      "size": 1.0,
-      "target": "",
-      "val": "getVar:score",
-      "color": 15629590,
-      "label": "得分",
-      "mode": 1,
-      "style": "scratch",
-      "sliderMin": 0,
-      "sliderMax": 100,
-      "x": 104,
-      "y": 146,
-      "isDiscrete": true,
-      "visible": true
-    },
-    {
-      "type": "monitor",
-      "name": "livesMonitor",
-      "size": 1.0,
-      "target": "",
-      "val": "getVar:lives",
-      "color": 4504882,
-      "label": "生命",
-      "mode": 1,
-      "style": "scratch",
-      "sliderMin": 0,
-      "sliderMax": 100,
-      "x": 104,
-      "y": 116,
-      "isDiscrete": true,
-      "visible": true
-    },
-    {
-      "type": "monitor",
-      "name": "enemyMonitor",
-      "size": 1.0,
-      "target": "",
-      "val": "getVar:enemiesLeft",
-      "color": 7829367,
-      "label": "敌人",
-      "mode": 1,
-      "style": "scratch",
-      "sliderMin": 0,
-      "sliderMax": 100,
-      "x": 104,
-      "y": 86,
-      "isDiscrete": true,
-      "visible": true
-    }
+    "UI"
   ]
 }
