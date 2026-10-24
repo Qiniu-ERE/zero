@@ -61,10 +61,11 @@ flowchart LR
 
 | 分组 | 主要内容 |
 |---|---|
-| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8）`stageScore`（进关时的得分）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
+| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8，AI 关卡是 9）`stageScore`（进关时的得分）、`aiRows` `aiTheme` `aiPrompt` `aiBusy` `aiByModel`（AI 造关）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
 | 地图 | `levelMap()`（按 `stage` 返回 8 张地图之一）、`stageTune()`（本关的重型 / 快速坦克占比、出兵间隔、场上上限）、`stageTip()`、`buildMap()`、`cellX/cellY/cellIndex/cellAt`、`tankBlocked()`、`blocksTank()` |
 | 子弹判定 | `bulletHit()`（弹头左右两个检测点）→ `hitPoint()` → `breakBrick()` / `baseDestroyed()` |
 | 规则 | `spawnEnemy()`（左中右轮流出生，类型和数量按 `stageTune()`）、`enemyKilled()`、`defeat()`、`endGame()` |
+| AI 造关 | `openAIMaker()`、`startAI(theme, prompt)`、`mapProblem()`（地图检查，规则同 `check.py`）、`genMap()` / `genTry()`（本地程序化生成）、`themeOf()`（从描述认主题）、`aiRequest()`（发给大模型的请求） |
 | 流程 | `goHome()`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头 |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
@@ -93,7 +94,7 @@ flowchart LR
 | `kLang` | 中 \| EN 按钮（可点击） | `toggle_<lang>` | `langChanged`、`screen` |
 | `kToast` | 提示条（自动隐藏） | `msg.*_<lang>` | `toast` |
 | `kAd` | 广告位：原生广告卡 `card` / 主页横幅 `banner`（可点击、可关闭） | `card_<lang>`、`banner_<lang>` | `screen`、`langChanged` |
-| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose>_<plain\|done>`，再加 `_<lang>` | `screen` |
+| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`aimaker`、`aiinput`、`aithink_<n>`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|aiwin\|lose>_<plain\|done>`，再加 `_<lang>` | `screen` |
 
 ### 3.4 构建工具 `tools/`
 
@@ -101,7 +102,7 @@ flowchart LR
 |---|---|
 | `assets/strings.py` | 中英文案表（唯一来源），游戏和效果图共用 |
 | `assets/textpath.py` | 把文字转成 SVG 路径；字体固定到 google/fonts 的某个提交并校验 sha256；缺字直接报错 |
-| `assets/build.py` | 生成：两套背景、现代画风的所有造型、经典画风的水面和草丛、`UI` 精灵的全部造型和 `index.json`、`UI.spx` 里的 `GENERATED widths` / `GENERATED hit` 区块 |
+| `assets/build.py` | 生成：AI 造关页面和设计中画面、输入框用的项目字体子集、两套背景、现代画风的所有造型、经典画风的水面和草丛、`UI` 精灵的全部造型和 `index.json`、`UI.spx` 里的 `GENERATED widths` / `GENERATED hit` 区块 |
 | `levels/check.py` | 检查 `levelMap()` 里的每一关：13×13、出生点和基地位置、从出生点能到达基地、玩家能到达出生点、基地旁边没有钢墙和水面。AI 生成的地图也用这套规则 |
 | `package_xbp.sh` | 打包 `TankBattle.xbp` |
 | `dev/shot.sh` | 本地运行游戏，只截取游戏窗口（不截整个屏幕），自动裁出 4:3 画面 |
@@ -126,6 +127,9 @@ flowchart LR
 | `shake` / `baseCam` | 舞台 | 舞台 | 震屏 / 基地特写镜头 |
 | `reviveFlow` / `adFlow` / `gameEnd` | 舞台 | 舞台 | 复活倒计时 / 模拟激励视频 / 结算音乐（需要 `wait` 的流程放在消息处理里异步执行） |
 | `demoFlow` / `demoDone` | 舞台 | 舞台 | 路演演示脚本开始 / 结束 |
+| `aiInputFlow` | 舞台 | 舞台 | AI 造关：打开底部输入框（`ask ""`），等玩家按 Enter |
+| `aiFlow` | 舞台 | 舞台 | AI 造关：显示设计中画面，等大模型或本地生成，然后进入 AI 关卡 |
+| `aiDesign` | 舞台 | `AIMaker`（只在 XBuilder 版有） | 请求大模型设计地图，结果写进 `aiRows`；没有接收方时舞台用本地生成 |
 
 ## 5. 游戏流程状态机
 
@@ -144,9 +148,15 @@ stateDiagram-v2
   播放广告 --> 结算: 奖励：金币翻倍
   结算 --> 对局: R / 点击再来一局（战败重打本关；全部通关后从第 1 关开始）
   结算 --> 主页: H / 点击主页
+  主页 --> AI造关: A / 点击 AI 造关
+  AI造关 --> 输入描述: Enter / 点击自己描述
+  AI造关 --> 设计中: 1~6 / 点击主题
+  输入描述 --> 设计中: Enter
+  设计中 --> 对局: 地图生成（AI 关卡）
+  AI造关 --> 主页: Esc
 ```
 
-- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult`。按键处理都先看 `state`，同一个键在不同画面有不同含义。
+- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stAIMaker` `stAIInput` `stAIThink`。输入描述（`stAIInput`）时 T、L 等快捷键不响应。按键处理都先看 `state`，同一个键在不同画面有不同含义。
 - `gameOver` 表示“战场冻结”，坦克和子弹在冻结时不动。除了 `stPlay` 以外的状态，战场都是冻结的。
 - 每局只能复活一次（`revived`），金币只能翻倍一次（`doubled`）。
 
@@ -169,6 +179,7 @@ stateDiagram-v2
 
 - **运行时不用字体**。v1 的乱码来自字体子集缺字（没有拉丁字母、`× · ¥ 「」` 等）。v2 把所有文字在构建时转成矢量路径，造型用 `bitmapResolution: 4`，放大后依然清晰。
 - **缺字检查**：`textpath.py` 发现字体里没有某个字就直接报错，构建失败，不会悄悄产生乱码。
+- **唯一的例外是引擎自带的输入框**（AI 造关的 `ask`）：玩家输入的内容没法提前烘焙，所以 `build.py` 打包了一个项目字体 `assets/fonts/Noto Sans SC/`（GB2312 一级汉字 + ASCII，1.1 MB），并在 `assets/index.json` 里设置 `fontPreferences`。输入框的位置和样式由引擎固定在底部，页面内容要留出 y = 262 以下的区域。
 - **加一段文案的步骤**：在 `strings.py` 加 `key: (中文, English)` → 在 `build.py` 里决定它的样式和位置（标签放进 `LABELS`；`msg.*` 开头的会自动变成提示条）→ 运行 `build.py` → 在 `.spx` 里用 key 引用。
 - 动态数字用“字符位”克隆拼出来：每个数字字体等宽，逗号单独一个窄格，宽度表由生成器写进 `UI.spx`。
 
@@ -247,6 +258,7 @@ stateDiagram-v2
 |---|---|
 | #9 | v3.0 规划：总览、AI 生成关卡、跨平台运行方案（文档，附实测截图） |
 | #10 | 8 个关卡（新增 7 关）、按关卡配置敌军、选关、下一关、关卡检查工具 |
+| #11 | AI 造关：主页入口、页面、本地程序化生成、地图检查、项目字体；XBuilder 大模型接入模板 |
 
 ### 分工
 
