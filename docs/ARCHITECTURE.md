@@ -61,7 +61,7 @@ flowchart LR
 
 | 分组 | 主要内容 |
 |---|---|
-| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8）`stageScore`（进关时的得分）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
+| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8）`stageScore`（进关时的得分）、`coop` `p2Exists` `lives2` `pbCount2` `p1x/p1y/p2x/p2y` `hitWho`（双人合作）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
 | 地图 | `levelMap()`（按 `stage` 返回 8 张地图之一）、`stageTune()`（本关的重型 / 快速坦克占比、出兵间隔、场上上限）、`stageTip()`、`buildMap()`、`cellX/cellY/cellIndex/cellAt`、`tankBlocked()`、`blocksTank()` |
 | 子弹判定 | `bulletHit()`（弹头左右两个检测点）→ `hitPoint()` → `breakBrick()` / `baseDestroyed()` |
 | 规则 | `spawnEnemy()`（左中右轮流出生，类型和数量按 `stageTune()`）、`enemyKilled()`、`defeat()`、`endGame()` |
@@ -74,9 +74,9 @@ flowchart LR
 
 | 精灵 | 职责 | 对外接口 | 字段大小 |
 |---|---|---|---|
-| `Player` | 玩家坦克：键盘 / 自动驾驶移动、开火（同时只能 1 发）、出生保护闪烁、引擎声 | `respawn()`；收 `playerHit` `themeChanged` | 32 B |
+| `Player` | 玩家坦克：键盘 / 自动驾驶移动、开火（每人同时只能 1 发）、出生保护闪烁、死后倒计时重生、引擎声。原型是 1P，双人合作时克隆一个当 2P（`isCloned` 区分按键、颜色、出生点） | `respawn()`、`spawnP2()`；收 `playerHit` `p2respawn` `p2off` `themeChanged` | 32 B |
 | `Enemy` | 敌人坦克：三种类型，随机转向且偏向基地，定时开火；重型坦克 3 发 | `spawn(x, y, kind)`；收 `themeChanged` `clear` | 56 B |
-| `PBullet` / `EBullet` | 子弹：飞行、撞墙（交给 `bulletHit`）、互相抵消、命中坦克 | `fire(x, y, dir)` | 16 B |
+| `PBullet` / `EBullet` | 子弹：飞行、撞墙（交给 `bulletHit`）、互相抵消、命中坦克。2P 的子弹把朝向加 1000 记录发射者（`bulletDir()` 还原）；敌人子弹用 `nearestPlayer()` 判断打中了谁 | `PBullet.fire(x, y, dir, who)`、`EBullet.fire(x, y, dir)` | 16 B |
 | `Boom` | 爆炸动画（3 帧），大爆炸触发震屏 | `explodeAt(x, y, size)` | 1 B |
 | `Tile` | 地图格子的显示：砖、钢、水、草、基地。碰撞全部由舞台的 `grid` 判断 | `build(x, y, kind, idx)`；收 `gridChanged` `themeChanged` `baseChanged` `clear` | 16 B |
 | `UI` | **所有界面元素**，用 `kind` 区分（见下表） | `label` `number` `icon` `langButton` `toastBar` `adSlot` `screenLayer` | 56 B |
@@ -121,7 +121,8 @@ flowchart LR
 | `toast` | 舞台 `toast()` | UI（提示条） | 内容在舞台的 `toastKey` / `toastSecs` |
 | `screen` | 舞台 `setScreen`（`broadcastAndWait`） | UI | 画面切换：画面层置顶，广告位按状态显示 / 隐藏 |
 | `raise` | 舞台 `setScreen` | UI | 把广告位、语言按钮、提示条、金币数放到画面层之上 |
-| `playerHit` | EBullet | Player | 玩家被击中 |
+| `playerHit` | EBullet | Player | 玩家被击中；`hitWho` 说明是 1P 还是 2P，只有那一辆处理 |
+| `p2respawn` / `p2off` | 舞台 | Player（2P 克隆） | 2P 重新出生（开局、复活）/ 去掉 2P（单人开局、回主页） |
 | `pbHit` / `clash` | Enemy / PBullet | PBullet / EBullet | 子弹命中坦克后消失 / 子弹相撞互相抵消 |
 | `shake` / `baseCam` | 舞台 | 舞台 | 震屏 / 基地特写镜头 |
 | `reviveFlow` / `adFlow` / `gameEnd` | 舞台 | 舞台 | 复活倒计时 / 模拟激励视频 / 结算音乐（需要 `wait` 的流程放在消息处理里异步执行） |
@@ -132,7 +133,7 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> 主页: onStart
-  主页 --> 对局: Enter / 空格 / 点击开始（第 1 关）；1~8 选关
+  主页 --> 对局: Enter / 空格 / 点击开始（第 1 关）；1~8 选关；C 双人合作
   主页 --> 对局: P（路演演示，自动驾驶）
   对局 --> 复活询问: 基地被毁 / 生命用完（本局第一次）
   对局 --> 结算: 再次战败 / 消灭 20 辆（胜利）
@@ -208,6 +209,8 @@ stateDiagram-v2
 
 ### 9.3 其他
 
+- **同一条消息再次广播时，正在运行（比如正在 `wait`）的处理会被打断重来**。所以不要在消息处理里等待之后再做关键的事（例如重生）：双人合作时一人中弹会再次广播 `playerHit`，另一人还在等待的重生就丢了。现在的做法是把倒计时放进每帧的循环里。
+
 - 类文件里**所有 `func` 必须写在第一个事件处理（`onStart` / `onKey` / `onMsg`…）之前**，否则编译报错。
 - 精灵造型按**朝右**画（heading 90 时不旋转），和 Scratch 一样。
 - LunaSVG **不支持 filter**（阴影、模糊），阴影要画成半透明图形。
@@ -248,6 +251,7 @@ stateDiagram-v2
 | #9 | v3.0 规划：总览、跨平台运行方案（文档，附实测截图） |
 | #10 | 8 个关卡（新增 7 关）、按关卡配置敌军、选关、下一关、关卡检查工具 |
 | #12 | v3.0 规划：自己做地图、双人合作的评估（文档和效果图） |
+| #13 | 双人合作：2P 坦克、按键、规则、HUD、主页入口 |
 
 ### 分工
 
