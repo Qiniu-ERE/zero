@@ -66,6 +66,13 @@ onMsg "themeChanged", => {
 	}
 }
 
+// 编辑器改了一个格子：这一格原来的克隆消失（新的由舞台重新摆）
+onMsg "tileGone", => {
+	if kind != 0 && idx == edChanged {
+		destroy
+	}
+}
+
 onMsg "baseChanged", => {
 	if kind == 9 {
 		apply
