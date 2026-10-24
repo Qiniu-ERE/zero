@@ -18,7 +18,7 @@ STRINGS = {
     "msg.modern": ("现代画风", "Modern style"),
     "msg.classic": ("经典画风", "Classic style"),
     "msg.lang": ("已切换到中文", "Switched to English"),
-    "msg.adclick": ("演示：这里会打开广告主页", "Demo: opens the advertiser's page"),
+    "msg.adclick": ("演示：这里会打开七牛云广告招商页", "Demo: opens the Qiniu ad sales page"),
     "msg.revived": ("已复活，继续战斗！", "Revived. Keep fighting!"),
     # 主页（游戏）
     "home.start": ("开始战役", "Start"),
@@ -32,7 +32,8 @@ STRINGS = {
     # 模拟广告播放（游戏）
     "ap.reward": ("{n} 秒后发放奖励", "Reward in {n}s"),
     "ap.demo": ("模拟广告位 · 正式版接入 Google H5 Games Ads", "Simulated ad slot · Google H5 Games Ads in production"),
-    "ap.big": ("10GB 免费空间", "10 GB free"),
+    "ap.big": ("广告位招商中", "Advertise here"),
+    "ap.sub": ("面向 XBuilder 玩家的品牌曝光位", "Reach the XBuilder player community"),
     # 结算（游戏）
     "rs.win": ("胜利！", "VICTORY"),
     "rs.lose": ("战败", "DEFEAT"),
@@ -50,10 +51,10 @@ STRINGS = {
     "p2": ("2P 小明", "2P Ming"),
     # 广告（Google 原生广告样式）
     "ad.badge": ("广告", "Ad"),
-    "ad.brand": ("示例品牌", "Sample Brand"),
-    "ad.head": ("云存储新用户免费 10GB", "10 GB free cloud storage"),
-    "ad.cta": ("了解更多", "Learn more"),
-    "ad.banner": ("示例品牌 · 云存储，新用户免费 10GB", "Sample Brand · 10 GB free cloud storage"),
+    "ad.brand": ("七牛云", "Qiniu Cloud"),
+    "ad.head": ("本广告位招商中", "This ad slot is available"),
+    "ad.cta": ("立即咨询", "Contact us"),
+    "ad.banner": ("七牛云 · 本广告位招商中，欢迎品牌投放", "Qiniu Cloud · This ad slot is open to brands"),
     # 通关
     "clear": ("第 3 关 完成", "STAGE 3 CLEAR"),
     "st.kills": ("击毁", "Kills"),
