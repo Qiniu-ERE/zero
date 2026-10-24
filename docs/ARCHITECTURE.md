@@ -61,11 +61,12 @@ flowchart LR
 
 | 分组 | 主要内容 |
 |---|---|
-| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8）`stageScore`（进关时的得分）、`coop` `p2Exists` `lives2` `pbCount2` `p1x/p1y/p2x/p2y` `hitWho`（双人合作）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
+| 状态 | `grid []int`（0 空地 1 砖 2 钢 3 裂砖 4 水 5 草 9 基地）、`stage`（当前关卡 1~8）`stageScore`（进关时的得分）、`coop` `p2Exists` `lives2` `pbCount2` `p1x/p1y/p2x/p2y` `hitWho`（双人合作）、`ed` `edTool` `edMirror` `edProblem` `edMark` `edCursor`（地图编辑器）、`score` `best` `lives` `killed` `spawned`、`theme`（0 经典 1 现代）、`lang`（0 中 1 英）、`state`、`screen`、`revived` `coins` `doubled`、广告关闭状态、自动驾驶状态 |
 | 地图 | `levelMap()`（按 `stage` 返回 8 张地图之一）、`stageTune()`（本关的重型 / 快速坦克占比、出兵间隔、场上上限）、`stageTip()`、`buildMap()`、`cellX/cellY/cellIndex/cellAt`、`tankBlocked()`、`blocksTank()` |
 | 子弹判定 | `bulletHit()`（弹头左右两个检测点）→ `hitPoint()` → `breakBrick()` / `baseDestroyed()` |
 | 规则 | `spawnEnemy()`（左中右轮流出生，类型和数量按 `stageTune()`）、`enemyKilled()`、`defeat()`、`endGame()` |
-| 流程 | `goHome()`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
+| 地图编辑器 | `openEditor()`、`edPaint()`、`edCheck()`（规则同 `check.py`）、`edRebuild()`、`edRandom()`、`edSave()` / `edLoad()`（PC 版存到 `os.UserConfigDir()/TankBattle/maps.txt`）、`edCommand()`、`playCustom()` |
+| 流程 | `goHome()`、`newGame(n, two)`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头 |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
 | 路演演示 | `demoFlow` 消息处理、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
@@ -93,7 +94,9 @@ flowchart LR
 | `kLang` | 中 \| EN 按钮（可点击） | `toggle_<lang>` | `langChanged`、`screen` |
 | `kToast` | 提示条（自动隐藏） | `msg.*_<lang>` | `toast` |
 | `kAd` | 广告位：原生广告卡 `card` / 主页横幅 `banner`（可点击、可关闭） | `card_<lang>`、`banner_<lang>` | `screen`、`langChanged` |
-| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose>_<plain\|done>`，再加 `_<lang>` | `screen` |
+| `kLife2` | 2P 的生命图标 | `life2_on/off` | `hud` |
+| `kEdSel` `kEdSwitch` `kEdStatus` `kEdCursor` `kEdMark` | 地图编辑器的小部件：工具选中框、对称开关和对称线、检查结果、光标、问题标记 | `edsel` `edsw_on/off` `edline` `edok/edbad1/edbad2_<lang>` `edcursor` `edmark` | `edit`、`edCursor` |
+| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`editor`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`，再加 `_<lang>` | `screen` |
 
 ### 3.4 构建工具 `tools/`
 
@@ -122,6 +125,9 @@ flowchart LR
 | `screen` | 舞台 `setScreen`（`broadcastAndWait`） | UI | 画面切换：画面层置顶，广告位按状态显示 / 隐藏 |
 | `raise` | 舞台 `setScreen` | UI | 把广告位、语言按钮、提示条、金币数放到画面层之上 |
 | `playerHit` | EBullet | Player | 玩家被击中；`hitWho` 说明是 1P 还是 2P，只有那一辆处理 |
+| `editLoop` | 舞台 | 舞台 | 编辑器：每帧读鼠标，绘制格子 |
+| `edit` / `edCursor` | 舞台 | UI（编辑器小部件） | 编辑状态变了 / 鼠标所在的格子变了 |
+| `tileGone` | 舞台 `edPaint` | Tile | 编辑器改了一个格子，编号为 `edChanged` 的克隆消失 |
 | `p2respawn` / `p2off` | 舞台 | Player（2P 克隆） | 2P 重新出生（开局、复活）/ 去掉 2P（单人开局、回主页） |
 | `pbHit` / `clash` | Enemy / PBullet | PBullet / EBullet | 子弹命中坦克后消失 / 子弹相撞互相抵消 |
 | `shake` / `baseCam` | 舞台 | 舞台 | 震屏 / 基地特写镜头 |
@@ -134,6 +140,9 @@ flowchart LR
 stateDiagram-v2
   [*] --> 主页: onStart
   主页 --> 对局: Enter / 空格 / 点击开始（第 1 关）；1~8 选关；C 双人合作
+  主页 --> 编辑器: E / 点击自己做地图
+  编辑器 --> 对局: Enter 试玩 / P 双人试玩（自制地图）
+  编辑器 --> 主页: Esc
   主页 --> 对局: P（路演演示，自动驾驶）
   对局 --> 复活询问: 基地被毁 / 生命用完（本局第一次）
   对局 --> 结算: 再次战败 / 消灭 20 辆（胜利）
@@ -147,7 +156,7 @@ stateDiagram-v2
   结算 --> 主页: H / 点击主页
 ```
 
-- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult`。按键处理都先看 `state`，同一个键在不同画面有不同含义。
+- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stEdit`。按键处理都先看 `state`，同一个键在不同画面有不同含义。
 - `gameOver` 表示“战场冻结”，坦克和子弹在冻结时不动。除了 `stPlay` 以外的状态，战场都是冻结的。
 - 每局只能复活一次（`revived`），金币只能翻倍一次（`doubled`）。
 
@@ -252,6 +261,7 @@ stateDiagram-v2
 | #10 | 8 个关卡（新增 7 关）、按关卡配置敌军、选关、下一关、关卡检查工具 |
 | #12 | v3.0 规划：自己做地图、双人合作的评估（文档和效果图） |
 | #13 | 双人合作：2P 坦克、按键、规则、HUD、主页入口 |
+| #14 | 自己做地图：编辑器、绘制、实时检查、随机起点、复制关卡、试玩、PC 保存 |
 
 ### 分工
 

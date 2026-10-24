@@ -260,6 +260,7 @@ def text_costume(s, size, fill, bold, anchor, pad=1.0):
 # 标签：key -> (字号, 颜色, 粗体, 对齐)
 LABELS = {
     **{f"stage.{n}": (10, "#ffffff", True, "start") for n in range(1, 9)},
+    "stage.custom": (10, "#ffffff", True, "start"),
     "enemies": (7.5, MUTED, False, "end"),
     "score": (6.8, MUTED, True, "start"),
     "best": (6.8, MUTED, True, "start"),
@@ -454,7 +455,7 @@ def banner(lang):
 
 
 # 主页上的其他模式：(文案 key, 按键)，按键为空表示“即将推出”
-HOME_MODES = [("m.coop", "C"), ("m.maker", ""), ("m.daily", "")]
+HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.daily", "")]
 
 
 def home(lang):
@@ -574,11 +575,12 @@ COIN_POS = (MX + 50, MY + 70)  # 结算弹窗里金币数字的锚点（SVG 坐�
 
 
 def result(kind, done, lang):
-    """kind：win 过关（按钮是“下一关”）、final 最后一关也赢了（全部通关）、lose 战败"""
-    win = kind != "lose"
+    """kind：win 过关（按钮是“下一关”）、final 最后一关也赢了（全部通关）、lose 战败、
+    ewin / elose 自制地图试玩的胜负（按钮是“继续编辑”）"""
+    win = kind not in ("lose", "elose")
     m = MX + MW / 2
     s = [f'<rect width="{W}" height="{H}" fill="#05070c" fill-opacity="0.5"/>', modal_frame("#f2c94c" if win else "#3a4660")]
-    title = {"win": "rs.win", "final": "rs.final", "lose": "rs.lose"}[kind]
+    title = {"win": "rs.win", "final": "rs.final", "lose": "rs.lose", "ewin": "rs.win", "elose": "rs.lose"}[kind]
     s.append(text(m, MY + 34, tr(title, lang), 18, "#ffe27a" if win else "#c8d2e3", True, "middle"))
     # 金币（数字由 UI 克隆显示在 COIN_POS）
     s.append(f'<rect x="{MX+20}" y="{MY+48}" width="{MW-40}" height="32" rx="8" fill="#ffffff" fill-opacity="0.05"/>')
@@ -603,7 +605,7 @@ def result(kind, done, lang):
     ax, ay, aw, ah = MX + 20, MY + 128, MW - 40, 30
     button("result.again", ax, ay, aw, ah)
     s.append(f'<rect x="{ax}" y="{ay}" width="{aw}" height="{ah}" rx="15" fill="url(#cta)"/>')
-    s.append(text(m - 6, ay + 19.5, tr("rs.next" if kind == "win" else "rs.again", lang), 10, "#ffffff", True, "middle"))
+    s.append(text(m - 6, ay + 19.5, tr({"win": "rs.next", "ewin": "rs.edit", "elose": "rs.edit"}.get(kind, "rs.again"), lang), 10, "#ffffff", True, "middle"))
     c, cw = chip(0, 0, "R", dark=True)
     s.append(f'<g transform="translate({ax+aw-10-cw:.2f},{ay+10})">{c}</g>')
     # 主页
@@ -617,17 +619,124 @@ def result(kind, done, lang):
     return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 
+# ---------- 自己做地图（地图编辑器） ----------
+# 编辑器画面：顶栏和右侧面板不透明，战场区域透明（地形由 Tile 克隆显示）。
+# 会变的部分（选中的工具、对称开关和对称线、检查结果、光标、问题标记）是 UI 的单独 kind，见 UI.spx
+ED_X0 = PX + 8          # 面板内容左边
+ED_TOOL_Y = 48          # 工具格子的上边
+ED_TOOL_STEP = 24.5     # 工具格子的间距
+ED_STATUS = (ED_X0, 110)  # 检查结果的左上角
+ED_SWITCH = (PX + PW - 30, 92)  # 对称开关的左上角（20x10）
+ED_LOCKED = [(0, 0, "enemy"), (0, 6, "enemy"), (0, 12, "enemy"), (12, 4, "1P"), (12, 8, "2P")]
+
+
+def inline_svg(src, x, y, size, prefix):
+    """把一个造型 SVG 内嵌进另一个 SVG（重命名渐变 id，避免冲突）"""
+    m = re.match(r'<svg[^>]*viewBox="0 0 ([\d.]+) [\d.]+"[^>]*>(.*)</svg>$', src, re.S)
+    vb, body = float(m.group(1)), m.group(2)
+    body = re.sub(r'id="([^"]+)"', lambda g: f'id="{prefix}{g.group(1)}"', body)
+    body = re.sub(r'url\(#([^)]+)\)', lambda g: f'url(#{prefix}{g.group(1)})', body)
+    return f'<g transform="translate({x:.2f} {y:.2f}) scale({size / vb:.4f})">{body}</g>'
+
+
+def ed_button(name, x, y, w, h, label, key, primary=False):
+    button(name, x, y, w, h)
+    if primary:
+        s = (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{h/2}" fill="url(#cta)"/>'
+             + text(x + 10, y + h / 2 + 3.4, label, 9, "#ffffff", True))
+        c, cw = chip(0, 0, key, dark=True)
+    else:
+        s = (f'<rect x="{x+0.3}" y="{y+0.3}" width="{w-0.6}" height="{h-0.6}" rx="{h/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>'
+             + text(x + 10, y + h / 2 + 3, label, 8, "#c8d2e3", True))
+        c, cw = chip(0, 0, key)
+    return s + f'<g transform="translate({x + w - 8 - cw:.2f},{y + (h - 10) / 2:.2f})">{c}</g>'
+
+
+def editor(lang):
+    tiles = [brick_m(), steel_m(), water_m(), grass_m()]
+    s = [f'<rect width="{W}" height="{FY-4}" fill="#121826"/>',                      # 顶栏
+         f'<rect x="{FX+13*C+4}" y="{FY-4}" width="{W-FX-13*C-4}" height="{H-FY+4}" fill="#0c111b"/>',  # 右侧
+         f'<rect y="{FY+13*C+4}" width="{FX+13*C+4}" height="{H-FY-13*C-4}" fill="#0c111b"/>',          # 下边
+         f'<rect x="{PX}" y="{PY}" width="{PW}" height="{PH}" rx="6" fill="#141b2b" stroke="#263046" stroke-width="0.6"/>']
+    for i in range(1, 13):  # 网格线，方便对准格子
+        s.append(f'<path d="M{FX+i*C} {FY}V{FY+13*C}M{FX} {FY+i*C}H{FX+13*C}" stroke="#3ee8ff" stroke-opacity="0.12" stroke-width="0.5"/>')
+    for r, c, lab in ED_LOCKED:  # 锁定格
+        x, y = FX + c * C, FY + r * C
+        col = {"enemy": "#ff4a3a", "1P": "#ffd23a", "2P": "#4fe3c1"}[lab]
+        s.append(f'<rect x="{x+1}" y="{y+1}" width="{C-2}" height="{C-2}" rx="3" fill="{col}" fill-opacity="0.15" stroke="{col}" stroke-opacity="0.75" stroke-width="0.8" stroke-dasharray="2 1.5"/>')
+        t = tr("ed.enemy", lang) if lab == "enemy" else lab
+        s.append(text(x + 12, y + 15.2, t, 7.5, "#ff8a7a" if lab == "enemy" else col, True, "middle"))
+    s.append(text(12, 21, tr("ed.title", lang), 10, "#ffffff", True))
+    s.append(text(330, 20.5, tr("ed.hint", lang), 6.5, MUTED, False, "end"))
+    x0 = ED_X0
+    s.append(text(x0, 42, tr("ed.tools", lang), 6.8, MUTED, True))
+    for i in range(5):
+        x, y = x0 + i * ED_TOOL_STEP, ED_TOOL_Y
+        button(f"ed.t{i+1}", x - 2, y - 2, 24, 24)
+        s.append(f'<rect x="{x-1.5}" y="{y-1.5}" width="23" height="23" rx="4" fill="#ffffff" fill-opacity="0.03" stroke="#2c3850" stroke-width="0.6"/>')
+        if i < 4:
+            s.append(inline_svg(tiles[i], x + 1, y + 1, 18, f"t{i}"))
+        else:  # 橡皮擦
+            s.append(f'<path d="M{x+5} {y+5}l10 10M{x+15} {y+5}l-10 10" stroke="#c8d2e3" stroke-width="1.6" stroke-linecap="round"/>')
+        c, cw = chip(0, 0, str(i + 1))
+        s.append(f'<g transform="translate({x + 10 - cw / 2:.2f},{y + 24})">{c}</g>')
+    c, cw = chip(x0, 92, "M")
+    s.append(c + text(x0 + cw + 5, 99.6, tr("ed.mirror", lang), 7.5, "#c8d2e3", True))
+    button("ed.mirror", x0, 88, PW - 16, 18)
+    bw = PW - 16
+    s.append(ed_button("ed.play", x0, 150, bw, 22, tr("ed.play", lang), "Enter", primary=True))
+    for n, (k, key) in enumerate((("ed.play2", "P"), ("ed.rand", "R"), ("ed.copy", "K"), ("ed.clear", "C"), ("ed.save", "S"), ("ed.back", "Esc"))):
+        s.append(ed_button(k, x0, 178 + n * 22, bw, 18, tr(k, lang), key))
+    y = 318
+    s.append(f'<rect x="{x0}" y="{y}" width="9" height="9" rx="2" fill="#ff4a3a" fill-opacity="0.18" stroke="#ff4a3a" stroke-opacity="0.7" stroke-width="0.7" stroke-dasharray="2 1.5"/>')
+    s.append(text(x0 + 13, y + 7.4, tr("ed.locked", lang), 5.8, MUTED))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def ed_status(k, lang):
+    """检查结果框：edok 合格，edbad1 敌人到不了基地，edbad2 坦克开不到出生点。锚点是左上角"""
+    w = PW - 16
+    bad = k != "edok"
+    h = 30 if bad else 22
+    col = "#ff5a4a" if bad else "#2ee88a"
+    s = [f'<rect x="0.4" y="0.4" width="{w-0.8}" height="{h-0.8}" rx="6" fill="{col}" fill-opacity="0.12" stroke="{col}" stroke-opacity="0.6" stroke-width="0.7"/>']
+    if bad:
+        s.append(f'<path d="M8 7l6 6M14 7l-6 6" stroke="{col}" stroke-width="1.6"/>')
+        s.append(text(20, 12.5, tr(f"ed.{k[2:]}", lang), 7, col, True))
+        s.append(text(20, 23, tr(f"ed.{k[2:]}.d", lang), 5.8, "#e8b4ad"))
+    else:
+        s.append(f'<path d="M7 11l3 3 6-6" fill="none" stroke="{col}" stroke-width="1.6"/>')
+        s.append(text(20, 14.5, tr("ed.ok", lang), 7.5, col, True))
+    return svg(w, h, "".join(s), res=HR), (0, 0)
+
+
+def ed_widgets():
+    """编辑器里会动的小部件：工具选中框、对称开关、对称线、光标、问题标记"""
+    sel = svg(25, 25, '<rect x="0.7" y="0.7" width="23.6" height="23.6" rx="4.5" fill="#3ee8ff" fill-opacity="0.12" stroke="#3ee8ff" stroke-width="1.4"/>', res=HR)
+    on = svg(20, 10, '<rect width="20" height="10" rx="5" fill="#3ee8ff"/><circle cx="15" cy="5" r="3.8" fill="#06232b"/>', res=HR)
+    off = svg(20, 10, '<rect width="20" height="10" rx="5" fill="#2c3850"/><circle cx="5" cy="5" r="3.8" fill="#8a96ad"/>', res=HR)
+    line = svg(2, 13 * C, f'<path d="M1 0V{13*C}" stroke="#3ee8ff" stroke-opacity="0.6" stroke-width="0.9" stroke-dasharray="3 3"/>', res=HR)
+    cur = svg(C, C, f'<rect x="0.7" y="0.7" width="{C-1.4}" height="{C-1.4}" rx="2" fill="#3ee8ff" fill-opacity="0.15" stroke="#3ee8ff" stroke-width="1.4"/>', res=HR)
+    mark = svg(C, C, f'<rect x="0.8" y="0.8" width="{C-1.6}" height="{C-1.6}" rx="3" fill="#ff2a2a" fill-opacity="0.3" stroke="#ff4a3a" stroke-width="1.6"/>'
+               + text(12, 17, "!", 13, "#ffffff", True, "middle"), res=HR)
+    return [("edsel", sel, (12.5, 12.5)), ("edsw_on", on, (10, 5)), ("edsw_off", off, (10, 5)),
+            ("edline", line, (1, 13 * C / 2)), ("edcursor", cur, (C / 2, C / 2)), ("edmark", mark, (C / 2, C / 2))]
+
+
 def screen_costumes():
     out = []
     for lang in LANGS:
         out.append((f"card_{lang}", *native_card(lang)))
         out.append((f"banner_{lang}", *banner(lang)))
         out.append((f"home_{lang}", *home(lang), 2))
+        out.append((f"editor_{lang}", *editor(lang), 2))
+        for k in ("edok", "edbad1", "edbad2"):
+            out.append((f"{k}_{lang}", *ed_status(k, lang)))
         for n in range(1, 8):
             out.append((f"revive_{n}_{lang}", *revive(n, lang), 2))
         for n in range(1, 6):
             out.append((f"adplay_{n}_{lang}", *adplay(n, lang), 2))
-        for kind in ("win", "final", "lose"):
+        for kind in ("win", "final", "lose", "ewin", "elose"):
             for done in (False, True):
                 name = f"result_{kind}_{'done' if done else 'plain'}_{lang}"
                 out.append((name, *result(kind, done, lang), 2))
@@ -668,10 +777,10 @@ def build_hud():
                 sys.exit(f"关卡名太长，会和顶栏的“敌军”重叠：{tr(key, lang)}")
             c, piv = text_costume(tr(key, lang), size, fill, bold, anchor)
             costumes.append((f"{key}_{lang}", c, piv))
-    for n in range(1, 9):
+    for k in [f"stage.{n}" for n in range(1, 9)] + ["stage.custom"]:
         for lang in LANGS:
-            c, piv = stage_coop_costume(f"stage.{n}", lang)
-            costumes.append((f"stage.{n}.co_{lang}", c, piv))
+            c, piv = stage_coop_costume(k, lang)
+            costumes.append((f"{k}.co_{lang}", c, piv))
     for key, k in HINTS.items():
         for lang in LANGS:
             c, piv = hint_costume(k, tr(key, lang))
@@ -684,6 +793,7 @@ def build_hud():
     nums, widths = num_costumes()
     costumes += nums
     costumes += icon_costumes()
+    costumes += ed_widgets()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])
     costumes += screen_costumes()

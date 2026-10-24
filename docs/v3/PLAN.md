@@ -5,7 +5,7 @@ v2.0 把 1985 年的《坦克大战》在 XBuilder 上重做成了 2026 年的�
 | 方向 | 内容 | 状态 | 详细文档 |
 |---|---|---|---|
 | **1. 关卡** | 从 1 关扩展到 8 关，每关的地形和敌军配置都不一样；选关、下一关、全部通关 | ✅ 已实现（[PR #10](https://github.com/Qiniu-ERE/zero/pull/10)） | 本文第一节 |
-| **2. 自己做地图** | 玩家用鼠标 / 手指画地图，实时检查，马上试玩 | 方案已评估，可行（约 3 天） | [MAP_EDITOR.md](MAP_EDITOR.md) |
+| **2. 自己做地图** | 玩家用鼠标 / 手指画地图，实时检查，马上试玩 | ✅ 已实现（[PR #14](https://github.com/Qiniu-ERE/zero/pull/14)） | [MAP_EDITOR.md](MAP_EDITOR.md) |
 | **3. 双人合作** | 同一台电脑两人各开一辆坦克，一起守基地 | ✅ 已实现（[PR #13](https://github.com/Qiniu-ERE/zero/pull/13)） | [COOP.md](COOP.md) |
 | **4. 跨平台** | Windows / macOS / Linux 双击运行；iPhone / 安卓用浏览器（PWA）或 App 运行 | 方案已评估，Mac 和 Web 已实测 | [CROSS_PLATFORM.md](CROSS_PLATFORM.md) |
 

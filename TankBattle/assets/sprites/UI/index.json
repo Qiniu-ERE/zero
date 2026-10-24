@@ -113,6 +113,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "stage.custom_zh",
+      "path": "stage.custom_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.custom_en",
+      "path": "stage.custom_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "enemies_zh",
       "path": "enemies_zh.svg",
       "x": 64.0,
@@ -309,6 +323,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "stage.custom.co_zh",
+      "path": "stage.custom.co_zh.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.custom.co_en",
+      "path": "stage.custom.co_en.svg",
+      "x": 4,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "hint.move_zh",
       "path": "hint.move_zh.svg",
       "x": 0,
@@ -473,6 +501,216 @@
       "name": "msg.revived_en",
       "path": "msg.revived_en.svg",
       "x": 258.15,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.play_zh",
+      "path": "msg.ed.play_zh.svg",
+      "x": 174.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.play_en",
+      "path": "msg.ed.play_en.svg",
+      "x": 184.19,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.bad_zh",
+      "path": "msg.ed.bad_zh.svg",
+      "x": 300.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.bad_en",
+      "path": "msg.ed.bad_en.svg",
+      "x": 324.97,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.saved_zh",
+      "path": "msg.ed.saved_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.saved_en",
+      "path": "msg.ed.saved_en.svg",
+      "x": 223.81,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.savefail_zh",
+      "path": "msg.ed.savefail_zh.svg",
+      "x": 372.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.savefail_en",
+      "path": "msg.ed.savefail_en.svg",
+      "x": 410.43,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.loaded_zh",
+      "path": "msg.ed.loaded_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.loaded_en",
+      "path": "msg.ed.loaded_en.svg",
+      "x": 261.48,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.clear_zh",
+      "path": "msg.ed.clear_zh.svg",
+      "x": 102.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.clear_en",
+      "path": "msg.ed.clear_en.svg",
+      "x": 117.48,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.rand_zh",
+      "path": "msg.ed.rand_zh.svg",
+      "x": 210.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.rand_en",
+      "path": "msg.ed.rand_en.svg",
+      "x": 223.55,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy1_zh",
+      "path": "msg.ed.copy1_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy1_en",
+      "path": "msg.ed.copy1_en.svg",
+      "x": 179.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy2_zh",
+      "path": "msg.ed.copy2_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy2_en",
+      "path": "msg.ed.copy2_en.svg",
+      "x": 179.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy3_zh",
+      "path": "msg.ed.copy3_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy3_en",
+      "path": "msg.ed.copy3_en.svg",
+      "x": 179.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy4_zh",
+      "path": "msg.ed.copy4_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy4_en",
+      "path": "msg.ed.copy4_en.svg",
+      "x": 179.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy5_zh",
+      "path": "msg.ed.copy5_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy5_en",
+      "path": "msg.ed.copy5_en.svg",
+      "x": 179.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy6_zh",
+      "path": "msg.ed.copy6_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy6_en",
+      "path": "msg.ed.copy6_en.svg",
+      "x": 179.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy7_zh",
+      "path": "msg.ed.copy7_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy7_en",
+      "path": "msg.ed.copy7_en.svg",
+      "x": 179.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy8_zh",
+      "path": "msg.ed.copy8_zh.svg",
+      "x": 156.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.ed.copy8_en",
+      "path": "msg.ed.copy8_en.svg",
+      "x": 179.02,
       "y": 44.0,
       "bitmapResolution": 4
     },
@@ -876,6 +1114,48 @@
       "bitmapResolution": 4
     },
     {
+      "name": "edsel",
+      "path": "edsel.svg",
+      "x": 50.0,
+      "y": 50.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edsw_on",
+      "path": "edsw_on.svg",
+      "x": 40,
+      "y": 20,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edsw_off",
+      "path": "edsw_off.svg",
+      "x": 40,
+      "y": 20,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edline",
+      "path": "edline.svg",
+      "x": 4,
+      "y": 624.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edcursor",
+      "path": "edcursor.svg",
+      "x": 48.0,
+      "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edmark",
+      "path": "edmark.svg",
+      "x": 48.0,
+      "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "card_zh",
       "path": "card_zh.svg",
       "x": 240.0,
@@ -895,6 +1175,34 @@
       "x": 480.0,
       "y": 360.0,
       "bitmapResolution": 2
+    },
+    {
+      "name": "editor_zh",
+      "path": "editor_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "edok_zh",
+      "path": "edok_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edbad1_zh",
+      "path": "edbad1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edbad2_zh",
+      "path": "edbad2_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
     },
     {
       "name": "revive_1_zh",
@@ -1023,6 +1331,34 @@
       "bitmapResolution": 2
     },
     {
+      "name": "result_ewin_plain_zh",
+      "path": "result_ewin_plain_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_ewin_done_zh",
+      "path": "result_ewin_done_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_elose_plain_zh",
+      "path": "result_elose_plain_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_elose_done_zh",
+      "path": "result_elose_done_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
       "name": "card_en",
       "path": "card_en.svg",
       "x": 240.0,
@@ -1042,6 +1378,34 @@
       "x": 480.0,
       "y": 360.0,
       "bitmapResolution": 2
+    },
+    {
+      "name": "editor_en",
+      "path": "editor_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "edok_en",
+      "path": "edok_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edbad1_en",
+      "path": "edbad1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "edbad2_en",
+      "path": "edbad2_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
     },
     {
       "name": "revive_1_en",
@@ -1165,6 +1529,34 @@
     {
       "name": "result_lose_done_en",
       "path": "result_lose_done_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_ewin_plain_en",
+      "path": "result_ewin_plain_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_ewin_done_en",
+      "path": "result_ewin_done_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_elose_plain_en",
+      "path": "result_elose_plain_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_elose_done_en",
+      "path": "result_elose_done_en.svg",
       "x": 480.0,
       "y": 360.0,
       "bitmapResolution": 2

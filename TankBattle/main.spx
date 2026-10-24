@@ -1,6 +1,8 @@
 import (
 	"math"
+	"os"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -39,6 +41,17 @@ var (
 	p2y       float64
 	hitWho    int // 刚被打中的是 1P 还是 2P（"playerHit" 消息的参数）
 
+	// 自己做地图（见 docs/v3/MAP_EDITOR.md）
+	ed        []byte // 正在编辑的地图，169 个字符：. B S W G E
+	edTool    int    // 当前工具：1 砖墙 2 钢墙 3 水面 4 草丛 5 橡皮擦
+	edMirror  bool   // 对称绘制
+	edProblem int    // 检查结果：0 可以玩，1 敌人到不了基地，2 坦克开不到敌人出生点
+	edMark    int    // 出问题的格子（-1 表示没有）
+	edCursor  int    // 鼠标所在的格子（-1 表示不在战场上）
+	edChanged int    // 刚改过的格子（"tileGone" 消息的参数）
+	edCopy    int    // 上次复制的关卡
+	edLoaded  bool   // 是否已经尝试过读取保存的地图
+
 	// 流程与广告（见 docs/ARCHITECTURE.md 的「游戏流程」）
 	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
 	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
@@ -65,6 +78,7 @@ const (
 	stRevive = 2 // 询问是否看视频复活
 	stAd     = 3 // 正在播放（模拟的）激励视频
 	stResult = 4 // 结算
+	stEdit   = 5 // 自己做地图
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
@@ -80,6 +94,7 @@ const (
 	fieldTop   = 150.0  // 战场上边界
 	totalEnemy = 20     // 每关敌人总数
 	lastStage  = 8      // 关卡总数
+	customStage = 9     // 自制地图试玩时的关卡编号
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
@@ -87,6 +102,9 @@ const (
 // 规则：第 0 行的第 0、6、12 列是敌人出生点，第 12 行第 4 列是玩家出生点，都必须是空地；基地固定在第 12 行第 6 列。
 // 改完地图运行 python3 tools/levels/check.py 检查（出生点、连通性等）
 func levelMap() []string {
+	if stage == customStage {
+		return edRows()
+	}
 	switch stage {
 	case 2: // 水乡迷宫：大片水面分割战场，坦克要绕路，子弹却能隔河对射
 		return []string{
@@ -242,6 +260,9 @@ func stageTune() (int, int, float64, int) {
 
 // 每关开始时的提示（文案 key 见 tools/assets/strings.py）
 func stageTip() string {
+	if stage == customStage {
+		return "msg.ed.play"
+	}
 	if stage == 1 {
 		return "msg.start"
 	}
@@ -262,6 +283,340 @@ func nearestPlayer(x, y float64) int {
 		return 2
 	}
 	return 1
+}
+
+// ---------- 自己做地图 ----------
+
+// 锁定格：三个敌人出生点、1P / 2P 出生点、基地和基地上方左右的护墙，不能修改
+func edLocked(i int) bool {
+	switch i {
+	case 0, 6, 12, 12*cols + 4, 12*cols + 8, 12*cols + 6, 11*cols + 5, 11*cols + 6, 11*cols + 7, 12*cols + 5, 12*cols + 7:
+		return true
+	}
+	return false
+}
+
+// 锁定格的固定内容
+func edLockedChar(i int) byte {
+	if i == 12*cols+6 {
+		return 'E'
+	}
+	if i == 11*cols+5 || i == 11*cols+6 || i == 11*cols+7 || i == 12*cols+5 || i == 12*cols+7 {
+		return 'B'
+	}
+	return '.'
+}
+
+// 空白地图（只有锁定格）
+func edBlank() {
+	ed = make([]byte, rows*cols)
+	for i := range ed {
+		ed[i] = edLockedChar(i)
+	}
+}
+
+func edRows() []string {
+	m := []string{}
+	for r := 0; r < rows; r++ {
+		m = append(m, string(ed[r*cols:(r+1)*cols]))
+	}
+	return m
+}
+
+// 用 13 行地图覆盖正在编辑的地图（锁定格保持不变）；格式不对返回 false
+func edLoadRows(m []string) bool {
+	if len(m) < rows {
+		return false
+	}
+	for r := 0; r < rows; r++ {
+		if len(m[r]) != cols {
+			return false
+		}
+		for c := 0; c < cols; c++ {
+			if !strings.ContainsRune(".BSWG", rune(m[r][c])) && !(r == 12 && c == 6) {
+				return false
+			}
+		}
+	}
+	for r := 0; r < rows; r++ {
+		for c := 0; c < cols; c++ {
+			i := r*cols + c
+			if edLocked(i) {
+				ed[i] = edLockedChar(i)
+			} else {
+				ed[i] = m[r][c]
+			}
+		}
+	}
+	return true
+}
+
+// 地图字符对应的 grid 编号
+func edCode(ch byte) int {
+	switch ch {
+	case 'B':
+		return 1
+	case 'S':
+		return 2
+	case 'W':
+		return 4
+	case 'G':
+		return 5
+	case 'E':
+		return 9
+	}
+	return 0
+}
+
+func edToolChar(t int) byte {
+	return []byte(".BSWG.")[t]
+}
+
+func tankCanPass(ch byte) bool {
+	return ch == '.' || ch == 'G' || ch == 'B' || ch == 'E' // 砖墙能打掉，算作能通过
+}
+
+// 从格子 start 出发，坦克能到达哪些格子（m 是 169 个字符）
+func reachable(m []byte, start int) []bool {
+	seen := make([]bool, rows*cols)
+	seen[start] = true
+	queue := []int{start}
+	for len(queue) > 0 {
+		i := queue[0]
+		queue = queue[1:]
+		c := i % cols
+		for _, n := range []int{i - cols, i + cols, i - 1, i + 1} {
+			if n < 0 || n >= rows*cols || seen[n] || !tankCanPass(m[n]) {
+				continue
+			}
+			if (n == i-1 && c == 0) || (n == i+1 && c == cols-1) {
+				continue // 不能从一行的末尾绕到下一行
+			}
+			seen[n] = true
+			queue = append(queue, n)
+		}
+	}
+	return seen
+}
+
+// 检查地图（规则和 tools/levels/check.py 相同；锁定格保证了出生点和基地的位置）
+func edCheck() {
+	edProblem = 0
+	edMark = -1
+	for _, s := range []int{0, 6, 12} {
+		got := reachable(ed, s)
+		if !got[11*cols+6] && !got[12*cols+5] && !got[12*cols+7] {
+			edProblem = 1
+			edMark = s
+			return
+		}
+	}
+	for _, p := range []int{12*cols + 4, 12*cols + 8} {
+		got := reachable(ed, p)
+		for _, s := range []int{0, 6, 12} {
+			if !got[s] {
+				edProblem = 2
+				edMark = p
+				return
+			}
+		}
+	}
+}
+
+// 按 ed 重新摆好所有格子
+func edRebuild() {
+	broadcastAndWait "clear"
+	grid = make([]int, rows*cols)
+	for i := 0; i < rows*cols; i++ {
+		grid[i] = edCode(ed[i])
+		if grid[i] != 0 {
+			Tile.build cellX(i%cols), cellY(i/cols), grid[i], i
+		}
+	}
+	edCheck()
+}
+
+// 把格子 i 改成 ch，返回有没有变化
+func edPaint(i int, ch byte) bool {
+	if i < 0 || edLocked(i) || ed[i] == ch {
+		return false
+	}
+	ed[i] = ch
+	grid[i] = edCode(ch)
+	edChanged = i
+	broadcastAndWait "tileGone" // 旧格子的克隆先消失
+	if grid[i] != 0 {
+		Tile.build cellX(i%cols), cellY(i/cols), grid[i], i
+	}
+	return true
+}
+
+// 进入地图编辑器
+func openEditor() {
+	state = stEdit
+	autopilot = false
+	gameOver = true
+	broadcastAndWait "clear"
+	if p2Exists {
+		broadcastAndWait "p2off"
+	}
+	Player.hide // 编辑器的战场是透明的，玩家坦克要藏起来
+	stopAllSounds
+	Camera.setZoom 1
+	Camera.setXYpos 0, 0
+	stage = customStage
+	if ed == nil {
+		edBlank()
+		edTool = 1
+		edMirror = true
+		edCursor = -1
+	}
+	loaded := false
+	if !edLoaded {
+		edLoaded = true
+		loaded = edLoad()
+	}
+	edRebuild()
+	setScreen "editor"
+	broadcast "edit"
+	broadcast "editLoop"
+	if loaded {
+		toast "msg.ed.loaded", 2
+	}
+}
+
+// 保存的地图放在哪里（PC 版）；网页版没有文件系统，返回 ""
+func edFile() string {
+	dir, err := os.UserConfigDir()
+	if err != nil || dir == "" {
+		return ""
+	}
+	return dir + "/TankBattle/maps.txt"
+}
+
+func edSave() {
+	f := edFile()
+	ok := f != ""
+	if ok {
+		os.MkdirAll(f[:len(f)-len("/maps.txt")], 0755)
+		ok = os.WriteFile(f, []byte(strings.Join(edRows(), "\n")+"\n"), 0644) == nil
+	}
+	if ok {
+		toast "msg.ed.saved", 2
+	} else {
+		toast "msg.ed.savefail", 2.5
+	}
+}
+
+// 读取上次保存的地图，成功返回 true
+func edLoad() bool {
+	f := edFile()
+	if f == "" {
+		return false
+	}
+	b, err := os.ReadFile(f)
+	if err != nil {
+		return false
+	}
+	return edLoadRows(strings.Split(strings.TrimSpace(string(b)), "\n"))
+}
+
+// 随机起点：随机生成左右对称的地图，检查合格为止
+func edRandom() {
+	wb := []int{40, 45, 30, 90, 55}
+	ws := []int{10, 50, 5, 10, 30}
+	ww := []int{45, 0, 0, 0, 5}
+	dOdd := []int{45, 50, 55, 70, 25}
+	dEven := []int{25, 20, 35, 30, 5}
+	for try := 0; try < 80; try++ {
+		t := rand(0, 4) // 河流、钢铁、草丛、砖城、开阔五种风格
+		edBlank()
+		for r := 1; r <= 12; r++ {
+			for c := 0; c <= 6; c++ {
+				d := dEven[t]
+				if c%2 == 1 {
+					d = dOdd[t]
+				}
+				ch := byte('.')
+				if rand(1, 100) <= d {
+					n := rand(1, 100)
+					if n <= wb[t] {
+						ch = 'B'
+					} else if n <= wb[t]+ws[t] {
+						ch = 'S'
+					} else if n <= wb[t]+ws[t]+ww[t] {
+						ch = 'W'
+					} else {
+						ch = 'G'
+					}
+				}
+				for _, cc := range []int{c, cols - 1 - c} {
+					if !edLocked(r*cols + cc) {
+						ed[r*cols+cc] = ch
+					}
+				}
+			}
+		}
+		edCheck()
+		if edProblem == 0 {
+			return
+		}
+	}
+	edBlank()
+}
+
+// 试玩自制地图，two 表示双人
+func playCustom(two bool) {
+	edCheck()
+	if edProblem != 0 {
+		toast "msg.ed.bad", 2
+		broadcast "edit"
+		return
+	}
+	coop = two
+	stage = customStage
+	stageScore = 0
+	startGame
+}
+
+// 编辑器里的按钮和按键
+func edCommand(cmd string) {
+	if state != stEdit {
+		return
+	}
+	switch cmd {
+	case "mirror":
+		edMirror = !edMirror
+	case "play":
+		playCustom false
+		return
+	case "play2":
+		playCustom true
+		return
+	case "rand":
+		edRandom()
+		edRebuild()
+		toast "msg.ed.rand", 1.5
+	case "copy":
+		edCopy = edCopy%lastStage + 1
+		keep := stage
+		stage = edCopy
+		m := levelMap()
+		stage = keep
+		edLoadRows m
+		edRebuild()
+		toast "msg.ed.copy"+strconv.Itoa(edCopy), 1.5
+	case "clear":
+		edBlank()
+		edRebuild()
+		toast "msg.ed.clear", 1.2
+	case "save":
+		edSave()
+	case "back":
+		goHome
+		return
+	}
+	broadcast "edit"
 }
 
 // 第 c 列格子中心的 x 坐标
@@ -404,6 +759,13 @@ func buildHud() {
 	UI.adSlot 0, -152, "banner"
 	// 全屏 / 弹窗画面，以及结算弹窗里的金币数
 	UI.screenLayer
+	// 编辑器的小部件（只在编辑器里显示）
+	UI.icon kEdSel, 0, 0, 0
+	UI.icon kEdSwitch, 208, 83, 0  // 对称开关
+	UI.icon kEdSwitch, -72, -6, 1  // 对称线
+	UI.icon kEdStatus, 104, 70, 0
+	UI.icon kEdCursor, 0, 0, 0
+	UI.icon kEdMark, 0, 0, 0
 	UI.number kCoin, -132, 35, 9
 	// 战场上方的提示条
 	UI.toastBar -72, 20
@@ -574,7 +936,12 @@ func endGame(win bool) {
 
 func showResult() {
 	name := "result_lose_"
-	if won && stage == lastStage {
+	if stage == customStage {
+		name = "result_elose_" // 自制地图试玩：继续编辑
+		if won {
+			name = "result_ewin_"
+		}
+	} else if won && stage == lastStage {
 		name = "result_final_" // 全部通关
 	} else if won {
 		name = "result_win_"
@@ -590,6 +957,10 @@ func showResult() {
 
 // 结算后的“再来一局”按钮（R）：赢了进下一关；全部通关后从第 1 关重新开始；输了重打本关
 func again() {
+	if stage == customStage {
+		openEditor // 继续编辑
+		return
+	}
 	if won && stage < lastStage {
 		stage++
 		stageScore = score
@@ -618,6 +989,8 @@ func confirm() {
 	switch state {
 	case stHome:
 		newGame 1, false
+	case stEdit:
+		playCustom false
 	case stRevive:
 		watchAd rewardRevive
 	case stResult:
@@ -864,41 +1237,98 @@ onKey KeySpace, => {
 	}
 }
 
-// 主页按 C：双人合作
+// 主页按 C：双人合作；编辑器里 C 是清空
 onKey KeyC, => {
 	if state == stHome {
 		newGame 1, true
+	} else if state == stEdit {
+		edCommand "clear"
 	}
+}
+
+// 主页按 E：自己做地图
+onKey KeyE, => {
+	if state == stHome {
+		openEditor
+	}
+}
+
+onKey KeyM, => {
+	edCommand "mirror"
+}
+
+onKey KeyK, => {
+	edCommand "copy"
+}
+
+onKey KeyS, => {
+	edCommand "save"
 }
 
 // 主页按 1~8 直接进入对应关卡
 onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
+	n := int(key) - int(Key0)
 	if state == stHome {
-		newGame int(key)-int(Key0), false
+		newGame n, false
+	} else if state == stEdit && n <= 5 {
+		edTool = n // 编辑器：选工具
+		broadcast "edit"
 	}
 }
 
 onKey KeyEscape, => {
 	if state == stRevive {
 		endGame false
+	} else if state == stEdit {
+		goHome
 	}
 }
 
 onKey KeyR, => {
 	if state == stResult {
 		again
+	} else if state == stEdit {
+		edCommand "rand"
 	}
 }
 
 onKey KeyP, => {
 	if state == stHome {
 		broadcast "demoFlow"
+	} else if state == stEdit {
+		edCommand "play2"
 	}
 }
 
 onKey KeyH, => {
 	if state == stResult {
 		goHome
+	}
+}
+
+// 编辑器：鼠标 / 触屏绘制。按住拖动可以连续画；对称绘制时右边同时画
+onMsg "editLoop", => {
+	for state == stEdit {
+		i := cellIndex(mouseX, mouseY)
+		if i != edCursor {
+			edCursor = i
+			broadcast "edCursor"
+		}
+		if mousePressed && i >= 0 {
+			ch := edToolChar(edTool)
+			changed := edPaint(i, ch)
+			if edMirror {
+				j := (i/cols)*cols + (cols - 1 - i%cols)
+				if edPaint(j, ch) {
+					changed = true
+				}
+			}
+			if changed {
+				edCheck()
+				broadcast "edit"
+			}
+		}
+		waitNextFrame
 	}
 }
 
