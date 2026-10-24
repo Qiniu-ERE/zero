@@ -28,6 +28,17 @@ var (
 	stage        int     // 当前关卡：1…lastStage
 	stageScore   int     // 进入本关时的得分（重打本关时从这里开始）
 
+	// 双人合作（见 docs/v3/COOP.md）：2P 是 Player 的克隆
+	coop      bool    // 是否双人模式
+	p2Exists  bool    // 2P 克隆是否存在
+	lives2    int     // 2P 剩余生命
+	pbCount2  int     // 场上 2P 的子弹数量（同时只能有 1 发）
+	p1x       float64 // 两辆坦克的位置（死了就是很远的地方），敌人子弹靠它判断打中了谁
+	p1y       float64
+	p2x       float64
+	p2y       float64
+	hitWho    int // 刚被打中的是 1P 还是 2P（"playerHit" 消息的参数）
+
 	// 流程与广告（见 docs/ARCHITECTURE.md 的「游戏流程」）
 	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
 	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
@@ -237,6 +248,22 @@ func stageTip() string {
 	return "msg.stage" + strconv.Itoa(stage)
 }
 
+// 玩家子弹的朝向：2P 的子弹存的是朝向 + 1000（见 PBullet.fire）
+func bulletDir(f int) int {
+	if f >= 500 {
+		return f - 1000
+	}
+	return f
+}
+
+// (x, y) 离哪辆玩家坦克更近：1 或 2
+func nearestPlayer(x, y float64) int {
+	if p2Exists && math.Abs(x-p2x)+math.Abs(y-p2y) < math.Abs(x-p1x)+math.Abs(y-p1y) {
+		return 2
+	}
+	return 1
+}
+
 // 第 c 列格子中心的 x 坐标
 func cellX(c int) float64 {
 	return fieldLeft + 12 + float64(c*24)
@@ -350,7 +377,7 @@ func toast(k string, secs float64) {
 // 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
 func buildHud() {
 	// 顶栏：关卡名、敌军剩余、语言按钮
-	UI.label -228, 160, "stage" // 关卡名：造型是 "stage.<关卡号>_<语言>"
+	UI.label -228, 160, "stage" // 关卡名：造型是 "stage.<关卡号>_<语言>"，双人时带「双人」标签
 	UI.label -36, 160, "enemies"
 	for i := 0; i < totalEnemy; i++ {
 		UI.icon kPip, -29+float64(i)*5.8, 163, i
@@ -362,13 +389,16 @@ func buildHud() {
 	UI.label 104, 104, "best"
 	UI.number kBest, 220, 104, 9
 	UI.label 104, 80, "lives"
+	UI.label 104, 64, "tag.1p" // 1P / 2P 标签只在双人时显示
+	UI.label 104, 48, "tag.2p"
 	for i := 0; i < 3; i++ {
-		UI.icon kLife, 110+float64(i)*16, 68, i
+		UI.icon kLife, 110+float64(i)*16, 68, i // 位置在刷新时按单人 / 双人调整
+		UI.icon kLife2, 124+float64(i)*16, 52, i
 	}
-	UI.label 104, 46, "hint.move"
-	UI.label 104, 30, "hint.fire"
-	UI.label 104, 14, "hint.style"
-	UI.label 104, -2, "hint.lang"
+	UI.label 104, 30, "hint.move" // 双人时换成 1P / 2P 的按键说明
+	UI.label 104, 14, "hint.fire"
+	UI.label 104, -2, "hint.style"
+	UI.label 104, -18, "hint.lang"
 	// 广告位：对局中的原生广告卡、主页横幅
 	UI.adSlot 162, -113, "card"
 	UI.adSlot 0, -152, "banner"
@@ -471,6 +501,9 @@ func goHome() {
 	autopilot = false
 	gameOver = true
 	broadcastAndWait "clear"
+	if p2Exists {
+		broadcastAndWait "p2off"
+	}
 	stopAllSounds
 	Camera.setZoom 1
 	Camera.setXYpos 0, 0
@@ -510,12 +543,18 @@ func revive() {
 		broadcast "baseChanged"
 	}
 	lives++
+	if coop {
+		lives2++
+	}
 	broadcast "hud"
 	Camera.setZoom 1
 	Camera.setXYpos 0, 0
 	state = stPlay
 	setScreen ""
 	Player.respawn
+	if coop {
+		broadcast "p2respawn"
+	}
 	gameOver = false
 	toast "msg.revived", 1.5
 }
@@ -561,6 +600,12 @@ func again() {
 	startGame
 }
 
+// 从主页开始新游戏：第 n 关，two 表示双人合作
+func newGame(n int, two bool) {
+	coop = two
+	playStage n
+}
+
 // 从主页进入第 n 关（得分从 0 开始）
 func playStage(n int) {
 	stage = n
@@ -572,7 +617,7 @@ func playStage(n int) {
 func confirm() {
 	switch state {
 	case stHome:
-		playStage 1
+		newGame 1, false
 	case stRevive:
 		watchAd rewardRevive
 	case stResult:
@@ -740,6 +785,8 @@ func startGame() {
 	stopAllSounds
 	score = stageScore
 	lives = 3
+	lives2 = 3
+	pbCount2 = 0
 	spawned = 0
 	enemiesAlive = 0
 	killed = 0
@@ -754,8 +801,21 @@ func startGame() {
 	buildMap
 	broadcast "hud"
 	Player.respawn
+	if coop {
+		if p2Exists {
+			broadcast "p2respawn"
+		} else {
+			Player.spawnP2
+		}
+	} else if p2Exists {
+		broadcastAndWait "p2off"
+	}
 	sfx "start"
-	toast stageTip(), 3
+	if coop && stage == 1 {
+		toast "msg.coop", 3
+	} else {
+		toast stageTip(), 3
+	}
 	gameOver = false
 }
 
@@ -800,14 +860,21 @@ onKey KeyJ, => {
 
 onKey KeySpace, => {
 	if state == stHome {
-		playStage 1
+		newGame 1, false
+	}
+}
+
+// 主页按 C：双人合作
+onKey KeyC, => {
+	if state == stHome {
+		newGame 1, true
 	}
 }
 
 // 主页按 1~8 直接进入对应关卡
 onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 	if state == stHome {
-		playStage int(key) - int(Key0)
+		newGame int(key)-int(Key0), false
 	}
 }
 
@@ -869,7 +936,7 @@ onMsg "adFlow", => {
 // 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
-	playStage 1
+	newGame 1, false
 	autopilot = true
 	apTimer = 0
 	tgtAge = 9
@@ -930,6 +997,10 @@ onStart => {
 	goHome
 	for {
 		_, _, gap, maxAlive := stageTune()
+		if coop { // 双人火力翻倍，敌人来得更快、场上更多
+			gap *= 0.85
+			maxAlive++
+		}
 		wait gap
 		if !gameOver && spawned < totalEnemy && enemiesAlive < maxAlive {
 			spawnEnemy

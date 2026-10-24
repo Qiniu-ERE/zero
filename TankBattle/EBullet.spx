@@ -31,6 +31,8 @@ onCloned => {
 		}
 		changeXYpos dirDX(face)*180*dt, dirDY(face)*180*dt
 		if touching("Player") {
+			// 双人时看离哪辆坦克更近（死掉的坦克报的位置很远）
+			hitWho = nearestPlayer(xpos, ypos)
 			broadcast "playerHit"
 			vanish
 		}

@@ -11,6 +11,18 @@
       "path": "player_m.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "player2",
+      "path": "player2.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "player2_m",
+      "path": "player2_m.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,

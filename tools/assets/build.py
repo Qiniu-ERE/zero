@@ -165,6 +165,7 @@ def broken_m():
 # ---------- 坦克（spx 和 Scratch 一样：造型按朝右画，heading 90 时不旋转） ----------
 TANKS = {
     "player": ("#ffd23a", "#b8860b", "#fff3b0"),
+    "player2": ("#4fe3c1", "#1f7a66", "#c9fff1"),  # 2P：青绿色，和三种敌人（红、蓝、绿）都区分开
     "basic": ("#ff5a4a", "#9c1f16", "#ffc2b8"),
     "fast": ("#4aa8ff", "#1c4f8f", "#c8e6ff"),
     "heavy": ("#6fd06a", "#2e6e2a", "#d2f5cf"),
@@ -195,6 +196,25 @@ def tank_body(main, dark, light, heavy=False):
 def tank_m(main, dark, light, heavy=False):
     defs, body = tank_body(main, dark, light, heavy)
     return svg(C, C, f'<g transform="rotate(90 12 12)">{body}</g>', defs)
+
+
+def player2_classic():
+    """经典画风的 2P：把 1P 的像素坦克换成绿色（和 FC 原版一样）"""
+    with open(os.path.join(ASSETS, "sprites", "Player", "player.svg"), encoding="utf-8") as f:
+        s = f.read()
+    for a, b in (("#8A6A00", "#1B6B2A"), ("#E8C020", "#3CB44B"), ("#FFE680", "#B8F5B0")):
+        s = s.replace(a, b)
+    return s
+
+
+def player_index():
+    """Player 精灵的造型表：1P、2P × 经典、现代"""
+    p = os.path.join(ASSETS, "sprites", "Player", "index.json")
+    with open(p, encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg["costumes"] = [{"name": n, "path": n + ".svg", "x": 12, "y": 12} for n in ("player", "player_m", "player2", "player2_m")]
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
 
 
 # ---------- 子弹与爆炸 ----------
@@ -244,9 +264,11 @@ LABELS = {
     "score": (6.8, MUTED, True, "start"),
     "best": (6.8, MUTED, True, "start"),
     "lives": (6.8, MUTED, True, "start"),
+    "tag.1p": (7.5, "#ffd23a", True, "start"),
+    "tag.2p": (7.5, "#4fe3c1", True, "start"),
 }
 # 按键提示：key -> 按键
-HINTS = {"hint.move": "WASD", "hint.fire": "J", "hint.style": "T", "hint.lang": "L"}
+HINTS = {"hint.move": "WASD", "hint.fire": "J", "hint.style": "T", "hint.lang": "L", "hint.p1": "1P", "hint.p2": "2P"}
 
 
 def hint_costume(key, label):
@@ -303,7 +325,24 @@ def icon_costumes():
     defs, body = tank_body(*TANKS["player"])
     for name, op in (("life_on", 1), ("life_off", 0.22)):
         out.append((name, svg(12, 12, f'<g opacity="{op}" transform="scale(0.5)">{body}</g>', defs, res=HR), (6, 6)))
+    defs, body = tank_body(*TANKS["player2"])
+    for name, op in (("life2_on", 1), ("life2_off", 0.22)):
+        out.append((name, svg(12, 12, f'<g opacity="{op}" transform="scale(0.5)">{body}</g>', defs, res=HR), (6, 6)))
     return out
+
+
+def stage_coop_costume(key, lang):
+    """双人时的关卡名：关卡名后面跟一个「双人」标签"""
+    s, size = tr(key, lang), 10
+    w = width(s, size, True)
+    b = tr("coop", lang)
+    bw = width(b, 6, True) + 8
+    body = (text(1, size * 1.1, s, size, "#ffffff", True)
+            + f'<rect x="{1+w+6:.2f}" y="{size*1.1-8.6:.2f}" width="{bw:.2f}" height="11" rx="5.5" fill="#4fe3c1"/>'
+            + text(1 + w + 6 + bw / 2, size * 1.1 - 1, b, 6, "#06232b", True, "middle"))
+    if w + 6 + bw > 158:
+        sys.exit(f"双人关卡名太长，会和顶栏的“敌军”重叠：{s}")
+    return svg(w + 6 + bw + 2, size * 1.45, body, res=HR), (1, size * 1.1)
 
 
 def write_sprite(name, costumes, res=HR, x=0, y=0, visible=False):
@@ -414,6 +453,10 @@ def banner(lang):
     return svg(w, h, "".join(body), res=HR), (w / 2, h / 2)
 
 
+# 主页上的其他模式：(文案 key, 按键)，按键为空表示“即将推出”
+HOME_MODES = [("m.coop", "C"), ("m.maker", ""), ("m.daily", "")]
+
+
 def home(lang):
     s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>',
          '<circle cx="330" cy="170" r="140" fill="#3ee8ff" fill-opacity="0.05"/><circle cx="330" cy="170" r="90" fill="#ffd23a" fill-opacity="0.05"/>']
@@ -428,15 +471,26 @@ def home(lang):
     s.append(text(28, 122, tr("home.start.d", lang), 6.8, "#fff2e0"))
     c, cw = chip(0, 0, "Enter", dark=True)
     s.append(f'<g transform="translate({186-10-cw:.2f},96)">{c}</g>')
-    # 其他模式：即将推出
-    for i, k in enumerate(("m.daily", "m.coop", "m.maker")):
+    # 其他模式：可以玩的带「新」标签和按键，没做好的标「即将推出」
+    for i, (k, key) in enumerate(HOME_MODES):
         y = 144 + i * 44
-        s.append(f'<rect x="16.3" y="{y+0.3}" width="169.4" height="37.4" rx="8" fill="#ffffff" fill-opacity="0.035" stroke="#263046" stroke-width="0.6"/>')
-        s.append(text(28, y + 17, tr(k, lang), 10.5, "#7f8ba3", True))
-        s.append(text(28, y + 29, tr(k + ".d", lang), 6.2, "#5a6680"))
-        sw = width(tr("soon", lang), 5.8, True) + 10
-        s.append(f'<rect x="{186-10-sw:.2f}" y="{y+8}" width="{sw:.2f}" height="11" rx="5.5" fill="#2c3850"/>')
-        s.append(text(186 - 10 - sw / 2, y + 15.6, tr("soon", lang), 5.8, MUTED, True, "middle"))
+        if key:
+            button(f"home.{k[2:]}", 16, y, 170, 38)
+            s.append(f'<rect x="16.4" y="{y+0.4}" width="169.2" height="37.2" rx="8" fill="#3ee8ff" fill-opacity="0.08" stroke="#3ee8ff" stroke-opacity="0.7" stroke-width="0.8"/>')
+            s.append(text(28, y + 17, tr(k, lang), 10.5, "#ffffff", True))
+            s.append(text(28, y + 29, tr(k + ".d", lang), 6.2, "#9fdcea"))
+            nw = width(tr("new", lang), 5.8, True) + 10
+            c, cw = chip(0, 0, key, dark=True)
+            s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
+            s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
+            s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
+        else:
+            s.append(f'<rect x="16.3" y="{y+0.3}" width="169.4" height="37.4" rx="8" fill="#ffffff" fill-opacity="0.035" stroke="#263046" stroke-width="0.6"/>')
+            s.append(text(28, y + 17, tr(k, lang), 10.5, "#7f8ba3", True))
+            s.append(text(28, y + 29, tr(k + ".d", lang), 6.2, "#5a6680"))
+            sw = width(tr("soon", lang), 5.8, True) + 10
+            s.append(f'<rect x="{186-10-sw:.2f}" y="{y+8}" width="{sw:.2f}" height="11" rx="5.5" fill="#2c3850"/>')
+            s.append(text(186 - 10 - sw / 2, y + 15.6, tr("soon", lang), 5.8, MUTED, True, "middle"))
     # 路演演示模式提示
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
@@ -445,9 +499,12 @@ def home(lang):
     s.append(c + text(x + cw + 5, 297.4, tr("home.pick", lang), 7, "#7f8ba3"))
     # 展示台和坦克
     s.append('<ellipse cx="330" cy="236" rx="92" ry="20" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')
-    defs, body = tank_body(*TANKS["player"])
-    s.append(f'<g transform="translate(330 186) rotate(30) scale(4.2) translate(-12 -12)">{body}</g>')
-    return svg(W, H, "".join(s), defs_ui() + defs, res=2), (W / 2, H / 2)
+    # 展示台上的 1P、2P 两辆坦克（各自的渐变 id 不同，避免冲突）
+    for colors, tx, rot, tag in ((TANKS["player"], 300, 20, "a"), (TANKS["player2"], 362, -20, "b")):
+        defs, body = tank_body(*colors)
+        defs, body = defs.replace('id="sh"', f'id="sh{tag}"'), body.replace("url(#sh)", f"url(#sh{tag})")
+        s.append(f'<defs>{defs}</defs><g transform="translate({tx} 192) rotate({rot}) scale(3.4) translate(-12 -12)">{body}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 
 MX, MY, MW, MH = 58, 76, 220, 220  # 弹窗位置（盖在战场中央）
@@ -611,6 +668,10 @@ def build_hud():
                 sys.exit(f"关卡名太长，会和顶栏的“敌军”重叠：{tr(key, lang)}")
             c, piv = text_costume(tr(key, lang), size, fill, bold, anchor)
             costumes.append((f"{key}_{lang}", c, piv))
+    for n in range(1, 9):
+        for lang in LANGS:
+            c, piv = stage_coop_costume(f"stage.{n}", lang)
+            costumes.append((f"stage.{n}.co_{lang}", c, piv))
     for key, k in HINTS.items():
         for lang in LANGS:
             c, piv = hint_costume(k, tr(key, lang))
@@ -644,6 +705,8 @@ def main():
         write("sprites/Tile/eagle_m.svg", eagle_m()),
         write("sprites/Tile/broken_m.svg", broken_m()),
         write("sprites/Player/player_m.svg", tank_m(*TANKS["player"])),
+        write("sprites/Player/player2_m.svg", tank_m(*TANKS["player2"])),
+        write("sprites/Player/player2.svg", player2_classic()),
         write("sprites/Enemy/basic_m.svg", tank_m(*TANKS["basic"])),
         write("sprites/Enemy/fast_m.svg", tank_m(*TANKS["fast"])),
         write("sprites/Enemy/heavy_m.svg", tank_m(*TANKS["heavy"], heavy=True)),
@@ -652,6 +715,7 @@ def main():
     ]
     for i in range(3):
         out.append(write(f"sprites/Boom/b{i+1}_m.svg", boom_m(i)))
+    player_index()
     hud = build_hud()
     print(f"generated {len(out)} art files, {hud} HUD costumes")
 
