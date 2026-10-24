@@ -66,7 +66,16 @@ build_desktop() {
   log "spx buildlauncher（${plat}）"
   local exe="$out/$APP_NAME"
   [ "${plat%%-*}" = windows ] && exe="$exe.exe"
-  (cd "$G" && spx buildlauncher --path . -o "$exe")
+  if ! (cd "$G" && spx buildlauncher --path . -o "$exe") 2>&1 | tee "$BUILD_DIR/buildlauncher.log"; then
+    # spx 在 Windows 上的问题：启动器已经生成，但最后清理临时目录时要求权限是 0700，
+    # 而 Windows 上 Go 报告的目录权限总是 0777，于是报 "staging directory is not private"
+    if [ -f "$exe" ] && grep -q 'staging directory is not private' "$BUILD_DIR/buildlauncher.log"; then
+      echo "（忽略 spx 在 Windows 上清理临时目录的权限检查，启动器已生成）"
+      rm -rf "$out"/.*spx-launchpack-*
+    else
+      exit 1
+    fi
+  fi
   case "$plat" in
     macos-*)
       # 包成 .app，双击就能打开
