@@ -20,7 +20,9 @@ rm -rf "$WORK" && mkdir -p "$WORK"
 # spx 要用到 Go 的模块和编译缓存，先记下真实的位置（下面会把 HOME 换成临时目录）
 GOPATH=${GOPATH:-$(go env GOPATH 2>/dev/null || echo "$HOME/go")}
 GOCACHE=${GOCACHE:-$(go env GOCACHE 2>/dev/null || echo "$HOME/.cache/go-build")}
-export GOPATH GOCACHE
+# Linux 上 spx 的缓存在 XDG_CACHE_HOME（默认 ~/.cache），也保持在真实位置，免得每组测试都重新准备
+XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+export GOPATH GOCACHE XDG_CACHE_HOME
 failed=""
 total_pass=0
 total_fail=0
