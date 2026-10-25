@@ -37,5 +37,40 @@ export PYTHONUTF8=1 PYTHONIOENCODING=utf-8
 
 # iOS 模板的 Xcode 工程引用了 MoltenVK.xcframework（Vulkan 在 iOS 上的实现），导出模板里没有，要另外下载
 MOLTENVK_VERSION="v1.3.0"  # 2025-05，和 spx 用的 Godot 4.4.1 时间最接近
+# MoltenVK-ios.tar 的 sha256（GitHub 上这个旧版本的附件没有 digest，是下载后算的，2026-10-25）
+MOLTENVK_SHA256="8cff295513dea3ec754d3662070404d2db54b66f110d5fda1e51f9ed5023c9e1"
+
+# Go：和 spx 的 runtime.lock.json、.github/workflows/*.yml 一致。本机装的 Go 版本不一样时打包前给出提醒，
+# GO_STRICT=1 时直接报错（CI 和正式发布建议打开）。linux_vm.sh 在虚拟机里装的就是这个版本，下载后核对 sha256
+GO_VERSION="1.26.5"
+GO_LINUX_AMD64_SHA256="5c2c3b16caefa1d968a94c1daca04a7ca301a496d9b086e17ad77bb81393f053"  # https://go.dev/dl/?mode=json&include=all
+
+# 注意：spx 运行时和 Godot 导出模板由 spx 的 buildctl 下载（setup_spx.sh），校验在 spx 那边，这里管不到
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi
+}
+
+verify_sha256() {  # 文件 期望的 sha256：不一致时打印两个值并返回 1
+  local got; got="$(sha256_of "$1")"
+  [ "$got" = "$2" ] && return 0
+  echo "sha256 不对：$1" >&2
+  echo "  应该是 $2" >&2
+  echo "  实际是 $got" >&2
+  return 1
+}
+
+check_go_version() {  # 本机 go version 和 GO_VERSION 比较：不一样就提醒，GO_STRICT=1 时返回 1
+  local got
+  got="$(go version 2>/dev/null | awk '{print $3}')"
+  got="${got#go}"
+  [ "$got" = "$GO_VERSION" ] && return 0
+  local msg="本机 Go 是 ${got:-（没装）}，打包环境锁定的是 ${GO_VERSION}（和 CI、spx 的 runtime.lock.json 一致），打出来的包可能和 CI 的不完全一样"
+  if [ "${GO_STRICT:-}" = 1 ]; then
+    echo "❌ ${msg}。GO_STRICT=1：停止" >&2
+    return 1
+  fi
+  echo "⚠️  ${msg}（GO_STRICT=1 时会报错）" >&2
+}
 
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }

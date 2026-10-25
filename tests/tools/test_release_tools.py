@@ -303,5 +303,32 @@ class ReleaseNotes(unittest.TestCase):
             self.assertIn("打的，标签", out.stderr)
 
 
+class PinnedVersions(unittest.TestCase):
+    """env.sh 锁定的版本和 .github/workflows 里写的一致，sha256 格式正确"""
+
+    def env_value(self, name):
+        import re
+        with open(os.path.join(EXPORT, "env.sh"), encoding="utf-8") as f:
+            m = re.search(rf'^{name}="([^"]*)"', f.read(), re.M)
+        self.assertIsNotNone(m, name)
+        return m.group(1)
+
+    def test_workflows_match_env(self):
+        import re
+        go, xgo = self.env_value("GO_VERSION"), self.env_value("XGO_VERSION")
+        wf = os.path.join(ROOT, ".github", "workflows")
+        for name in ("release.yml", "test.yml"):
+            with open(os.path.join(wf, name), encoding="utf-8") as f:
+                text = f.read()
+            with self.subTest(workflow=name):
+                self.assertEqual(re.search(r"GO_VERSION: '([^']*)'", text).group(1), go)
+                self.assertEqual(re.search(r"XGO_VERSION: '([^']*)'", text).group(1), xgo)
+
+    def test_sha256_format(self):
+        for name in ("MOLTENVK_SHA256", "GO_LINUX_AMD64_SHA256"):
+            with self.subTest(name=name):
+                self.assertRegex(self.env_value(name), r"^[0-9a-f]{64}$")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,7 @@
 # 产物放在 dist/，文件名带版本号和平台，例如 TankBattle-3.0.0-macos-arm64.zip
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
+check_go_version
 
 target="${1:?用法：build.sh <desktop|web|android|ios>}"
 G="$BUILD_DIR/$APP_NAME"
@@ -196,6 +197,38 @@ touch_mode() {
   grep -q 'touchUI *= *true' "$G/main.spx" || { echo "没能打开触屏模式（main.spx 里的 touchUI）" >&2; exit 1; }
 }
 
+# Godot 只在第一次生成编辑器设置时从 JAVA_HOME / ANDROID_HOME 取默认值；本机以前跑过 Godot 的话，设置里的路径可能是空的，
+# 也可能是已经失效的旧路径（换过 JDK），导出会报“需要有效的 Java SDK 路径”。所以每次都改成这次的 JAVA_HOME / ANDROID_HOME。
+# 这会改用户自己的 Godot 设置（~/Library/Application Support/Godot 或 ~/.local/share/godot）；没有用临时 HOME，
+# 因为 spx 的运行时缓存、Gradle 缓存都在 HOME 下面，换成临时目录每次都要重新下载几百 MB。
+set_editor_setting() {  # 设置文件 键 值：值不一样才改，没有这个键就加在最后（[resource] 段）
+  local es="$1" key="$2" val="$3" cur=""
+  if grep -q "^$key = " "$es"; then
+    cur="$(sed -n "s|^$key = \"\(.*\)\"\$|\1|p" "$es")"
+    [ "$cur" = "$val" ] && return 0
+    sed -i.bak "s|^$key = .*|$key = \"$val\"|" "$es" && rm -f "$es.bak"
+  else
+    printf '%s = "%s"\n' "$key" "$val" >> "$es"
+  fi
+  echo "Godot 编辑器设置 ${key}：\"${cur}\" → \"${val}\"（${es}）"
+}
+
+godot_android_paths() {
+  local es
+  for es in "$HOME/Library/Application Support/Godot/editor_settings-4.4.tres" \
+            "${XDG_DATA_HOME:-$HOME/.local/share}/godot/editor_settings-4.4.tres"; do
+    [ -f "$es" ] || continue
+    if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+      set_editor_setting "$es" export/android/java_sdk_path "$JAVA_HOME"
+    else
+      echo "⚠️  没有有效的 JAVA_HOME，Godot 设置里的 java_sdk_path 保持原样：$(grep '^export/android/java_sdk_path' "$es" || echo '（没有）')" >&2
+    fi
+    if [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME" ]; then
+      set_editor_setting "$es" export/android/android_sdk_path "$ANDROID_HOME"
+    fi
+  done
+}
+
 build_android() {
   : "${ANDROID_NDK_ROOT:?需要设置 ANDROID_NDK_ROOT（NDK r23c，23.2.8568313）}"
   check_template_version
@@ -224,15 +257,7 @@ build_android() {
     fi
     echo "调试证书：$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
   fi
-  # Godot 只在第一次生成编辑器设置时从 JAVA_HOME / ANDROID_HOME 取默认值；
-  # 本机以前跑过 Godot 的话，设置里留着空路径，导出会报“需要有效的 Java SDK 路径”，这里补上
-  for es in "$HOME/Library/Application Support/Godot/editor_settings-4.4.tres" \
-            "${XDG_DATA_HOME:-$HOME/.local/share}/godot/editor_settings-4.4.tres"; do
-    [ -f "$es" ] || continue
-    [ -n "${JAVA_HOME:-}" ] && sed -i.bak "s|^export/android/java_sdk_path = \"\"|export/android/java_sdk_path = \"$JAVA_HOME\"|" "$es"
-    [ -n "${ANDROID_HOME:-}" ] && sed -i.bak "s|^export/android/android_sdk_path = \"\"|export/android/android_sdk_path = \"$ANDROID_HOME\"|" "$es"
-    rm -f "$es.bak"
-  done
+  godot_android_paths
   touch_mode
   log "spx exportapk"
   (cd "$G" && spx exportapk)
@@ -255,7 +280,11 @@ build_ios() {
     if [ ! -f "$tarball" ]; then
       log "下载 MoltenVK $MOLTENVK_VERSION"
       curl -fsSL -o "$tarball.tmp" "https://github.com/KhronosGroup/MoltenVK/releases/download/$MOLTENVK_VERSION/MoltenVK-ios.tar"
+      verify_sha256 "$tarball.tmp" "$MOLTENVK_SHA256" || { rm -f "$tarball.tmp"; exit 1; }
       mv "$tarball.tmp" "$tarball"
+    else
+      # 以前下载的（那时还不核对）也核对一次：不对就删掉，下次重新下载
+      verify_sha256 "$tarball" "$MOLTENVK_SHA256" || { rm -f "$tarball"; echo "已删除缓存的 MoltenVK，重新运行会重新下载" >&2; exit 1; }
     fi
     rm -rf "$BUILD_DIR/moltenvk" && mkdir -p "$BUILD_DIR/moltenvk"
     tar -xf "$tarball" -C "$BUILD_DIR/moltenvk" MoltenVK/MoltenVK/static/MoltenVK.xcframework
