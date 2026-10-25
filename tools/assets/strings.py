@@ -2,7 +2,7 @@
 
 STRINGS = {
     # 通用
-    "title": ("坦克大战", "BATTLE CITY"),
+    "title": ("坦克大战", "BRICKLINE TANKS"),  # v5 起的英文名（中文名不变）
     "lang.zh": ("中", "中"),
     "lang.en": ("EN", "EN"),
     "hint.style": ("切换画风", "Art style"),
