@@ -72,5 +72,39 @@ onStart => {
 	wait 3 // reviveFlow 还在等，确认它不会再把状态改回去
 	tInt "F08 放弃后不再弹出复活询问", state, stResult
 
+	// F30 复活时清场（v5 REVIEW A2）：清掉敌人子弹和基地附近的敌人，补回护墙，基地有 3 秒保护。
+	// 原来只修好基地、加命，贴在基地旁的敌人一解冻就能再打掉基地，复活就白费了
+	playStage 1
+	wait 0.5
+	tCalm
+	EBullet.fire cellX(0), cellY(0), 90 // 第 0 行是空地，敌人子弹往右飞
+	Enemy.spawn cellX(6), cellY(10), 0  // 贴着基地护墙的敌人
+	Enemy.spawn cellX(12), cellY(2), 0  // 远处的敌人
+	enemiesAlive = 2
+	grid[tAt(11, 5)] = 0 // 护墙被打碎一块、打裂一块
+	grid[tAt(11, 6)] = 3
+	broadcast "gridChanged"
+	wait 0.1
+	tInt "F30 准备：场上有 1 颗敌人子弹", len(ebPos), 1
+	baseDestroyed
+	wait 2.6
+	confirm
+	tCheck "F30 看完视频 → 对局", tWaitState(stPlay, 7)
+	tInt "F30 敌人子弹清掉了", len(ebPos), 0
+	tInt "F30 基地附近的敌人清掉了，远处的还在", enemiesAlive, 1
+	tInt "F30 清掉的敌人不算击毁", killed, 0
+	tInt "F30 清掉的敌人以后重新出场", spawned, totalEnemy-1
+	tInt "F30 碎掉的护墙补回来了", grid[tAt(11, 5)], 1
+	tInt "F30 裂开的护墙补回来了", grid[tAt(11, 6)], 1
+	spawned = totalEnemy
+	hitPoint baseX, baseY, false
+	tCheck "F30 复活后 3 秒内基地打不掉", !baseDown
+	tInt "F30 复活后 3 秒内：还在对局", state, stPlay
+	wait 3.3
+	tCalm
+	hitPoint baseX, baseY, false
+	tCheck "F30 保护结束后基地能被打掉", baseDown
+	tInt "F30 已经复活过 → 结算", state, stResult
+
 	tDone "flow_revive"
 }
