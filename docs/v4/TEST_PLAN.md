@@ -1,6 +1,8 @@
 # 坦克大战 v4.0 · 测试方案
 
-本文是 v4.0 的测试设计：分几层测、引擎内的测试怎么写怎么跑、要测哪些用例、覆盖率怎么算、怎么接进 CI。总览和里程碑见 [PLAN.md](PLAN.md)。
+本文是 v4.0 的测试设计：分几层测、引擎内的测试怎么写怎么跑、要测哪些用例、覆盖率怎么算、怎么在本地检查（不用 CI）。总览和里程碑见 [PLAN.md](PLAN.md)。
+
+> 本文最早是规划稿。第二、四、五节已经按实际实现更新（2026-10-25，v4.0.1）：文件名、函数名、数字以仓库里的代码为准，日常用法见[架构文档第 10 节](../ARCHITECTURE.md#10-测试与演示视频)。
 
 ## 一、测试分层
 
@@ -11,7 +13,7 @@
 | **L3 游戏流程** | 状态机的每条边、复活、激励视频奖励、结算、下一关、双人合作 | 引擎内测试，按真实时间等待异步流程 | 每组 10~30 秒 | 每个 PR |
 | **L4 网页外壳** | `tools/export/web/play.js`：虚拟按键映射、多点触控、双人按钮 | `node --test`（Node 自带） | 几秒 | 每个 PR |
 | **L1.5 XBuilder 兼容**（T09） | 游戏代码在 XBuilder 线上的 spx v3.3.0 下也能编译通过（[PR #18](https://github.com/Qiniu-ERE/zero/pull/18) 的问题：`rand(int, int)` 在 v3.3.0 返回 `float64`，在 4.0 返回 `int`） | 用 spx v3.3.0 的源码和对应版本的 xgo 做类型检查（和 PR #18 的验证方法相同） | 约 1 分钟 | 每个改了 `TankBattle/` 的 PR |
-| **L5 平台启动** | 打包后的程序能启动、进入主页、开一局 | 本机打包 + 启动测试（本机只有 macOS，Windows / Linux 手工） | 几分钟 | 发布前 |
+| **L5 平台启动** | 打包后的程序能启动、进入主页、开一局 | 本机打包 + 启动测试（macOS 在本机；Linux 在 `linux_vm.sh` 的虚拟机里自动测；Windows 手工） | 几分钟 | 发布前 |
 | **手工** | 按键手感、画面、声音、手机触屏 | 发布前检查表（第七节） | — | 发布前 |
 
 原则：**能在 L1 / L2 测的不放到 L3**（越往下越慢、越容易因为时间不稳定而偶发失败）；L5 只回答“能不能启动”，不重复测规则。
@@ -26,26 +28,47 @@
 
 ```
 tests/
-├── spx/                    # 引擎内测试，每个文件一组，单独起一个进程
-│   ├── boot.spx            # 启动测试：能启动、初始状态正确（也用于 L5）
-│   ├── grid.spx            # 地图与格子
-│   ├── combat.spx          # 子弹、地形、敌人、得分、生命
-│   ├── flow.spx            # 流程状态机、复活、广告、结算
-│   ├── editor.spx          # 地图编辑器
-│   └── coop.spx            # 双人合作
-├── tools/                  # L1：test_check.py、test_strings.py、test_textpath.py、test_generated.py
-└── web/                    # L4：play.test.mjs
+├── spx/                      # 引擎内测试：每个文件一组（共 19 组），每组单独起一个进程
+│   ├── boot.spx              # 启动（B01、B02），也用于安装包启动测试 B03
+│   ├── grid.spx              # 地图与格子（G01~G08）
+│   ├── bullets.spx           # 子弹和地形（C01~C07）
+│   ├── spawn.spx             # 出兵（C08、C09）
+│   ├── score.spx             # 得分（C10、C11）
+│   ├── player.spx            # 玩家坦克（C12~C14）
+│   ├── enemy.spx             # 敌人挨打（C15）
+│   ├── theme.spx             # 画风和语言（C16）
+│   ├── clash.spx             # 子弹相撞、正对一块砖（C17、C18）
+│   ├── flow_home.spx         # 流程：主页出发、回到主页（F01~F04、F16）
+│   ├── flow_revive.spx       # 流程：战败、复活、激励视频（F05~F10、F19、F20）
+│   ├── flow_result.spx       # 流程：结算、金币、下一关、全部通关（F11~F15、F18）
+│   ├── flow_custom.spx       # 流程：自制地图试玩（F17）
+│   ├── flow_demo.spx         # 流程：路演演示（F22）
+│   ├── pause.spx             # 暂停菜单（F25~F29）
+│   ├── editor.spx            # 地图编辑器（E01~E06、E08~E15）
+│   ├── editor_parity.spx     # E07：edCheck() 和 check.py 结论一致（游戏这一半）
+│   ├── coop.spx              # 双人合作（P01~P08）
+│   └── touch.spx             # 触屏模式（P09，文件里写了 // touch: true）
+├── tools/                    # L1（Python unittest）：test_check.py、test_strings.py、test_assets.py、test_editor_maps.py、test_xbuilder.py
+├── web/                      # L4：play.test.mjs
+├── data/editor_maps.txt      # E07 用的 248 张编辑器地图（gen_editor_maps.py 生成）
+└── coverage-baseline.json    # 覆盖率基线（第八节）
 tools/test/
-├── run_spx.sh              # 跑一组或全部引擎内测试
-├── prelude.spx             # 断言函数，拼在每组测试前面
-├── coverage.py             # 插桩并统计覆盖率（第四节）
-└── run_all.sh              # 一条命令跑完 L1 + L2 + L3 + L4
+├── run_all.sh                # 一条命令跑完：构建工具 + 网页外壳 + 引擎内测试
+├── run_spx.sh                # 跑一组或全部引擎内测试
+├── prelude.spx               # 断言函数，插到副本 main.spx 的第一个 func 前面
+├── spx_coverage.py           # 插桩并统计覆盖率（第四节）
+├── update_baseline.sh        # 完整跑两遍，生成覆盖率基线
+├── pr_check.sh               # PR 合入前的本地检查（第五节）
+├── xbuilder_check.sh         # XBuilder 兼容检查（T09）
+├── package_boot.sh           # 安装包启动测试（B03）
+└── gen_editor_maps.py        # 生成 tests/data/editor_maps.txt
 ```
 
 ```sh
-tools/test/run_all.sh                   # 全部
-tools/test/run_spx.sh tests/spx/flow.spx  # 只跑一组
-tools/test/run_spx.sh --coverage        # 全部引擎内测试 + 覆盖率报告
+tools/test/run_all.sh                            # 全部
+tools/test/run_spx.sh tests/spx/flow_revive.spx  # 只跑一组
+tools/test/run_spx.sh --coverage                 # 全部引擎内测试 + 覆盖率报告
+SKIP_SPX=1 tools/test/run_all.sh                 # 没装 spx：只跑构建工具和网页外壳的测试
 ```
 
 ### 2.3 输出协议
@@ -54,39 +77,52 @@ tools/test/run_spx.sh --coverage        # 全部引擎内测试 + 覆盖率报�
 
 | 输出行 | 含义 |
 |---|---|
-| `TEST PASS <组>/<用例 ID> <说明>` | 一个断言通过 |
-| `TEST FAIL <组>/<用例 ID> <说明> got=<实际> want=<期望>` | 一个断言失败 |
-| `TEST DONE <组> pass=<n> fail=<n>` | 这一组跑完了 |
+| `TEST PASS <用例 ID 和说明>` | 一个断言通过 |
+| `TEST FAIL <用例 ID 和说明> got=<实际> want=<期望>` | 一个断言失败（`tCheck` 没有 got / want） |
+| `TEST XFAIL <用例 ID 和说明>（已知问题：…）` | 已知问题还没修好，不算失败，汇总里列出 |
+| `TEST XPASS <用例 ID 和说明>（…）` | 已知问题已经修好，算失败，提醒把 `tXfail` 改成 `tCheck` |
+| `TEST DONE <组>` | 这一组跑完了；通过和失败的个数由 `run_spx.sh` 自己数 |
 
-**判定为失败**：出现任何 `TEST FAIL`；没有 `TEST DONE`（中途崩溃或者卡住）；超时（默认每组 60 秒）；输出里有 `panic` 或 `cannot alloc method`（[方法表上限](../ARCHITECTURE.md#91-方法表上限启动报错-cannot-alloc-method--cap2560)）。
+**判定为失败**：出现任何 `TEST FAIL` 或 `TEST XPASS`；没有 `TEST DONE`（中途崩溃或者卡住）；超时（默认每组 60 秒，测试文件里写 `// timeout: 秒数` 可以改）；输出里有 `panic`、`failed to build`（编译失败）或 `cannot alloc method`（[方法表上限](../ARCHITECTURE.md#91-方法表上限启动报错-cannot-alloc-method--cap2560)）。
 
 ### 2.4 写法
 
 ```go
-// tests/spx/flow.spx（prelude.spx 提供 check / checkInt / done）
+// tests/spx/flow_revive.spx（节选；断言函数来自 tools/test/prelude.spx）
+// timeout: 90
 onStart => {
 	wait 3                       // 先让游戏完成初始化（和截图脚本的约定一样）
-	suite = "flow"
 
 	playStage 1
 	wait 0.5
-	checkInt "F01 主页开始 → 对局", state, stPlay
-
+	tCalm                        // 清掉敌人和子弹、不再出兵，避免随机因素
 	baseDestroyed
-	wait 0.5
-	checkInt "F05 第一次战败 → 复活询问", state, stRevive
-	check "F05 基地被毁", baseDown
-
-	done
+	tInt "F05 基地被毁 → 复活询问", state, stRevive
+	tCheck "F05 战场冻结", gameOver
+	// ……
+	tDone "flow_revive"          // 输出 TEST DONE 并退出
 }
 ```
+
+`prelude.spx` 提供的函数：
+
+| 函数 | 作用 |
+|---|---|
+| `tCheck(说明, 条件)` | 条件为 true |
+| `tInt` / `tStr` / `tNum(说明, 实际, 期望)` | 整数 / 字符串相等；小数相差不到 0.001 |
+| `tXfail(说明, 条件, 问题)` | 已知问题（见第九节） |
+| `tAt(行, 列)` | 第几行第几列的格子编号 |
+| `tCalm` | 清掉敌人和子弹、不再出兵，地图保留 |
+| `tQuiet` | 开第 1 关，`tCalm`，再把地图清空 |
+| `tWaitState(状态, 秒)` | 等到 `state` 变成指定状态，最多等几秒，返回是否等到 |
+| `tDone(组名)` | 输出 `TEST DONE` 并退出 |
 
 约定：
 
 - **一组一个进程**。游戏状态全在舞台变量里，同一个进程里的用例会互相影响；组内的用例按顺序写，需要干净状态时先调用 `goHome`。
 - **用例 ID 写进断言说明**（`F05`），和第三节的清单一一对应，覆盖率报告靠它统计规则覆盖。
 - **不依赖随机结果**。`spawnEnemy` 的坦克类型、`edRandom` 的地图都是随机的：要么测不变量（例如“随机地图一定通过检查”“出生点只在 0 / 6 / 12 列”），要么多次采样测比例范围。
-- **异步流程要等**。`reviveFlow`、`adFlow`（5 秒）、出生保护等放在消息处理里异步执行，测试用 `wait` 等到状态变化，等待时间写成常量，统一在 `prelude.spx` 里调。
+- **异步流程要等**。`reviveFlow`、`adFlow`（5 秒）、出生保护等放在消息处理里异步执行，测试用 `tWaitState` 等到状态变化（或者按流程本身的时长 `wait`），不写死很长的等待。
 - **不要碰真实的存档**。`edSave` 写到 `os.UserConfigDir()/TankBattle/maps.txt`，`run_spx.sh` 运行前把 `HOME`、`XDG_CONFIG_HOME`（Windows 上是 `APPDATA`）指向临时目录，避免覆盖玩家自己画的地图。
 - **函数要写在第一个事件处理之前**（[解释器限制 9.3](../ARCHITECTURE.md#93-其他)），所以断言函数放在 `prelude.spx` 里，测试文件里需要的辅助函数写成 `onStart` 里的闭包。
 - 测试只追加到舞台，**不给任何精灵加字段**，不会改变方法表的占用；启动测试 `boot.spx` 本身就能发现“改了精灵字段导致启动失败”的问题。
@@ -233,7 +269,7 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 |---|---|
 | B01 | 启动后进入主页（`state = stHome`），没有 `panic` / `cannot alloc method` |
 | B02 | 能开一局并进入对局（`playStage 1`），地图和 HUD 建好 |
-| B03 | 打包产物启动后 B01、B02 通过（`tools/test/package_boot.sh`：把 `boot.spx` 加进工程副本，用同一个 `tools/export/build.sh desktop` 打包，解开安装包运行里面的程序，读 TEST 输出）。2026-10-25 在 macOS 上：打包 + 运行共 21 秒，9 个断言通过。Windows / Linux 包在对应系统上运行同一个脚本 |
+| B03 | 打包产物启动后 B01、B02 通过（`tools/test/package_boot.sh`：把 `boot.spx` 加进工程副本，用同一个 `tools/export/build.sh desktop` 打包，解开安装包运行里面的程序，读 TEST 输出）。2026-10-25 在 macOS 上：打包 + 运行共 21 秒，9 个断言通过。Linux 包由 `tools/export/linux_vm.sh build` 在虚拟机里用 Xvfb 运行同一个脚本（`build_local.sh` 会自动调用）；Windows 包要在 Windows 上运行同一个脚本 |
 
 ## 四、覆盖率怎么算
 
@@ -241,13 +277,13 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 
 | 指标 | 怎么统计 | 目标 |
 |---|---|---|
-| **函数覆盖率** | `coverage.py` 在工程副本里给每个 `func` 和每个事件处理（`onStart` `onMsg` `onKey` `onClick` `onCloned` …）的第一行插入 `println("COV", "<文件>:<名字>")`，跑完全部引擎内测试后统计哪些从没出现过 | `main.spx` 的函数 ≥ 85%；全部 108 个函数 ≥ 75%；58 个事件处理 ≥ 70% |
+| **函数覆盖率** | `spx_coverage.py` 在工程副本里给每个 `func` 和每个事件处理（`onStart` `onMsg` `onKey` `onClick` `onCloned`）的第一行插入 `tCov("<文件>:<名字>")`，跑完全部引擎内测试后统计哪些从没出现过 | `main.spx` 的函数 ≥ 85%；全部函数 ≥ 75%；事件处理（不含按键 / 点击）≥ 70%。规划时是 108 个函数、58 个事件处理；v4.0.1 是 113 个函数，58 个事件处理里 40 个计入、18 个是按键 / 点击 |
 | **状态机边覆盖** | 第三节 F01~F16 对应架构文档状态图的 16 条边 | 100% |
 | **消息覆盖** | 25 种广播消息，每种至少在一个用例里被发出并被处理（插桩的事件处理能看出来） | 100% |
 | **规则覆盖** | README「玩法」一节的每条规则都对应至少一个用例 ID，对照表放在覆盖率报告里 | 100% |
-| **Python 行覆盖率** | `python3 -m coverage`（只在 CI 里装） | `check.py`、`strings.py`、`textpath.py` ≥ 85% |
+| **Python 行覆盖率** | **没有实现**：规划时打算在 CI 里装 `coverage`，后来 Actions 不可用，`pr_check.sh` 也没加这一项。需要时手动运行 `python3 -m coverage run -m unittest discover -s tests/tools` | `check.py`、`strings.py`、`textpath.py` ≥ 85%（没有统计过） |
 
-- 命令：`tools/test/run_all.sh --coverage`（构建工具测试也计入用例清单），或者 `tools/test/run_spx.sh --coverage`。报告写到临时目录的 `coverage.md`，终端里打印目标达成情况。插桩工具是 `tools/test/spx_coverage.py`：`tCov` 用舞台变量记住打印过的名字，每个名字只打印一次（热点函数每帧都会调用）。
+- 命令：`tools/test/run_all.sh --coverage`（构建工具测试也计入用例清单），或者 `tools/test/run_spx.sh --coverage`。报告写到临时目录的 `coverage.md`，终端里打印目标达成情况。插桩工具是 `tools/test/spx_coverage.py`：`tCov` 是插到副本 `main.spx` 里的舞台函数，用舞台变量记住打印过的名字，同一个名字只打印一次 `COV <文件>:<名字>`（热点函数每帧都会调用）。
 - 按键和点击（16 个 `onKey`、1 个 `onKey [Key1…Key8]`、1 个 `onClick`）在无界面测试里触发不了，单独列一栏，不计入事件处理覆盖率。
 - 已知时有时无的（`spx_coverage.py` 里的 `KNOWN_UNSTABLE`）：基线里记为不稳定，消息覆盖率不计入，报告里单独列出。v4.0 时只有子弹相撞抵消的 `EBullet.spx:onMsg "clash"`（C17 已知问题）；v4.0.1 修复后这个处理去掉了，现在没有不稳定的项。
 - README 的徽章（v4.0.1：tests 456 passing：416 个引擎内断言 + 34 个构建工具测试 + 6 个网页外壳测试；coverage 96% functions · 100% handlers）用的是稳定的数字，更新基线时一起更新。v4.0 时是 450 passing、98% handlers。
@@ -264,9 +300,9 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 
 **修复子弹相撞后（v4.0.1）**：全部函数 109 / 113（96%）、`main.spx` 函数 72 / 73（99%）、事件处理 40 / 40（100%）、消息 25 / 25（100%），没有不稳定的项；引擎内 416 个断言全部通过。
 
-没覆盖到的 5 个函数：`UI.hit` / `clickAd` / `clickScreen`（只在 `onClick` 里调用）、`edToolChar`（只在跟着鼠标的 `editLoop` 里调用）、`quitFromPause`（v3.0.2 新增的暂停菜单，还没有测试）。
+没覆盖到的 4 个函数（v4.0.1 的基线 `tests/coverage-baseline.json`）：`UI.hit` / `clickAd` / `clickScreen`（只在 `onClick` 里调用）、`edToolChar`（只在跟着鼠标的 `editLoop` 里调用）。第一次实测时还没覆盖的 `quitFromPause`（v3.0.2 新增的暂停菜单），后来由 `pause.spx` 测到了。
 
-- 插桩只改副本，和测试脚本一样不进仓库；插入的是 `println`，不加变量，不影响方法表。
+- 插桩只改副本，和测试脚本一样不进仓库；`tCov` 只用舞台变量和舞台函数，不给精灵加字段，不影响方法表。
 - 报告输出成 Markdown：每个文件的函数覆盖率、没覆盖到的函数列表、规则对照表。`pr_check.sh --coverage` 把它附在本地检查报告里。
 - 达不到目标的部分要在报告里写原因（例如 `onKey` 只能手工测、`sfx` 在 headless 下没有意义），不为了数字写没有断言的测试。
 
@@ -278,7 +314,7 @@ v4 的测试都在本地跑，**不依赖 GitHub Actions**：引擎内测试用 
 |---|---|---|
 | 每个 PR 合入前 | `tools/test/pr_check.sh` | 和 `.github/workflows/check.yml` 相同的三项检查（关卡地图、生成的素材、`.xbp`）+ `run_all.sh` 的全部测试；生成 Markdown 报告，贴到 PR 里 |
 | 需要覆盖率时 | `tools/test/pr_check.sh --coverage` | 同上，再加覆盖率报告 |
-| 发布前 | 本机打包（`tools/export/build.sh desktop`）后跑启动测试（B03） | 本机是 macOS，只能测 macOS 包；Windows / Linux 包在 Actions 恢复前只能手工在对应系统上启动一次 |
+| 发布前 | `tools/export/build_local.sh`：打包并对每个包做检查，桌面包跑启动测试（B03） | macOS 包在本机测；Linux 包在 `linux_vm.sh` 的 OrbStack 虚拟机里用 Xvfb 测；Windows 包本机打不了，有包时要在 Windows 上手工启动一次 |
 
 - `pr_check.sh` 的第二项在临时副本里运行 `build.py` 再比较，不会改动工作区；第三项把 `.xbp` 解压后和 `TankBattle/` 比较。
 - 报告里写明提交号、分支、工作区是否干净、spx / Python 版本，评审时能看出是在哪个提交上跑的。
@@ -343,7 +379,7 @@ PR 模板（`.github/pull_request_template.md`，已添加）里有“新增 / �
 
 ### 8.4 文档
 
-- v4.0 发布时，本文的第二、四、五、八节精简后并入[架构文档第 10 节](../ARCHITECTURE.md#10-测试与演示视频)，成为长期的“测试规范”；第三节的用例清单搬到 `tests/README.md`，跟着测试代码一起维护。
+- v4.0 发布时，本文的第二、四、五、八节精简后并入[架构文档第 10 节](../ARCHITECTURE.md#10-测试与演示视频)，成为长期的“测试规范”；第三节的用例清单搬到 `tests/README.md`，跟着测试代码一起维护。**实际情况（v4.0.1）**：要点已经写进架构文档第 10 节；用例清单没有搬，仍在本文第三节（`spx_coverage.py` 从这里读取用例 ID，要搬就得一起改脚本）。
 - 以后的版本规划（`docs/v5/PLAN.md` …）里要有一节“测试”，列出新功能要加的用例。
 
 ## 九、测试发现的问题
