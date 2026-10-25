@@ -72,9 +72,10 @@ TEST DONE fails 0
 | **P2** | test: 网页外壳 | `play.js` 的虚拟按键和多点触控逻辑，用 `node --test` | 0.5 天 |
 | | ci: 发布前多平台启动测试 | Windows / macOS / Linux 都跑启动测试，替换现在“只截图”的冒烟测试 | 0.5 天 |
 | | fix: 测试发现的问题 | 每个 bug 一个 PR，先提交失败的测试再修复 | 视情况 |
+| | ci: 覆盖率基线与 PR 模板 | `tests/coverage-baseline.json`、覆盖率下降时 CI 失败、`.github/pull_request_template.md`（见 [TEST_PLAN.md 第八节](TEST_PLAN.md#八以后的版本怎么保持测试覆盖)） | 0.5 天 |
 | | release: v4.0.0 | 更新 README、架构文档、演示视频，打标签发布 | 0.5 天 |
 
-合计约 8 天。P0 完成后，后面每个 PR 都会被 CI 自动测试。
+合计约 8.5 天。P0 完成后，后面每个 PR 都会被 CI 自动测试。v4.0 之后的版本怎么继续保持覆盖，见 [TEST_PLAN.md 第八节](TEST_PLAN.md#八以后的版本怎么保持测试覆盖)。
 
 ## 五、交付清单
 
