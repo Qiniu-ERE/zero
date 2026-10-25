@@ -40,6 +40,8 @@ var (
 	p2x       float64
 	p2y       float64
 	hitWho    int // 刚被打中的是 1P 还是 2P（"playerHit" 消息的参数）
+	ebPos     map[*EBullet][2]float64 // 场上每颗敌人子弹的位置（每帧更新），玩家子弹用它判断迎面相撞
+	ebHit     map[*EBullet]bool       // 被玩家子弹撞上的敌人子弹，它下一帧自己消失
 	resultReady bool // 结算弹窗出现 0.6 秒后才接受确认键（防止连按开火键误点“看视频”）
 
 	// 自己做地图（见 docs/v3/MAP_EDITOR.md）
@@ -281,6 +283,34 @@ func bulletDir(f int) int {
 		return f - 1000
 	}
 	return f
+}
+
+// 子弹迎面相撞：玩家子弹这一帧从 (x0, y0) 飞到 (x1, y1)，有没有敌人子弹离这段路线不到 r。
+// 不用 touching：引擎里子弹的碰撞区域几乎只是一个点（相距 2 像素就不算碰到），迎面飞来的两颗子弹
+// 很少正好落在同一个点上，原来 10 次只有 1~2 次能抵消（测试方案第九节，C17）。
+// 撞上的敌人子弹记在 ebHit 里，由它自己在下一帧消失（不在别的协程里 destroy 它）
+func bulletClash(x0, y0, x1, y1, r float64) bool {
+	dx, dy := x1-x0, y1-y0
+	ll := dx*dx + dy*dy
+	for e, p := range ebPos {
+		if ebHit[e] {
+			continue
+		}
+		t := 0.0
+		if ll > 0 {
+			t = ((p[0]-x0)*dx + (p[1]-y0)*dy) / ll
+			t = math.Max(0, math.Min(1, t))
+		}
+		cx, cy := x0+t*dx-p[0], y0+t*dy-p[1]
+		if cx*cx+cy*cy <= r*r {
+			if ebHit == nil {
+				ebHit = map[*EBullet]bool{}
+			}
+			ebHit[e] = true
+			return true
+		}
+	}
+	return false
 }
 
 // (x, y) 离哪辆玩家坦克更近：1 或 2

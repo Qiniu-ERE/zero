@@ -12,6 +12,8 @@ func fire(x, y float64, d int) {
 
 func vanish() {
 	alive = false
+	delete ebPos, this
+	delete ebHit, this
 	Boom.explodeAt xpos, ypos, 0.4
 	destroy
 }
@@ -29,7 +31,15 @@ onCloned => {
 		if dt > 0.05 {
 			dt = 0.05
 		}
+		if ebHit[this] { // 被玩家子弹迎面撞上了（PBullet 判断的）
+			vanish
+			break
+		}
 		changeXYpos dirDX(face)*180*dt, dirDY(face)*180*dt
+		if ebPos == nil {
+			ebPos = map[*EBullet][2]float64{}
+		}
+		ebPos[this] = [2]float64{xpos, ypos}
 		if touching("Player") {
 			// 双人时看离哪辆坦克更近（死掉的坦克报的位置很远）
 			hitWho = nearestPlayer(xpos, ypos)
@@ -42,16 +52,11 @@ onCloned => {
 	}
 }
 
-// 被玩家子弹抵消
-onMsg "clash", => {
-	if alive && touching("PBullet") {
-		vanish
-	}
-}
-
 onMsg "clear", => {
 	if alive {
 		alive = false
+		delete ebPos, this
+		delete ebHit, this
 		destroy
 	}
 }
