@@ -60,7 +60,8 @@ var (
 	// 流程与广告（见 docs/ARCHITECTURE.md 的「游戏流程」）
 	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
 	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
-	revived      bool   // 本局是否已经复活过（每局只能复活一次）
+	revived      bool   // 本关是否已经复活过（每关只能复活一次）
+	reviveStage  int    // 在哪一关复活过（0 表示没有）：暂停里“重新开始本关”、输了重打本关都不会清零
 	baseSafe     float64 // 复活后基地还有几秒打不掉（对局冻结时不倒计时）
 	coins        int    // 本局获得的金币
 	doubled      bool   // 金币是否已经通过看视频翻倍
@@ -615,6 +616,7 @@ func playCustom(two bool) {
 	coop = two
 	stage = customStage
 	stageScore = 0
+	reviveStage = 0
 	startGame
 }
 
@@ -947,6 +949,7 @@ func watchAd(reward int) {
 // 否则贴在基地旁的敌人一解冻就能再打掉基地，复活就白费了
 func revive() {
 	revived = true
+	reviveStage = stage
 	if baseDown {
 		baseDown = false
 		grid[baseIdx] = 9
@@ -980,6 +983,9 @@ func revive() {
 	}
 	gameOver = false
 	toast "msg.revived", 1.5
+	if killed >= totalEnemy {
+		endGame true // 最后一辆敌人和基地在同一帧被打掉：复活后直接过关
+	}
 }
 
 func endGame(win bool) {
@@ -1065,6 +1071,9 @@ func again() {
 		stage = 1
 		stageScore = 0
 	}
+	if won {
+		reviveStage = 0 // 新的一关可以再复活一次；输了重打本关不行
+	}
 	startGame
 }
 
@@ -1082,6 +1091,7 @@ func newGame(n int, two bool) {
 func playStage(n int) {
 	stage = n
 	stageScore = 0
+	reviveStage = 0 // 从主页进关：可以重新复活一次
 	startGame
 }
 
@@ -1106,6 +1116,22 @@ func confirm() {
 		if !doubled {
 			watchAd rewardDouble
 		}
+	}
+}
+
+// Esc：复活询问时放弃，编辑器里回主页，对局中暂停 / 继续（写成函数，测试可以直接调用）
+func escKey() {
+	if state == stRevive {
+		// 基地被毁后要等 2.2 秒才弹出复活询问；这期间按 Esc（本想暂停）不能当成“放弃复活”（和 confirm 一样）
+		if strings.HasPrefix(screen, "revive_") {
+			endGame false
+		}
+	} else if state == stEdit {
+		goHome
+	} else if state == stPlay {
+		pauseGame
+	} else if state == stPause {
+		resumeGame
 	}
 }
 
@@ -1269,7 +1295,7 @@ func enemyKilled(points int) {
 		best = score
 	}
 	broadcast "hud"
-	if killed >= totalEnemy {
+	if killed >= totalEnemy && !gameOver { // 基地已经在同一帧失守了：按战败处理（复活后再判胜利，见 revive）
 		endGame true
 	}
 }
@@ -1341,7 +1367,8 @@ func startGame() {
 	pbCount = 0
 	enemiesLeft = totalEnemy
 	baseDown = false
-	revived = false
+	revived = reviveStage == stage
+	won = false
 	baseSafe = 0
 	state = stPlay
 	setScreen ""
@@ -1453,15 +1480,7 @@ onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 }
 
 onKey KeyEscape, => {
-	if state == stRevive {
-		endGame false
-	} else if state == stEdit {
-		goHome
-	} else if state == stPlay {
-		pauseGame
-	} else if state == stPause {
-		resumeGame
-	}
+	escKey
 }
 
 onKey KeyR, => {

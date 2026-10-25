@@ -17,6 +17,7 @@ onStart => {
 	enemyKilled 200
 	tInt "C11 最高分不会变低", best, 99999
 	killed = totalEnemy - 1
+	gameOver = false // 战场在运行时才判胜利（基地在同一帧失守时不判，见 flow_revive 的 F33）
 	enemyKilled 100
 	tInt "C10 第 20 辆 → 结算", state, stResult
 	tCheck "C10 第 20 辆 → 胜利", won
