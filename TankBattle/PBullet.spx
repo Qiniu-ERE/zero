@@ -42,10 +42,11 @@ onCloned => {
 			dt = 0.05
 		}
 		d := bulletDir(face)
+		x0, y0 := xpos, ypos
 		changeXYpos dirDX(d)*260*dt, dirDY(d)*260*dt
-		// 和敌人子弹相撞，双双抵消
-		if touching("EBullet") {
-			broadcastAndWait "clash"
+		// 和敌人子弹迎面相撞，双双抵消：看这一帧飞过的路线上有没有敌人子弹
+		// （半径 = 子弹直径 6 像素 + 敌人子弹这一帧飞的距离，见 main.spx 的 bulletClash）
+		if bulletClash(x0, y0, xpos, ypos, 6+180*dt) {
 			vanish
 		}
 		if bulletHit(xpos, ypos, d, true) {
