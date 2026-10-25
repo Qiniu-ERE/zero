@@ -98,7 +98,7 @@ fi
 	echo '<details><summary>测试输出</summary>'
 	echo
 	echo '```'
-	grep -E '^(==>|ok |FAIL|Ran |OK|FAILED|---- |  [a-z_]+: |\|)' "$TMP/tests.log" | grep -v -E '^\|---'
+	grep -E '^(==>|ok |FAIL|Ran |OK|FAILED|---- |# (pass|fail)|  [a-z_]+: |\|)' "$TMP/tests.log" | grep -v -E '^\|---'
 	echo '```'
 	echo
 	echo '</details>'
