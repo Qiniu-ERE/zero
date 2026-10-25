@@ -42,7 +42,7 @@ tests/
 │   ├── flow_revive.spx       # 流程：战败、复活、激励视频（F05~F10、F19、F20、F30~F33）
 │   ├── flow_result.spx       # 流程：结算、金币、下一关、全部通关（F11~F15、F18）
 │   ├── flow_custom.spx       # 流程：自制地图试玩（F17）
-│   ├── flow_demo.spx         # 流程：路演演示（F22）
+│   ├── flow_demo.spx         # 流程：路演演示（F22）、按 Esc 退出演示（F36）
 │   ├── pause.spx             # 暂停菜单（F25~F29）
 │   ├── editor.spx            # 地图编辑器（E01~E06、E08~E15）
 │   ├── editor_parity.spx     # E07：edCheck() 和 check.py 结论一致（游戏这一半）
@@ -226,6 +226,7 @@ v5 第一批（[#68](https://github.com/Qiniu-ERE/zero/pull/68)、[#70](https://
 | F20 | 播放广告时再次 `watchAd` 被忽略 |
 | F21 | 每个状态下 `setScreen` 的画面名正确（`home`、`revive_*`、`adplay_*`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`） |
 | F22 | 路演演示模式：`demoFlow` 跑完会发出 `demoDone`，期间 `autopilot` 为 true，结束后回到主页；v3.0.2 起还经过编辑器和暂停菜单，结束后还原玩家在编辑器里的地图 |
+| F36 | 演示中按 Esc 退出（v5 REVIEW A8）：马上回主页、关闭自动驾驶，画风、语言、编辑器地图还原；演示脚本不再继续 |
 | F23 | 复活询问的弹窗出现之前（战败后 2.2 秒内）按确认键不算数（J / Enter 也是开火键，防止连按开火误点广告） |
 | F24 | 结算画面出现后 0.6 秒内按确认键不算数，之后才能看视频翻倍 |
 | F25 | 暂停菜单（v3.0.2）：`pauseGame` → `stPause`、战场冻结、`pause` 画面；`resumeGame` / 确认键继续 |
@@ -312,7 +313,7 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 - 命令：`tools/test/run_all.sh --coverage`（构建工具测试也计入用例清单），或者 `tools/test/run_spx.sh --coverage`。报告写到临时目录的 `coverage.md`，终端里打印目标达成情况。插桩工具是 `tools/test/spx_coverage.py`：`tCov` 是插到副本 `main.spx` 里的舞台函数，用舞台变量记住打印过的名字，同一个名字只打印一次 `COV <文件>:<名字>`（热点函数每帧都会调用）。
 - 按键和点击（16 个 `onKey`、1 个 `onKey [Key1…Key8]`、1 个 `onClick`）在无界面测试里触发不了，单独列一栏，不计入事件处理覆盖率。
 - 已知时有时无的（`spx_coverage.py` 里的 `KNOWN_UNSTABLE`）：基线里记为不稳定，消息覆盖率不计入，报告里单独列出。v4.0 时只有子弹相撞抵消的 `EBullet.spx:onMsg "clash"`（C17 已知问题）；v4.0.1 修复后这个处理去掉了，现在没有不稳定的项。
-- README 的徽章（v5 第一批之后：tests 579 passing：507 个引擎内断言 + 66 个构建工具测试 + 6 个网页外壳测试；coverage 还是 v4.0.1 的 96% functions · 100% handlers）用的是稳定的数字，更新基线时一起更新。v4.0.1 时是 456 passing（416 + 34 + 6），v4.0 时是 450 passing、98% handlers。
+- README 的徽章（v5.0.1：tests 587 passing：515 个引擎内断言 + 66 个构建工具测试 + 6 个网页外壳测试；coverage 还是 v4.0.1 的 96% functions · 100% handlers）用的是稳定的数字，更新基线时一起更新。v4.0.1 时是 456 passing（416 + 34 + 6），v4.0 时是 450 passing、98% handlers。
 
 **第一次实测（2026-10-25，基于 v3.0.2 的 main）**：
 

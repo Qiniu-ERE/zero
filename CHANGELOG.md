@@ -2,6 +2,20 @@
 
 安装包在 [Releases](https://github.com/Qiniu-ERE/zero/releases) 下载。每个版本对应一个 Git 标签。
 
+## v5.0.1
+
+安装包：macOS、Linux、网页版、Android。Windows 和 iOS 没有新包，仍是 v3.0.1 的。
+
+- **路演演示模式可以按 Esc 退出**：原来对局中按 Esc 没反应，在编辑器那一段按 Esc 虽然能回主页，演示还在后台继续。现在任何时候按 Esc 都马上回主页，画风、语言和编辑器里的地图都还原；演示开始时会提示“按 Esc 退出”。
+
+<details><summary>详细改动（开发者）</summary>
+
+- 修复（REVIEW A8）：按 Esc 时设 `demoStop` 并重新广播 `demoFlow`，打断正在运行的演示，新的处理调用 `stopDemo()` 收尾；广告倒计时中离开（不再是 `stAd`）就不发奖励。新测试 F36（先提交失败的测试，再修复）。
+- 测试 C15 改成从紧挨着敌人的水面发射：原来从远处打，敌人朝左开火时两颗子弹会迎面抵消，重型坦克的第 3 发偶尔打不中，测试偶发失败（游戏本身没问题）。
+- 文档：v2.0 的设计文档统一叫“v2.0 规划”。
+
+</details>
+
 ## v5.0.0
 
 v5.0 是**商业化落地探索**：评估怎么把游戏放到 Steam、Xbox（Microsoft Store）、App Store、Google Play 上卖，算清楚盈利预期和每个平台的盈利周期；同时把全面审查发现的问题先修掉一批。英文名定为 **Brickline Tanks**。

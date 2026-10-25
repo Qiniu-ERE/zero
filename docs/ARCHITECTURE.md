@@ -1,6 +1,6 @@
 # 坦克大战 2026 · 架构文档
 
-本文说明游戏（当前版本 v5.0.0）的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2 设计方案](v2/DESIGN.md)，v3.0 的关卡、双人合作、自己做地图和跨平台见 [v3.0 规划](v3/PLAN.md)，v4.0 的自动化测试见 [v4.0 规划](v4/PLAN.md) 和[第 10 节](#10-测试与演示视频)，v5.0 的商业化规划见 [v5.0 规划](v5/PLAN.md)。
+本文说明游戏（当前版本 v5.0.0）的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2.0 规划](v2/DESIGN.md)，v3.0 的关卡、双人合作、自己做地图和跨平台见 [v3.0 规划](v3/PLAN.md)，v4.0 的自动化测试见 [v4.0 规划](v4/PLAN.md) 和[第 10 节](#10-测试与演示视频)，v5.0 的商业化规划见 [v5.0 规划](v5/PLAN.md)。
 
 ## 目录
 
@@ -23,7 +23,7 @@
 | 语言 | [XGo](https://xgo.dev)（`.spx` 类文件：`main.spx` 是舞台，其他每个文件是一个精灵） |
 | 引擎 | [spx 4.0](https://github.com/goplus/spx)，底层是 Godot 4.4，SVG 由 LunaSVG 光栅化 |
 | 运行方式 | ① [XBuilder](https://x.qiniu.com) 网页版：导入 `TankBattle.xbp` 运行；② 本地：`spx run .`（解释执行）；③ 各平台安装包：`tools/export/`，见 [跨平台文档](v3/CROSS_PLATFORM.md#七实现结果)。注意：XBuilder 线上的解释器基于 spx v3.3.0（[goplus/builder](https://github.com/goplus/builder) 的 `tools/ispx`），本地和安装包用的是 spx 4.0，同属 ispx 解释器。v4.0 起用 `tools/test/xbuilder_check.sh`（T09）在 spx v3.3.0 上做编译检查，v4.0.1 发布前通过；运行时的行为差别仍要在 x.qiniu.com 导入 `.xbp` 实际玩一次（[测试方案第七节](v4/TEST_PLAN.md#七发布前手工检查表)） |
-| 画布 | 480×360（XBuilder 固定的运行尺寸，见[设计方案](v2/DESIGN.md#一技术确认画布尺寸)） |
+| 画布 | 480×360（XBuilder 固定的运行尺寸，见 [v2.0 规划](v2/DESIGN.md#一技术确认画布尺寸)） |
 | 资源生成 | Python 3 + fontTools：`tools/assets/build.py` 用代码生成 SVG 造型，`strings.py` 是中英文案表 |
 
 ## 2. 总体结构
@@ -71,7 +71,7 @@ flowchart LR
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头、`lifeLook(n, slot, p2)`（生命图标用哪个造型：超过 3 条显示“图标 ×N”） |
 | 触屏 | `touchZone(x, y)`：手指按在哪里做什么。方向键范围内返回方向（移动并开火），战场内返回 1（只开火），顶栏和右侧面板返回 -1（不开火，按钮都在这里） |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
-| 路演演示 | `demoFlow` 消息处理（v2 内容之后调用 `demoV3()`：新关卡、双人合作、暂停菜单、编辑器里画地图并试玩）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
+| 路演演示 | `demoFlow` 消息处理（v2 内容之后调用 `demoV3()`：新关卡、双人合作、暂停菜单、编辑器里画地图并试玩；按 Esc 退出：`escKey` 设 `demoStop` 后重新广播 `demoFlow` 打断正在运行的演示，新的处理调用 `stopDemo()` 还原画风、语言和编辑器地图并回主页）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
 
 ### 3.2 精灵
 
@@ -167,7 +167,7 @@ stateDiagram-v2
   暂停 --> 主页: H（自制地图试玩时回到编辑器）
   编辑器 --> 对局: Enter 试玩 / P 双人试玩（自制地图）
   编辑器 --> 主页: Esc
-  主页 --> 对局: P（路演演示，自动驾驶）
+  主页 --> 对局: P（路演演示，自动驾驶；Esc 退出）
   对局 --> 复活询问: 基地被毁 / 生命用完（本关第一次）
   对局 --> 结算: 再次战败 / 消灭 20 辆（胜利）
   结算 --> 对局: R / 点击下一关（胜利，进入下一关，得分保留）

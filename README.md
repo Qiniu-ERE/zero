@@ -8,8 +8,8 @@
 
 [![1024 HACKATHON 第五届](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![XBuilder · XGo · spx 4.0](https://img.shields.io/badge/XBuilder-XGo_·_spx_4.0-b4521e)](https://x.qiniu.com)
-[![版本 v5.0.0](https://img.shields.io/badge/版本-v5.0.0-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
-[![测试 579 通过](https://img.shields.io/badge/测试-579_通过-brightgreen)](docs/v4/TEST_PLAN.md)
+[![版本 v5.0.1](https://img.shields.io/badge/版本-v5.0.1-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
+[![测试 587 通过](https://img.shields.io/badge/测试-587_通过-brightgreen)](docs/v4/TEST_PLAN.md)
 [![覆盖率 96%](https://img.shields.io/badge/覆盖率-96%25-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
 
 **[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v5-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
@@ -93,7 +93,7 @@ spx run .
 | 点「选择关卡」 | 选关画面：点关卡卡片或按 1 ~ 8 开局（单人），Esc 回主页 |
 | C | 双人合作 |
 | E | 自己做地图 |
-| P | 路演演示模式（无人值守） |
+| P | 路演演示模式（无人值守，按 Esc 退出） |
 
 **对局**
 

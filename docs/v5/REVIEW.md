@@ -72,7 +72,7 @@
 | C9 | 中 | README 的测试说明缺前置条件：网页外壳测试要 Node.js 18 以上（没有会静默跳过）；没装 spx 可以 `SKIP_SPX=1`；`xbuilder_check.sh` 要 Go 和网络 | `README.md:236-242` | 加一张前置条件表 | P1 |
 | C10 | 中 | **演示视频没有覆盖 v4 和 v5**，而且无声 | `docs/demo/` | 为最终交付录一段约 3 分钟、带字幕的总演示：玩法 → 双人 → 编辑器 → 一条命令跑完测试 → v5 商业化，配合 [PITCH.md](PITCH.md) 的讲稿 | 路演前 |
 | C11 | 中 | v4 PLAN 说“每个 PR 都附本地检查报告”，抽查 #26、#35、#53 没附 | `docs/v4/PLAN.md:94` | 改成如实描述（“#34 之后大部分 PR 附报告”），或补贴到评论里 | P1 |
-| C12 | 低 | 历史文档没标注后来的变化：v2 设计稿里“本地双人待做”“AI 造关”；v3 PLAN 的 P2 还列着每日挑战，里程碑表缺 v3.0.2；CROSS_PLATFORM 7.5 节的 Actions 分钟数和“真机在 CI 上打”；发布说明模板“一份README.txt”缺空格、只提 `docs/v3/`；v4.0.1 的 Release 正文写了“徽章更新为 tests 456 passing”这类开发细节 | `docs/v2/DESIGN.md:107-108`、`docs/v3/PLAN.md:78`、`docs/v3/CROSS_PLATFORM.md`、`tools/export/RELEASE_NOTES.md:16、25` | 加一句“状态以后续版本文档为准”；逐项修 | P1 |
+| C12 | 低 | 历史文档没标注后来的变化：v2 规划里“本地双人待做”“AI 造关”；v3 PLAN 的 P2 还列着每日挑战，里程碑表缺 v3.0.2；CROSS_PLATFORM 7.5 节的 Actions 分钟数和“真机在 CI 上打”；发布说明模板“一份README.txt”缺空格、只提 `docs/v3/`；v4.0.1 的 Release 正文写了“徽章更新为 tests 456 passing”这类开发细节 | `docs/v2/DESIGN.md:107-108`、`docs/v3/PLAN.md:78`、`docs/v3/CROSS_PLATFORM.md`、`tools/export/RELEASE_NOTES.md:16、25` | 加一句“状态以后续版本文档为准”；逐项修 | P1 |
 | C13 | 低 | 提交说明和多数 PR 标题是英文（README 里的比赛口号可以保留） | git 历史、PR 标题 | **以后的 PR 标题和提交说明用中文**（feat / fix 等前缀可以保留）；历史不改写 | 从现在起 |
 | C14 | 低 | 仓库整洁度：`v3.0.2` 是轻量标签（其余都是附注标签）；main 上有三次失败的 Actions 运行，提交旁显示红叉；仓库没有主页和 topics；`docs/tankbattle.gif` 没被引用 | GitHub | 可选：`v3.0.2` 改附注标签；README 说明红叉是额度问题；加 topics（`tank`、`pwa`、`godot`、`1024-hackathon`）；删掉或用上那张 gif | P1 |
 | C15 | 低 | v5 规划合入前要更新：README 文档表和更新记录还没有链接 v5 | `README.md`、`CHANGELOG.md` | v5 规划合入后补链接 | P0 合入后 |

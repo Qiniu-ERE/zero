@@ -1,6 +1,6 @@
 // 流程：路演演示模式（F22），见 docs/v4/TEST_PLAN.md 第 3.4 节
 // 演示脚本：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → 回主页，约 1 分钟
-// timeout: 150
+// timeout: 190
 onStart => {
 	wait 3
 
@@ -51,6 +51,29 @@ onStart => {
 	tCheck "F22 演示不改 edLoaded", edLoaded == loaded
 	tCheck "F22 演示经过了编辑器", seen[stEdit]
 	tCheck "F22 演示经过了暂停菜单", seen[stPause]
+
+	// F36 演示中按 Esc 退出：马上回主页，演示脚本不再继续，画风、语言、编辑器地图都还原（v5 REVIEW A8）
+	openEditor
+	wait 0.5
+	edRandom()
+	edRebuild()
+	mine2 := string(ed)
+	goHome
+	wait 0.3
+	t1, l1 := theme, lang
+	broadcast "demoFlow"
+	wait 10 // 已经切过一次画风
+	tCheck "F36 演示中：自动驾驶", autopilot
+	escKey
+	wait 0.5
+	tInt "F36 按 Esc：回到主页", state, stHome
+	tCheck "F36 按 Esc：关闭自动驾驶", !autopilot
+	tInt "F36 按 Esc：画风还原", theme, t1
+	tInt "F36 按 Esc：语言还原", lang, l1
+	wait 8
+	tInt "F36 演示脚本没有继续：还在主页", state, stHome
+	tCheck "F36 演示脚本没有继续：没有自动驾驶", !autopilot
+	tStr "F36 编辑器地图没被改", string(ed), mine2
 
 	tDone "flow_demo"
 }

@@ -477,6 +477,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "msg.demo_zh",
+      "path": "msg.demo_zh.svg",
+      "x": 238.24,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.demo_en",
+      "path": "msg.demo_en.svg",
+      "x": 326.19,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "msg.adclick_zh",
       "path": "msg.adclick_zh.svg",
       "x": 336.0,
