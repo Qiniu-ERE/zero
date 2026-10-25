@@ -181,12 +181,12 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | E01 | 锁定格（3 个敌人出生点、1P / 2P 出生点、基地和护墙）`edPaint` 改不了 |
 | E02 | `edPaint` 改普通格子：`ed`、`grid` 都更新；改成一样的字符返回 false |
 | E03 | `edCheck`：出生点被围死 → `edProblem = 1`，`edMark` 指向那个出生点 |
-| E04 | `edCheck`：玩家到不了某个出生点 → `edProblem = 2` |
+| E04 | `edCheck`：玩家到不了某个出生点 → `edProblem = 2`。**测试中发现**：锁定的护墙（砖墙）把 1P / 2P 出生点和基地连在一起，敌人到得了基地，玩家就一定到得了出生点，所以编辑器里画不出问题 2（248 张测试地图里出现 0 次）。测试直接改 `ed` 绕过锁定格来测这段代码 |
 | E05 | `edCheck`：砖墙算能通过（能打掉），钢墙和水面不算 |
 | E06 | `reachable` 不会从一行末尾“绕”到下一行开头 |
-| E07 | **和 `check.py` 一致**：对 8 张关卡地图和一批构造的反例，`edCheck` 和 `check.py` 的合格 / 不合格判断相同（脚本把同一批地图分别交给两边，对比结果） |
+| E07 | **和 `check.py` 一致**：`tools/test/gen_editor_maps.py` 生成 248 张编辑器画得出的地图（8 张关卡 + 不同墙密度的随机地图，种子固定），每张附上 `check.py` 的结论，存在 `tests/data/editor_maps.txt`；Python 测试检查结论确实来自 `check.py`、文件是最新的，引擎内测试检查 `edCheck()` 的结论全部相同 |
 | E08 | `edRandom` 生成 50 张地图：全部左右对称、全部通过检查、锁定格没被改 |
-| E09 | 对称绘制：`edMirror` 打开时画一格，对称的格子也被画上 |
+| E09 | 对称开关：`edCommand "mirror"` 切换 `edMirror`。对称绘制本身写在 `editLoop` 里，跟着鼠标走，测不到（见第六节），手工检查 |
 | E10 | `copy` 依次复制第 1~8 关，再按一次回到第 1 关；复制后 `stage` 不变 |
 | E11 | `clear` 之后只剩锁定格 |
 | E12 | `edRows` / `edLoadRows` 互为逆运算；格式不对的数据 `edLoadRows` 返回 false |
