@@ -336,18 +336,19 @@ v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`�
 
 ### 分工
 
-表中的 `dn-mbp14-qn` 是本地 git 用户名，对应 GitHub 账号 [danielfeng](https://github.com/danielfeng)；`zhangxunling` 是另一位成员。
+团队两人：**danielfeng**（本地 git 用户名 `dn-mbp14-qn`，GitHub [danielfeng](https://github.com/danielfeng)）和 **zhangxunling**（GitHub zhangxunling）。**测试与覆盖率由 zhangxunling 负责，其余全部由 danielfeng 负责。**
 
 | 模块 | 负责人 | 内容 |
 |---|---|---|
-| 产品与玩法设计 | dn-mbp14-qn | 2026 版玩法、商业化方案、路演叙事 |
-| 游戏逻辑（`main.spx` 及各精灵） | dn-mbp14-qn | 规则、流程状态机、复活与结算、地形、路演演示模式 |
-| 美术与界面管线（`tools/assets`） | dn-mbp14-qn | 生成器、现代画风、HUD 与弹窗、文字转路径 |
-| 商业化（广告位） | dn-mbp14-qn | 广告位设计与实现、正式接入方案 |
-| 测试、演示视频与文档 | dn-mbp14-qn | 实机截图验证、演示视频、架构文档 |
-| v4.0 测试与质量 | zhangxunling | 测试方案、引擎内测试框架、各模块测试用例（规则、流程、编辑器、双人、构建工具）、覆盖率统计、本地检查 `pr_check.sh`（#24~#43） |
-| v3.0 关卡、双人合作、地图编辑器 | dn-mbp14-qn | 8 张地图与关卡检查工具、2P 坦克、编辑器与实时检查 |
-| v3.0 跨平台打包与发布 | dn-mbp14-qn | 打包脚本、网页版外壳、手机触屏模式、GitHub Actions 发布与冒烟测试 |
-| v4.0 收尾 | dn-mbp14-qn | 网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板、发布文档 |
+| 产品与玩法设计 | danielfeng | 2026 版玩法、商业化方案、路演叙事 |
+| 游戏逻辑（`main.spx` 及各精灵） | danielfeng | 规则、流程状态机、复活与结算、地形、路演演示模式 |
+| 美术与界面管线（`tools/assets`） | danielfeng | 生成器、现代画风、HUD 与弹窗、文字转路径 |
+| 商业化（广告位） | danielfeng | 广告位设计与实现、正式接入方案 |
+| v3.0 关卡、双人合作、地图编辑器 | danielfeng | 8 张地图与关卡检查工具、2P 坦克、编辑器与实时检查、暂停菜单 |
+| v3.0 跨平台打包与发布 | danielfeng | 打包脚本、网页版外壳、手机触屏模式、发布流程 |
+| 演示视频与文档 | danielfeng | 实机截图、演示视频、README、架构文档、更新记录、v4.0 发布文档 |
+| 测试与覆盖率（v4.0） | zhangxunling | 测试方案、引擎内测试框架、全部测试用例（规则、流程、编辑器、双人、构建工具、网页外壳、XBuilder 兼容、安装包启动）、覆盖率统计和基线、本地检查 `pr_check.sh`、PR 模板 |
 
-开发全程使用 AI 编程助手（Claude Code）结对完成：人负责方向、取舍和验收，AI 负责实现和验证，每一步都通过 PR 留下记录。团队成员加入后，请在这张表里补充各自负责的模块。
+测试与覆盖率的 PR 里，#24~#43 由 zhangxunling 的账号提交；#44~#47（网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板）由 danielfeng 的账号代为提交，内容同属测试与覆盖率。测试发现的游戏问题（例如子弹相撞）由 danielfeng 确认和修复。
+
+开发全程使用 AI 编程助手（Claude Code）结对完成：人负责方向、取舍和验收，AI 负责实现和验证，每一步都通过 PR 留下记录。
