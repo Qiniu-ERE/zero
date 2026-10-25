@@ -2,6 +2,7 @@
 # 跑引擎内测试（macOS / Linux，需要 spx）
 #
 # 用法：tools/test/run_spx.sh                      # 跑 tests/spx/ 下的全部测试
+#       TEST_TIMEOUT=90 tools/test/run_spx.sh       # 每组默认超时（秒），默认 60
 #       tools/test/run_spx.sh tests/spx/grid.spx   # 只跑一组
 #
 # 做法（详见 docs/v4/TEST_PLAN.md 第二节）：每组测试复制一份工程，把 prelude.spx 的断言函数插到
@@ -43,8 +44,11 @@ for suite in "$@"; do
 	(cd "$dir/TankBattle" && HOME="$dir/home" XDG_CONFIG_HOME="$dir/home/.config" APPDATA="$dir/home/AppData" \
 		exec spx run -headless . > "${log}" 2>&1) &
 	pid=$!
+	# 测试文件里可以写一行 “// timeout: 秒数” 改这一组的超时（例如路演演示要跑一分多钟）
+	limit=$(sed -n 's,^// timeout: *\([0-9][0-9]*\).*,\1,p' "$suite" | head -1)
+	limit=${limit:-$TIMEOUT}
 	secs=0
-	while kill -0 $pid 2>/dev/null && [ ${secs} -lt "${TIMEOUT}" ]; do sleep 1; secs=$((secs + 1)); done
+	while kill -0 $pid 2>/dev/null && [ ${secs} -lt "${limit}" ]; do sleep 1; secs=$((secs + 1)); done
 	timedout=0
 	if kill -0 $pid 2>/dev/null; then
 		timedout=1
@@ -60,7 +64,7 @@ for suite in "$@"; do
 	why=""
 	[ "${fail}" -eq 0 ] || why="${fail} 个断言失败"
 	grep -a -q "^TEST DONE ${name}" "${log}" || why="${why:+${why}；}没有跑完（缺少 TEST DONE）"
-	[ $timedout -eq 0 ] || why="${why:+${why}；}超时（${TIMEOUT} 秒）"
+	[ $timedout -eq 0 ] || why="${why:+${why}；}超时（${limit} 秒）"
 	! grep -a -q -E 'panic|cannot alloc method|failed to build|Engine failed: exit status' "${log}" || why="${why:+${why}；}引擎报错（编译失败或崩溃）"
 	if [ -z "${why}" ]; then
 		echo "ok    ${name}  pass=${pass}  (${secs}s)"

@@ -1,0 +1,76 @@
+// 流程：战败、复活询问、激励视频复活（F05~F10、F19、F20），见 docs/v4/TEST_PLAN.md 第 3.4 节
+// 复活询问先等 2.2 秒（爆炸和镜头特写），再倒计时 7 秒；模拟广告 5 秒
+// timeout: 90
+onStart => {
+	wait 3
+
+	// F05 基地被毁 → 复活询问 → F07 看视频 → F09 复活
+	playStage 1
+	wait 0.5
+	tCalm
+	baseDestroyed
+	tInt "F05 基地被毁 → 复活询问", state, stRevive
+	tCheck "F05 战场冻结", gameOver
+	// F23 复活弹窗出现之前（先等 2.2 秒爆炸和特写）按确认键不算数：J / Enter 也是开火键，连按开火不能误点“看视频”
+	confirm
+	tInt "F23 弹窗出现前按确认：还在复活询问", state, stRevive
+	wait 1
+	confirm
+	tInt "F23 1 秒后按确认：还在复活询问", state, stRevive
+	wait 1.6
+	tStr "F21 复活询问倒计时画面", screen, "revive_7"
+
+	n0 := lives
+	confirm // J / Enter：看视频复活
+	tInt "F07 复活询问 → 播放广告", state, stAd
+	tInt "F07 奖励是复活", adReward, rewardRevive
+	watchAd rewardDouble
+	tInt "F20 播放中再次 watchAd 被忽略", adReward, rewardRevive
+	wait 0.3
+	tStr "F21 广告画面", screen, "adplay_5"
+
+	tCheck "F09 广告播完 → 对局", tWaitState(stPlay, 7)
+	tCheck "F09 已经复活过", revived
+	tCheck "F09 基地修好了", !baseDown && grid[baseIdx] == 9
+	tInt "F09 额外 1 条命", lives, n0+1
+	tCheck "F09 战场恢复运行", !gameOver
+
+	// F10 复活过以后再次战败 → 直接结算
+	tCalm
+	baseDestroyed
+	tInt "F10 第二次战败 → 结算", state, stResult
+	tCheck "F10 判负", !won
+	tStr "F21 失败结算画面", screen, "result_lose_plain"
+
+	// F19 战场冻结时重复战败没有副作用
+	baseDestroyed
+	defeat
+	tInt "F19 重复战败：还在结算", state, stResult
+
+	// F06 生命用完 → 复活询问
+	playStage 1
+	wait 0.5
+	tCalm
+	lives = 1
+	Player.shield = 0
+	hitWho = 1
+	broadcast "playerHit"
+	wait 0.3
+	tInt "F06 生命用完 → 复活询问", state, stRevive
+
+	// F08 复活询问 7 秒倒计时结束 → 结算
+	tCheck "F08 倒计时结束 → 结算", tWaitState(stResult, 12)
+	tCheck "F08 判负", !won
+
+	// F08 放弃（Esc 调用的是 endGame false）
+	playStage 1
+	wait 0.5
+	tCalm
+	baseDestroyed
+	endGame false
+	tInt "F08 放弃 → 结算", state, stResult
+	wait 3 // reviveFlow 还在等，确认它不会再把状态改回去
+	tInt "F08 放弃后不再弹出复活询问", state, stResult
+
+	tDone "flow_revive"
+}
