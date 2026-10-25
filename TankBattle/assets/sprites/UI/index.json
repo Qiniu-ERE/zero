@@ -549,14 +549,28 @@
     {
       "name": "msg.ed.savefail_zh",
       "path": "msg.ed.savefail_zh.svg",
-      "x": 372.0,
+      "x": 480.0,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
       "name": "msg.ed.savefail_en",
       "path": "msg.ed.savefail_en.svg",
-      "x": 410.43,
+      "x": 519.94,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.coop.touch_zh",
+      "path": "msg.coop.touch_zh.svg",
+      "x": 282.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.coop.touch_en",
+      "path": "msg.coop.touch_en.svg",
+      "x": 423.61,
       "y": 44.0,
       "bitmapResolution": 4
     },

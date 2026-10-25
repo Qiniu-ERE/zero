@@ -40,6 +40,7 @@ var (
 	p2x       float64
 	p2y       float64
 	hitWho    int // 刚被打中的是 1P 还是 2P（"playerHit" 消息的参数）
+	resultReady bool // 结算弹窗出现 0.6 秒后才接受确认键（防止连按开火键误点“看视频”）
 
 	// 自己做地图（见 docs/v3/MAP_EDITOR.md）
 	ed        []byte // 正在编辑的地图，169 个字符：. B S W G E
@@ -937,11 +938,13 @@ func endGame(win bool) {
 	gameOver = true
 	won = win
 	state = stResult
-	coins = score / 50
+	coins = (score - stageScore) / 50 // 按本关得分折算（得分会带到下一关，不能重复算）
 	if win {
 		coins += 100
 	}
 	doubled = false
+	resultReady = false
+	broadcast "resultArm"
 	broadcast "gameEnd"
 	showResult
 }
@@ -971,7 +974,7 @@ func showResult() {
 
 // 对局中暂停：战场冻结，弹出暂停菜单
 func pauseGame() {
-	if state != stPlay || autopilot {
+	if state != stPlay || gameOver || autopilot { // gameOver：开局或复活还没准备好
 		return
 	}
 	state = stPause
@@ -1019,6 +1022,10 @@ func again() {
 
 // 从主页开始新游戏：第 n 关，two 表示双人合作
 func newGame(n int, two bool) {
+	if two && touchUI {
+		toast "msg.coop.touch", 2 // 手机 App 只认一根手指，2P 没法操作
+		return
+	}
 	coop = two
 	playStage n
 }
@@ -1040,8 +1047,14 @@ func confirm() {
 	case stPause:
 		resumeGame
 	case stRevive:
-		watchAd rewardRevive
+		// 基地被毁后要等 2.2 秒才弹出复活询问；这期间还在连按开火键（J / Enter），不能当成“看视频复活”
+		if strings.HasPrefix(screen, "revive_") {
+			watchAd rewardRevive
+		}
 	case stResult:
+		if !resultReady {
+			return // 结算刚出现，玩家可能还在按开火键
+		}
 		if !doubled {
 			watchAd rewardDouble
 		}
@@ -1114,14 +1127,14 @@ func autopilotBlocked() {
 // 路演演示的 v3.0 部分：几个新关卡 → 双人合作 → 暂停菜单 → 地图编辑器里画一张“河流城堡”并试玩
 func demoV3() {
 	for _, n := range []int{2, 3, 4, 8} {
-		newGame n, false
 		autopilot = true
+		newGame n, false
 		apTimer = 0
 		tgtAge = 9
 		wait 3.5
 	}
-	newGame 1, true // 双人合作（演示时 1P 自动驾驶，2P 停在出生点）
 	autopilot = true
+	newGame 1, true // 双人合作（演示时 1P 自动驾驶，2P 停在出生点）
 	apTimer = 0
 	tgtAge = 9
 	wait 4
@@ -1130,6 +1143,8 @@ func demoV3() {
 	wait 2.5
 	resumeGame
 	wait 0.5
+	keepEd := ed // 演示会清空编辑器，结束后还原玩家的地图
+	keepLoaded := edLoaded
 	edLoaded = true // 演示时不读取玩家保存的地图
 	openEditor
 	edBlank()
@@ -1166,11 +1181,13 @@ func demoV3() {
 		}
 	}
 	wait 1.5
-	playCustom false
 	autopilot = true
+	playCustom false
 	apTimer = 0
 	tgtAge = 9
 	wait 6
+	ed = keepEd
+	edLoaded = keepLoaded
 }
 
 // 等到画面进入状态 st（最多等 secs 秒），用于演示脚本按实际状态推进
@@ -1200,7 +1217,7 @@ func enemyKilled(points int) {
 	killed++
 	enemiesAlive--
 	enemiesLeft = totalEnemy - killed
-	if score > best {
+	if score > best && !autopilot { // 路演演示（自动驾驶）的分数不算最高分
 		best = score
 	}
 	broadcast "hud"
@@ -1426,6 +1443,10 @@ onKey KeyH, => {
 
 // 编辑器：鼠标 / 触屏绘制。按住拖动可以连续画；对称绘制时右边同时画
 onMsg "editLoop", => {
+	// 点按钮进入编辑器时，点击在鼠标按下时就触发了；先等松开，否则会在按钮下面那格画上东西
+	for mousePressed && state == stEdit {
+		waitNextFrame
+	}
 	for state == stEdit {
 		i := cellIndex(mouseX, mouseY)
 		if i != edCursor {
@@ -1448,6 +1469,11 @@ onMsg "editLoop", => {
 		}
 		waitNextFrame
 	}
+}
+
+onMsg "resultArm", => {
+	wait 0.6
+	resultReady = true
 }
 
 // 复活询问：倒计时结束还没选择就直接结算
@@ -1485,6 +1511,7 @@ onMsg "adFlow", => {
 // → v3.0：新关卡、双人合作、自己做地图（demoV3）→ 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
+	autopilot = true // 先设好，开局时顶栏就不会显示暂停按钮
 	newGame 1, false
 	autopilot = true
 	apTimer = 0
