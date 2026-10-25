@@ -9,10 +9,10 @@
 #   release_local.sh 发布前核对它等于标签的提交、表里没有 ❌。只打一部分平台时，同一个提交上次打的其余平台的结果会保留。
 #
 # 各平台怎么打（在一台 Apple 芯片 Mac 上，见 docs/v3/CROSS_PLATFORM.md「本机打包」）：
-#   macos    本机 buildlauncher → .app，再用 tools/test/package_boot.sh 运行安装包里的程序做启动测试
+#   macos    本机 buildlauncher → .app，再用 tools/test/package_boot.sh 运行安装包里的程序做启动测试；再用 tools/test/dist_boot.sh 直接运行 dist/ 里的安装包 20 秒，确认不崩
 #   web      本机 exportweb + 网页外壳，检查包里有游戏、外壳和 PWA 文件
 #   android  本机 exportapk（JDK 17：有 JAVA_HOME 就用，没有就用 nix 临时提供；Android SDK / NDK r23c），apksigner 验证签名
-#   linux    OrbStack 的 x86_64 Ubuntu 虚拟机（tools/export/linux_vm.sh，第一次先 setup），虚拟机里做启动测试
+#   linux    OrbStack 的 x86_64 Ubuntu 虚拟机（tools/export/linux_vm.sh，第一次先 setup），虚拟机里做同样的两步启动测试
 #   windows  需要 Windows 环境（buildlauncher 只能打本机平台）：暂时空着
 #   ios      需要 Xcode：暂时空着
 set -uo pipefail
@@ -74,10 +74,13 @@ for p in "$@"; do
 	macos)
 		if [ "$(uname -s)" != Darwin ]; then row macos ⏸ — "不在 macOS 上"; continue; fi
 		if "$EXPORT_DIR/build.sh" desktop > "$log_file" 2>&1 && f=$(art macos) && [ -n "$f" ]; then
-			if "$ROOT/tools/test/package_boot.sh" >> "$log_file" 2>&1; then
-				row macos ✅ "$(basename "$f")（$(size "$f")）" "启动测试通过（$(grep -o '[0-9]* 个断言' "$log_file" | tail -1)）"
-			else
+			# 两步：package_boot.sh 另打一个带启动测试的包，测能进主页、开一局；dist_boot.sh 再直接运行要发出去的这个包
+			if ! "$ROOT/tools/test/package_boot.sh" >> "$log_file" 2>&1; then
 				row macos ❌ "$(basename "$f")" "启动测试失败，见 $log_file"
+			elif "$ROOT/tools/test/dist_boot.sh" "$f" >> "$log_file" 2>&1; then
+				row macos ✅ "$(basename "$f")（$(size "$f")）" "启动测试通过（$(grep -o '[0-9]* 个断言' "$log_file" | tail -1)），安装包本身运行 ${DIST_BOOT_SECS:-20} 秒正常"
+			else
+				row macos ❌ "$(basename "$f")" "安装包本身启动失败（dist_boot.sh），见 $log_file"
 			fi
 		else
 			row macos ❌ — "打包失败，见 $log_file"
@@ -134,8 +137,8 @@ for p in "$@"; do
 		vm=${LINUX_VM:-tankbattle-linux}
 		if ! command -v orb >/dev/null; then row linux ⏸ — "没有 OrbStack"; continue; fi
 		if ! orb list | grep -q "^$vm "; then row linux ⏸ — "没有虚拟机 ${vm}：先运行 tools/export/linux_vm.sh setup"; continue; fi
-		if "$EXPORT_DIR/linux_vm.sh" build > "$log_file" 2>&1 && f=$(art linux) && [ -n "$f" ] && grep -q 'B03 通过' "$log_file"; then
-			row linux ✅ "$(basename "$f")（$(size "$f")）" "虚拟机里启动测试通过（Xvfb + 软件 Vulkan）"
+		if "$EXPORT_DIR/linux_vm.sh" build > "$log_file" 2>&1 && f=$(art linux) && [ -n "$f" ] && grep -q 'B03 通过' "$log_file" && grep -q 'B14 通过' "$log_file"; then
+			row linux ✅ "$(basename "$f")（$(size "$f")）" "虚拟机里启动测试通过，安装包本身运行正常（Xvfb + 软件 Vulkan）"
 		else
 			row linux ❌ "$(basename "$(art linux)" 2>/dev/null)" "打包或启动测试失败，见 $log_file"
 		fi

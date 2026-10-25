@@ -62,12 +62,22 @@ def options(app_id, title, version):
     }
 
 
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def write(path, text):
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
 def quote(v):
     return v if v in ("true", "false") or re.fullmatch(r"-?\d+", v) else '"' + v.replace('"', '\\"') + '"'
 
 
 def patch_presets(path, opts_by_preset):
-    lines = open(path, encoding="utf-8").read().split("\n")
+    lines = read(path).split("\n")
     names, cur, done = {}, None, set()
     for line in lines:  # 先找出每个 preset 编号对应的名字
         m = re.match(r'\[preset\.(\d+)\]$', line)
@@ -94,14 +104,14 @@ def patch_presets(path, opts_by_preset):
     missing = [f"{n}: {k}" for n, o in opts_by_preset.items() for k in o if (n, k) not in done]
     if missing:
         sys.exit(f"export_presets.cfg 里没有找到这些选项：{missing}")
-    open(path, "w", encoding="utf-8").write("\n".join(out))
+    write(path, "\n".join(out))
 
 
 def patch_project(path):
-    s = open(path, encoding="utf-8").read()
+    s = read(path)
     if "config/icon=" not in s:
         s = s.replace("[application]\n", f'[application]\n\nconfig/icon="{ICON}"\n', 1)
-    open(path, "w", encoding="utf-8").write(s)
+    write(path, s)
 
 
 def main(argv):
