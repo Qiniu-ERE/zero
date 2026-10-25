@@ -118,7 +118,7 @@ onStart => {
 	escKey
 	tInt "F31 弹窗出现后按 Esc = 放弃 → 结算", state, stResult
 
-	// F32 暂停菜单的“重新开始本关”不会把复活次数清零（v5 REVIEW A16：复活次数按关卡记录）
+	// F32 暂停菜单的“重新开始本关”不会把复活次数清零（v5 REVIEW A16）；真的输了、在结算里重打本关，可以再复活一次
 	playStage 2
 	wait 0.5
 	tCalm
@@ -136,7 +136,7 @@ onStart => {
 	tInt "F32 重新开始后再战败 → 直接结算", state, stResult
 	again // 输了重打本关
 	wait 0.5
-	tCheck "F32 结算后重打本关：也还是复活过", revived
+	tCheck "F32 结算后重打本关：可以再复活", !revived
 	goHome
 	wait 0.3
 	playStage 2
