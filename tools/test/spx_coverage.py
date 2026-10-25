@@ -104,7 +104,9 @@ def report(logs, unittest_log=None):
                     tested.add(m.group(1))
     if unittest_log and os.path.exists(unittest_log):
         with open(unittest_log, encoding="utf-8", errors="replace") as f:
-            tested |= set(re.findall(r"test_([A-Z]\d\d)_", f.read()))
+            text = f.read()
+            tested |= set(re.findall(r"test_([A-Z]\d\d)_", text))
+            tested |= set(re.findall(r"^ok \d+ - ([A-Z]\d\d)\b", text, re.M))  # node --test 的输出
 
     pts = all_points()
     files = sorted({n.split(":")[0] for n in pts}, key=lambda s: (s != "main.spx", s))

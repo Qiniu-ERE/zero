@@ -1,5 +1,5 @@
 #!/bin/sh
-# 一条命令跑完全部自动化测试：构建工具（Python）+ 引擎内测试（spx）
+# 一条命令跑完全部自动化测试：构建工具（Python）+ 网页外壳（Node.js）+ 引擎内测试（spx）
 #
 # 用法：tools/test/run_all.sh
 #   PYTHON=/path/to/python  指定 Python（要跑美术生成器的测试，需要先 pip install -r tools/assets/requirements.txt，
@@ -19,6 +19,17 @@ echo "==> 构建工具测试（tests/tools）"
 "$PY" -m unittest discover -v -s "$ROOT/tests/tools" > "$UNITTEST_LOG" 2>&1 || status=1
 tail -4 "$UNITTEST_LOG"
 grep -E '^(FAIL|ERROR):' "$UNITTEST_LOG" || true
+
+echo
+echo "==> 网页外壳测试（tests/web，需要 Node.js 18 以上）"
+if command -v node > /dev/null 2>&1; then
+	node --test "$ROOT"/tests/web/*.test.mjs > "$UNITTEST_LOG.web" 2>&1 || status=1
+	grep -E '^# (pass|fail)' "$UNITTEST_LOG.web"
+	grep -E '^not ok' "$UNITTEST_LOG.web" || true
+	cat "$UNITTEST_LOG.web" >> "$UNITTEST_LOG"
+else
+	echo "跳过：没有 node"
+fi
 
 if [ -z "${SKIP_SPX:-}" ]; then
 	echo
