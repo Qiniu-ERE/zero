@@ -1,30 +1,50 @@
-# 打包并发布坦克大战：Windows / macOS / Linux 单文件程序、网页版（PWA，iPhone 和安卓用）、Android APK、iOS IPA。
+# 打包坦克大战：Windows / macOS / Linux 单文件程序、网页版（PWA，iPhone 和安卓用）、Android APK、iOS IPA，
+# 需要时补到已有的 GitHub Release 里，或者新建 Release。
 #
-# 现在只能手动运行（见下面的 on:）。原来推送 v* 标签会自动打全部平台并创建 GitHub Release，
-# 推送 ci/ 开头的分支会按提交信息打对应平台；本地打包见 tools/export/build_local.sh。
+# 只能手动运行（Actions 页面 → Release → Run workflow）。2026-10-25 起平时在本机打包发布
+# （tools/export/build_local.sh + release_local.sh，组织的 Actions 额度用完了）；这个工作流用来补本机打不了的平台
+# （Windows、iOS），或者额度恢复后在云端打全部平台。打包脚本都在 tools/export/，和本机用的是同一套命令。
 #
-# - 手动运行（Actions 页面 → Release → Run workflow）：打全部平台，产物在这次运行的 Artifacts 里，不发布
-# - 推送到 ci/ 开头的分支（例如 ci/fix-ios）时，只在提交信息里带 [ci 平台] 才打对应平台（调试用，节省 Actions 分钟数）：
-#   [ci desktop] [ci web] [ci android] [ci ios] [ci all]；[ci smoke] 再加桌面版冒烟测试（启动游戏并截图）
-#   （APK 没法在 CI 的 x86_64 安卓模拟器里测：Godot 的安卓模板只有 ARM 引擎库，而模拟器的 ARM 转译不支持 Go 运行时读取 CPU 型号的指令）
+# 输入：
+#   platforms       要打的平台，逗号分隔：windows macos linux web android ios；desktop = 三个桌面平台；all = 全部（默认）。
+#                   再加 smoke：对这次打了的桌面平台跑冒烟测试（启动游戏并截图）；all 包含 smoke
+#   upload_to       已有 Release 的标签（例如 v4.0.1）：检出这个标签的代码打包，打好后用 release_local.sh --append
+#                   补进这个 Release（只上传 Release 里还没有的文件，重算 SHA256SUMS.txt，重新生成说明）。
+#                   打包用标签上的代码；上传用这次运行所在分支（一般是 main）上的 release_local.sh 和 CHANGELOG.md
+#   create_release  在标签上运行时（Use workflow from 选那个标签）新建 Release；默认不勾
+# 不填 upload_to、也不勾 create_release 时只打包不发布，产物在这次运行的 Artifacts 里。
+# 发布说明和本机发布用同一个脚本 tools/export/release_local.sh（缺的平台指向以前的版本）。
 #
-# 打包脚本在 tools/export/，本地也能用同样的命令打包。
+# APK 没法在 CI 的 x86_64 安卓模拟器里测：Godot 的安卓模板只有 ARM 引擎库，而模拟器的 ARM 转译不支持 Go 运行时读取 CPU 型号的指令。
+#
+# 第三方 Action 都锁定到提交（后面注释是对应的版本），升级时一起改。
 name: Release
 
 on:
-  # 2026-10-25 起改为本地打包（tools/export/build_local.sh + release_local.sh）：组织的 Actions 额度用完，任务启动不了。
-  # 推送标签、推送分支都不再自动触发；Actions 恢复后需要云端打包时，在 Actions 页面手动运行。
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: '要打的平台：all，或者逗号分隔的 windows,macos,linux,web,android,ios,desktop,smoke'
+        type: string
+        default: all
+      upload_to:
+        description: '补到已有的 Release（标签，例如 v4.0.1）；空着不上传'
+        type: string
+        default: ''
+      create_release:
+        description: '在标签上运行时新建 Release（默认只打包不发布）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.ref }}-${{ inputs.upload_to }}
   cancel-in-progress: true
 
 env:
-  GO_VERSION: '1.26.5'   # 和 spx 的 runtime.lock.json 一致
+  GO_VERSION: '1.26.5'   # 和 tools/export/env.sh、spx 的 runtime.lock.json 一致（tests/tools 有测试核对）
   XGO_VERSION: 'v1.7.5'
 
 jobs:
@@ -32,40 +52,75 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.p.outputs.version }}
+      ref: ${{ steps.p.outputs.ref }}
+      release: ${{ steps.p.outputs.release }}
       desktop: ${{ steps.p.outputs.desktop }}
+      desktop_matrix: ${{ steps.p.outputs.desktop_matrix }}
       web: ${{ steps.p.outputs.web }}
       android: ${{ steps.p.outputs.android }}
       ios: ${{ steps.p.outputs.ios }}
-      smoke: ${{ steps.p.outputs.smoke }}
+      smoke_linux: ${{ steps.p.outputs.smoke_linux }}
+      smoke_windows: ${{ steps.p.outputs.smoke_windows }}
+      smoke_macos: ${{ steps.p.outputs.smoke_macos }}
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - id: p
         env:
-          MSG: ${{ github.event.head_commit.message }}
+          PLATFORMS: ${{ inputs.platforms }}
+          UPLOAD_TO: ${{ inputs.upload_to }}
+          CREATE: ${{ inputs.create_release }}
         run: |
-          if [ "${{ github.ref_type }}" = tag ]; then
-            version="${GITHUB_REF_NAME#v}"
+          set -euo pipefail
+          # 版本号和发布方式
+          if [ -n "$UPLOAD_TO" ]; then
+            case "$UPLOAD_TO" in v[0-9]*) ;; *) echo "::error::upload_to 要填标签，例如 v4.0.1"; exit 1 ;; esac
+            [ "$CREATE" != true ] || { echo "::error::upload_to 和 create_release 只能选一个"; exit 1; }
+            version="${UPLOAD_TO#v}"; ref="refs/tags/$UPLOAD_TO"; release=append
+          elif [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"; ref="$GITHUB_REF"; release=none
+            [ "$CREATE" != true ] || release=create
           else
-            # 开发版：CHANGELOG.md 里最新的版本号 + -dev.运行编号
-            version="$(sed -n 's/^## v\([0-9][0-9.]*\)$/\1/p' CHANGELOG.md | head -1)-dev.${GITHUB_RUN_NUMBER}"
+            [ "$CREATE" != true ] || { echo "::error::create_release 要在标签上运行（Use workflow from 选标签）"; exit 1; }
+            # 开发版：CHANGELOG.md 里最新的版本号（和本机打包一样由 env.sh 解析）+ -dev.运行编号
+            base="$(bash -c 'source tools/export/env.sh >/dev/null 2>&1; printf %s "$APP_VERSION"')"
+            [ -n "$base" ] || { echo "::error::CHANGELOG.md 里找不到版本号"; exit 1; }
+            version="$base-dev.${GITHUB_RUN_NUMBER}"; ref="$GITHUB_REF"; release=none
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          all=false
-          if [ "${{ github.ref_type }}" = tag ] || [ "${{ github.event_name }}" = workflow_dispatch ] || [[ "$MSG" == *"[ci all]"* ]]; then all=true; fi
-          for t in desktop web android ios smoke; do
-            if $all || [[ "$MSG" == *"[ci $t]"* ]]; then echo "$t=true"; else echo "$t=false"; fi >> "$GITHUB_OUTPUT"
+          # 平台
+          list="$(printf %s "${PLATFORMS:-all}" | tr -d ' ')"
+          for t in ${list//,/ }; do
+            case "$t" in all|desktop|windows|macos|linux|web|android|ios|smoke) ;; *) echo "::error::不认识的平台：$t"; exit 1 ;; esac
           done
-          echo "version $version"; cat "$GITHUB_OUTPUT"
+          has() { [[ ",$list," == *",all,"* || ",$list," == *",$1,"* ]]; }
+          matrix=""
+          for pair in windows:windows-latest macos:macos-15 linux:ubuntu-latest; do
+            name="${pair%%:*}"; os="${pair#*:}"
+            if has "$name" || has desktop; then
+              matrix="${matrix:+$matrix,}{\"os\":\"$os\"}"
+              selected="true"
+            else
+              selected="false"
+            fi
+            if has smoke && [ "$selected" = true ]; then echo "smoke_$name=true"; else echo "smoke_$name=false"; fi >> "$GITHUB_OUTPUT"
+          done
+          if [ -n "$matrix" ]; then echo "desktop=true"; else echo "desktop=false"; fi >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$version"
+            echo "ref=$ref"
+            echo "release=$release"
+            # 一个桌面平台都不打时 desktop=false、任务跳过；矩阵里随便放一项，免得 fromJSON 拿到空的 include
+            [ -n "$matrix" ] || matrix='{"os":"ubuntu-latest"}'
+            echo "desktop_matrix={\"include\":[$matrix]}"
+            for t in web android ios; do if has "$t"; then echo "$t=true"; else echo "$t=false"; fi; done
+          } >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
 
   desktop:
     needs: plan
     if: needs.plan.outputs.desktop == 'true'
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: macos-15        # Apple 芯片
-          - os: windows-latest  # x64
-          - os: ubuntu-latest   # x64
+      matrix: ${{ fromJSON(needs.plan.outputs.desktop_matrix) }}   # macos-15（Apple 芯片）/ windows-latest（x64）/ ubuntu-latest（x64）
     runs-on: ${{ matrix.os }}
     env:
       APP_VERSION: ${{ needs.plan.outputs.version }}
@@ -73,10 +128,12 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.ref }}
       - name: Set up MSYS2 (Windows：编译需要 gcc)
         if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e  # v2.33.0
         with:
           msystem: MINGW64
           install: mingw-w64-x86_64-toolchain
@@ -87,7 +144,7 @@ jobs:
       - name: Linux 依赖
         if: runner.os == 'Linux'
         run: sudo apt-get update -q && sudo apt-get install -y -q gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev zip
-      - uses: goplus/setup-xgo@v1
+      - uses: goplus/setup-xgo@97d9d9a23181e30248438a381e2669cd25de1427  # v1.1.0
         with:
           go-version: ${{ env.GO_VERSION }}
           xgo-version: ${{ env.XGO_VERSION }}
@@ -101,7 +158,7 @@ jobs:
         run: tools/export/setup_spx.sh
       - name: 打包
         run: tools/export/build.sh desktop
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: desktop-${{ runner.os }}
           path: dist/*
@@ -114,15 +171,17 @@ jobs:
     env:
       APP_VERSION: ${{ needs.plan.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.ref }}
       - run: sudo apt-get update -q && sudo apt-get install -y -q gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev zip
-      - uses: goplus/setup-xgo@v1
+      - uses: goplus/setup-xgo@97d9d9a23181e30248438a381e2669cd25de1427  # v1.1.0
         with:
           go-version: ${{ env.GO_VERSION }}
           xgo-version: ${{ env.XGO_VERSION }}
       - run: tools/export/setup_spx.sh web
       - run: tools/export/build.sh web
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: web
           path: dist/*
@@ -135,9 +194,11 @@ jobs:
     env:
       APP_VERSION: ${{ needs.plan.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.ref }}
       - run: sudo apt-get update -q && sudo apt-get install -y -q gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev zip
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3  # v4.9.1
         with:
           distribution: temurin
           java-version: '17'
@@ -146,14 +207,15 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;23.2.8568313" "build-tools;34.0.0" "platforms;android-34" > /dev/null
           echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/23.2.8568313" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
-      - uses: goplus/setup-xgo@v1
+      - uses: goplus/setup-xgo@97d9d9a23181e30248438a381e2669cd25de1427  # v1.1.0
         with:
           go-version: ${{ env.GO_VERSION }}
           xgo-version: ${{ env.XGO_VERSION }}
       - run: tools/export/setup_spx.sh android
       - name: 打包
         env:
-          # 调试证书：仓库设置了这几个 Secret 就用固定的证书（以后发新版可以覆盖安装），否则临时生成
+          # 调试证书：仓库设置了这几个 Secret 就用固定的证书（新版本可以覆盖安装），否则 build.sh 临时生成一个。
+          # 要和本机发布的 APK 用同一个证书，把本机的 ~/.config/tankbattle/debug.keystore 用 base64 存进 ANDROID_KEYSTORE_BASE64
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_USER: ${{ secrets.ANDROID_KEYSTORE_USER }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -163,9 +225,11 @@ jobs:
             export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/debug.keystore"
             export GODOT_ANDROID_KEYSTORE_DEBUG_USER="$ANDROID_KEYSTORE_USER"
             export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
+          else
+            echo "::warning::没有设置 ANDROID_KEYSTORE_BASE64：这次的 APK 用临时证书签名，装过别的版本的玩家要先卸载"
           fi
           tools/export/build.sh android
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: android
           path: dist/*
@@ -178,14 +242,16 @@ jobs:
     env:
       APP_VERSION: ${{ needs.plan.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: goplus/setup-xgo@v1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.ref }}
+      - uses: goplus/setup-xgo@97d9d9a23181e30248438a381e2669cd25de1427  # v1.1.0
         with:
           go-version: ${{ env.GO_VERSION }}
           xgo-version: ${{ env.XGO_VERSION }}
       - run: tools/export/setup_spx.sh ios
       - run: tools/export/build.sh ios
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: ios
           path: dist/*
@@ -194,10 +260,10 @@ jobs:
   # 冒烟测试：Linux 版在虚拟显示器 + 软件 Vulkan（lavapipe）里启动并截图
   smoke-linux:
     needs: [plan, desktop]
-    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.desktop == 'true'
+    if: needs.plan.outputs.smoke_linux == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           name: desktop-Linux
           path: pkg
@@ -214,7 +280,7 @@ jobs:
           cp run.log ../smoke-linux.log
           pgrep -f gdspxrt > /dev/null || { echo "::error::游戏没有在运行"; tail -50 run.log; exit 1; }
           echo "running"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
         with:
           name: smoke-linux
@@ -225,10 +291,10 @@ jobs:
   # 冒烟测试：Windows 版启动后截屏（没有显卡时 Godot 会用 D3D12 的软件渲染）
   smoke-windows:
     needs: [plan, desktop]
-    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.desktop == 'true'
+    if: needs.plan.outputs.smoke_windows == 'true'
     runs-on: windows-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           name: desktop-Windows
           path: pkg
@@ -246,7 +312,7 @@ jobs:
           $p = Get-Process | Where-Object { $_.Name -like 'gdspx*' }
           $p | Format-Table Name, Id, WS -AutoSize
           if (-not $p) { Write-Error "游戏没有在运行"; exit 1 }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
         with:
           name: smoke-windows
@@ -255,10 +321,10 @@ jobs:
   # 冒烟测试：macOS 版启动后截屏
   smoke-macos:
     needs: [plan, desktop]
-    if: needs.plan.outputs.smoke == 'true' && needs.plan.outputs.desktop == 'true'
+    if: needs.plan.outputs.smoke_macos == 'true'
     runs-on: macos-15
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           name: desktop-macOS
           path: pkg
@@ -271,7 +337,7 @@ jobs:
           screencapture -x smoke-macos.png || true
           cp run.log smoke-macos.log
           pgrep -fl gdspxrt || { echo "::error::游戏没有在运行"; tail -50 run.log; exit 1; }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
         with:
           name: smoke-macos
@@ -279,29 +345,34 @@ jobs:
             smoke-macos.png
             smoke-macos.log
 
+  # 发布：只有填了 upload_to（补到已有的 Release）或者在标签上勾了 create_release 才运行。
+  # 只选了一部分平台时，其余任务是 skipped，这里不当成失败；任何一个任务失败或取消就不发布
   release:
     needs: [plan, desktop, web, android, ios, smoke-linux, smoke-windows, smoke-macos]
-    if: github.ref_type == 'tag'
+    if: >-
+      !cancelled() && needs.plan.outputs.release != 'none'
+      && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      # 用这次运行所在分支（一般是 main）的 release_local.sh，不用标签上的：旧标签上的脚本还没有 --append
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0   # release_local.sh 要核对标签
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           path: dist
           merge-multiple: true
-      - name: 校验和
-        run: cd dist && sha256sum * > SHA256SUMS.txt && ls -la
-      - name: 创建 GitHub Release
+      - name: 发布（tools/export/release_local.sh，和本机发布同一个脚本）
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.plan.outputs.version }}
+          APP_VERSION: ${{ needs.plan.outputs.version }}
+          MODE: ${{ needs.plan.outputs.release }}
+          SKIP_BUILD_CHECK: '1'   # 包是在这个标签的代码上打的，没有本机打包的 dist/BUILD_LOCAL.md
         run: |
-          sed "s/@VERSION@/$VERSION/g" tools/export/RELEASE_NOTES.md > "$RUNNER_TEMP/notes.md"
-          # 本次更新：CHANGELOG.md 里这个版本的一节（例如 "## v3.0.1"）
-          awk -v h="## v$VERSION" '$0 == h {on = 1; next} /^## / {on = 0} on' CHANGELOG.md > "$RUNNER_TEMP/changes.md"
-          if [ -s "$RUNNER_TEMP/changes.md" ]; then
-            { printf '\n### 本次更新\n'; cat "$RUNNER_TEMP/changes.md"; } >> "$RUNNER_TEMP/notes.md"
+          ls -la dist
+          # release_local.sh 只认 TankBattle-<版本>-<平台> 这几种文件，冒烟测试的截图和日志不会被上传
+          if [ "$MODE" = append ]; then
+            tools/export/release_local.sh --append
+          else
+            tools/export/release_local.sh
           fi
-          pre=""
-          case "$VERSION" in *-*) pre="--prerelease" ;; esac   # v3.0.0-rc.1 这类版本标记为预发布
-          gh release create "$GITHUB_REF_NAME" dist/* $pre --title "坦克大战 2026 v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
