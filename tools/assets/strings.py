@@ -56,7 +56,6 @@ STRINGS = {
     "home.start": ("开始战役", "Start"),
     "home.start.d": ("8 个关卡，消灭敌军，守住基地", "8 stages · Destroy tanks, guard the base"),
     "home.pick": ("选择关卡", "Pick a stage"),
-    "soon": ("即将推出", "SOON"),
     "home.demo": ("路演演示模式", "Demo mode"),
     # 复活弹窗（游戏）
     "rv.title": ("防线失守！", "Defense broken!"),
@@ -127,7 +126,7 @@ STRINGS = {
     # 主页
     "m.campaign": ("开始战役", "Campaign"),
     "m.campaign.d": ("35 关剧情模式", "35 story stages"),
-    "m.daily": ("每日挑战", "Daily Challenge"),
+    "m.daily": ("每日挑战", "Daily Challenge"),  # 只给 v2 效果图（docs/v2/mockups/gen.py）用，游戏主页 v5 已去掉
     "m.daily.d": ("每天一张新地图，全服同图", "A new map every day"),
     "m.coop": ("双人合作", "Co-op"),
     "m.coop.d": ("同一台电脑，两人一起守基地", "Two players, one keyboard"),
