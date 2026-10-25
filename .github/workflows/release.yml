@@ -1,6 +1,8 @@
 # 打包并发布坦克大战：Windows / macOS / Linux 单文件程序、网页版（PWA，iPhone 和安卓用）、Android APK、iOS IPA。
 #
-# - 推送 v* 标签（例如 v3.0.0）：打全部平台，并创建 GitHub Release，把安装包挂上去
+# 现在只能手动运行（见下面的 on:）。原来推送 v* 标签会自动打全部平台并创建 GitHub Release，
+# 推送 ci/ 开头的分支会按提交信息打对应平台；本地打包见 tools/export/build_local.sh。
+#
 # - 手动运行（Actions 页面 → Release → Run workflow）：打全部平台，产物在这次运行的 Artifacts 里，不发布
 # - 推送到 ci/ 开头的分支（例如 ci/fix-ios）时，只在提交信息里带 [ci 平台] 才打对应平台（调试用，节省 Actions 分钟数）：
 #   [ci desktop] [ci web] [ci android] [ci ios] [ci all]；[ci smoke] 再加桌面版冒烟测试（启动游戏并截图）
@@ -10,9 +12,8 @@
 name: Release
 
 on:
-  push:
-    tags: ['v*']
-    branches: ['ci/**']   # 调试打包时推到 ci/ 开头的分支
+  # 2026-10-25 起改为本地打包（tools/export/build_local.sh + release_local.sh）：组织的 Actions 额度用完，任务启动不了。
+  # 推送标签、推送分支都不再自动触发；Actions 恢复后需要云端打包时，在 Actions 页面手动运行。
   workflow_dispatch:
 
 permissions:
