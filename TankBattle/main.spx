@@ -42,6 +42,8 @@ var (
 	hitWho    int // 刚被打中的是 1P 还是 2P（"playerHit" 消息的参数）
 	ebPos     map[*EBullet][2]float64 // 场上每颗敌人子弹的位置（每帧更新），玩家子弹用它判断迎面相撞
 	ebHit     map[*EBullet]bool       // 被玩家子弹撞上的敌人子弹，它下一帧自己消失
+	pbHitX    float64 // 刚被玩家子弹打中的敌人在哪（"pbHit" 消息的参数）：只有这附近的子弹消失
+	pbHitY    float64
 	resultReady bool // 结算弹窗出现 0.6 秒后才接受确认键（防止连按开火键误点“看视频”）
 
 	// 自己做地图（见 docs/v3/MAP_EDITOR.md）
