@@ -292,6 +292,11 @@ jobs:
           VERSION: ${{ needs.plan.outputs.version }}
         run: |
           sed "s/@VERSION@/$VERSION/g" tools/export/RELEASE_NOTES.md > "$RUNNER_TEMP/notes.md"
+          # 本次更新：CHANGELOG.md 里这个版本的一节（例如 "## v3.0.1"）
+          awk -v h="## v$VERSION" '$0 == h {on = 1; next} /^## / {on = 0} on' CHANGELOG.md > "$RUNNER_TEMP/changes.md"
+          if [ -s "$RUNNER_TEMP/changes.md" ]; then
+            { printf '\n### 本次更新\n'; cat "$RUNNER_TEMP/changes.md"; } >> "$RUNNER_TEMP/notes.md"
+          fi
           pre=""
           case "$VERSION" in *-*) pre="--prerelease" ;; esac   # v3.0.0-rc.1 这类版本标记为预发布
           gh release create "$GITHUB_REF_NAME" dist/* $pre --title "坦克大战 2026 v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"

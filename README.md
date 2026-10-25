@@ -1,6 +1,6 @@
 # 坦克大战 2026 · XBuilder 复刻重铸版
 
-[x.qiniu.com](https://x.qiniu.com) | [下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest) | [下载 .xbp](TankBattle.xbp) | [演示视频](docs/demo/tankbattle-v3-demo.mp4) | [快速开始](#快速开始) | [玩法](#玩法) | [架构文档](docs/ARCHITECTURE.md) | [设计方案](docs/v2/DESIGN.md) | [v3.0 规划](docs/v3/PLAN.md) | [XGo](https://xgo.dev) | [spx 引擎](https://github.com/goplus/spx)
+[x.qiniu.com](https://x.qiniu.com) | [下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest) | [下载 .xbp](TankBattle.xbp) | [演示视频](docs/demo/tankbattle-v3-demo.mp4) | [快速开始](#快速开始) | [玩法](#玩法) | [架构文档](docs/ARCHITECTURE.md) | [设计方案](docs/v2/DESIGN.md) | [v3.0 规划](docs/v3/PLAN.md) | [更新记录](CHANGELOG.md) | [XGo](https://xgo.dev) | [spx 引擎](https://github.com/goplus/spx)
 
 [![1024 HACKATHON](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![Made with XBuilder](https://img.shields.io/badge/made_with-XBuilder-b4521e)](https://x.qiniu.com)
@@ -18,7 +18,7 @@ v3.0 加入了 **8 个关卡、双人合作和自己做地图**，并打包成 *
 
 ![坦克大战 2026 演示](docs/demo/tankbattle-v3.gif)
 
-> 动图是 v3.0 的新内容（新关卡 → 双人合作 → 编辑器里画地图并试玩），截自[完整演示视频](docs/demo/tankbattle-v3-demo.mp4)（约 1 分半，无声）。视频由 spx 引擎实际运行录制，用的是游戏内置的**路演演示模式**（主页按 P）：玩家坦克自动驾驶，脚本依次展示画风切换、中英文切换、复活、激励视频广告和结算，然后是 v3.0 的新关卡、双人合作和自己做地图（在编辑器里对称画出一张“河流城堡”并试玩）。v2.0 的演示视频见 [tankbattle-v2-demo.mp4](docs/demo/tankbattle-v2-demo.mp4)。
+> 动图是 v3.0 的新内容（新关卡 → 双人合作 → 暂停菜单 → 编辑器里画地图并试玩），截自[完整演示视频](docs/demo/tankbattle-v3-demo.mp4)（约 1 分半，无声）。视频由 spx 引擎实际运行录制，用的是游戏内置的**路演演示模式**（主页按 P）：玩家坦克自动驾驶，脚本依次展示画风切换、中英文切换、复活、激励视频广告和结算，然后是 v3.0 的新关卡、双人合作、暂停菜单和自己做地图（在编辑器里对称画出一张“河流城堡”并试玩）。v2.0 的演示视频见 [tankbattle-v2-demo.mp4](docs/demo/tankbattle-v2-demo.mp4)。
 
 | 主页 + 横幅广告 | 对局（English） | 复活询问（激励视频） | 结算（金币翻倍） |
 |---|---|---|---|
@@ -109,6 +109,7 @@ spx run .
 | 双人合作 | 主页按 C：同一键盘两人各开一辆坦克（1P WASD + J，2P 方向键 + Enter），一起守基地 | [COOP.md](docs/v3/COOP.md) |
 | 自己做地图 | 主页按 E：鼠标或手指画地图，出生点和基地锁定，实时检查能不能玩，马上试玩（也能双人试玩）；PC 版可以保存 | [MAP_EDITOR.md](docs/v3/MAP_EDITOR.md) |
 | 跨平台 | 推送 `v*` 标签后 GitHub Actions 打出六个平台的安装包并发布 Release；网页版带触屏虚拟按键（PWA），手机 App 带触屏模式 | [CROSS_PLATFORM.md](docs/v3/CROSS_PLATFORM.md) |
+| 暂停与退出（v3.0.1） | 对局中按 Esc 或点顶栏 Ⅱ：继续 / 重新开始本关 / 返回主页（试玩自制地图时返回编辑） | [更新记录](CHANGELOG.md) |
 
 | 8 个关卡 | 双人合作 | 自己做地图 | 手机网页版（虚拟按键） |
 |---|---|---|---|
@@ -134,6 +135,7 @@ spx run .
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、流程状态机、资源管线、spx 解释器的限制与对策、测试方法、分工 |
 | [设计方案](docs/v2/DESIGN.md) | 2026 年的玩法、画风、商业化设计，附中英文效果图 |
 | [演示视频](docs/demo/tankbattle-v3-demo.mp4) | 约 1 分半的完整流程演示（v3.0；[v2.0 版](docs/demo/tankbattle-v2-demo.mp4)） |
+| [更新记录](CHANGELOG.md) | 每个版本改了什么（v0 → v2.0.0 → v3.0.0 → v3.0.1） |
 | [v3.0 规划](docs/v3/PLAN.md) | 8 个关卡（已实现）、[自己做地图](docs/v3/MAP_EDITOR.md)、[双人合作](docs/v3/COOP.md)、[跨平台运行](docs/v3/CROSS_PLATFORM.md)（iPhone / Android / Windows / Mac）的方案与可行性评估 |
 
 ## 项目结构

@@ -1111,7 +1111,7 @@ func autopilotBlocked() {
 	apTimer = rand(0.4, 0.9)
 }
 
-// 路演演示的 v3.0 部分：几个新关卡 → 双人合作 → 地图编辑器里画一张“河流城堡”并试玩
+// 路演演示的 v3.0 部分：几个新关卡 → 双人合作 → 暂停菜单 → 地图编辑器里画一张“河流城堡”并试玩
 func demoV3() {
 	for _, n := range []int{2, 3, 4, 8} {
 		newGame n, false
@@ -1124,8 +1124,12 @@ func demoV3() {
 	autopilot = true
 	apTimer = 0
 	tgtAge = 9
-	wait 5
+	wait 4
 	autopilot = false
+	pauseGame // 暂停菜单（Esc / 顶栏的 Ⅱ）
+	wait 2.5
+	resumeGame
+	wait 0.5
 	edLoaded = true // 演示时不读取玩家保存的地图
 	openEditor
 	edBlank()

@@ -45,5 +45,5 @@ F=$(echo "$REAL / $VID" | bc -l)
 echo "game time ${REAL}s, video ${VID}s, stretch x$F"
 mkdir -p "$ROOT/docs/demo"
 ffmpeg -v error -y -i "$IN" -an -vf "setpts=PTS*$F,fps=30,format=yuv420p" -c:v libx264 -preset slow -crf 23 -movflags +faststart "$ROOT/docs/demo/tankbattle-v3-demo.mp4"
-ffmpeg -v error -y -ss 54 -t 30 -i "$ROOT/docs/demo/tankbattle-v3-demo.mp4" -vf "fps=8,scale=420:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" "$ROOT/docs/demo/tankbattle-v3.gif"
+ffmpeg -v error -y -ss 53 -t 36 -i "$ROOT/docs/demo/tankbattle-v3-demo.mp4" -vf "fps=8,scale=420:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" "$ROOT/docs/demo/tankbattle-v3.gif"
 ls -la "$ROOT/docs/demo"
