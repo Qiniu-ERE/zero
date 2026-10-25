@@ -45,8 +45,9 @@ for p in "$@"; do
 	web)
 		if "$EXPORT_DIR/build.sh" web > "$log_file" 2>&1 && f=$(art web) && [ -n "$f" ]; then
 			missing=""
+			unzip -l "$f" > "$LOGS/web-files.txt"   # 先存下来：开着 pipefail 时 unzip | grep -q 会因为 grep 提前退出而误判
 			for need in index.html play.js manifest.webmanifest sw.js game.zip runner.html; do
-				unzip -l "$f" | grep -q -E "(/| )${need}\$" || missing="${missing} ${need}"
+				grep -q -E "(/| )${need}\$" "$LOGS/web-files.txt" || missing="${missing} ${need}"
 			done
 			if [ -z "$missing" ]; then row web ✅ "$(basename "$f")（$(size "$f")）" "包里有游戏、外壳和 PWA 文件"
 			else row web ❌ "$(basename "$f")" "包里缺少：$missing"; fi
