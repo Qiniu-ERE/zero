@@ -4,11 +4,11 @@
 
 | # | 能力 | 哪些平台需要 | 难度 | 阶段 |
 |---|---|---|---|---|
-| 1 | **手柄** | Steam Deck、Xbox、PlayStation；iPad 外接手柄、Steam 上的双人合作 | 中：要改 spx | P1 |
+| 1 | **手柄** | Steam Deck、Xbox；iPad 外接手柄、Steam 上的双人合作 | 中：要改 spx | P1 |
 | 2 | 商店版构建（去掉模拟广告、解锁制） | 全部 | 低 | P1 |
 | 3 | 存档 | 全部 | 低 | P1 |
 | 4 | 平台打包：Steam depot、MSIX、iOS 签名、Android AAB | 各自 | 低~高 | P2~P4 |
-| 5 | 主机：改写游戏逻辑 | Xbox、PlayStation | 很高 | v5 只评估 |
+| 5 | Xbox 主机：改写游戏逻辑 | Xbox 主机 | 很高 | v5 只评估 |
 
 ## 一、手柄
 
@@ -60,15 +60,15 @@
 Steamworks（成就、排行榜、创意工坊）、StoreKit / Play 结算（内购）、AdMob（广告）都要游戏脚本调用平台 SDK。spx 没有提供这样的接口：
 
 - 桌面和移动端：游戏逻辑跑在 Go 的解释器里，要调用 C++ / Objective-C / Java 的 SDK，只能改 spx（给 gdspx 加一个通用的“宿主消息”接口，再在 Godot 侧接 SDK 插件）。
-- 网页版有 `syscall/js` 这条路（[v3.0 小游戏评估 4.2](../v3/WECHAT_MINIGAME.md#42-watchad-怎么接到微信关键问题)），但网页版不在本次的五个平台里。
+- 网页版有 `syscall/js` 这条路（[v3.0 小游戏评估 4.2](../v3/WECHAT_MINIGAME.md#42-watchad-怎么接到微信关键问题)），但网页版不在本次的四个平台里。
 
 v5 的买断制不需要这些。等商店版上架、有了真实数据，再决定要不要给 spx 做宿主接口。
 
-## 五、主机：改写还是等待
+## 五、Xbox 主机：改写还是等待
 
 ### 5.1 为什么现在的工程上不了主机
 
-spx 游戏 = Godot 引擎 + Go 写的扩展（gdspx）+ Go 写的 XGo 解释器。主机移植模板（例如 W4 Games）解决的是 Godot 引擎这一层，**Go 不支持任何主机系统**，所以游戏逻辑跑不起来（[PLATFORMS.md 第五节](PLATFORMS.md#五主机为什么近期做不了)）。
+spx 游戏 = Godot 引擎 + Go 写的扩展（gdspx）+ Go 写的 XGo 解释器。主机移植模板（例如 W4 Games）解决的是 Godot 引擎这一层，**Go 不支持 Xbox 主机系统**，所以游戏逻辑跑不起来（[PLATFORMS.md 第四节](PLATFORMS.md#四xbox-主机为什么近期做不了)）。
 
 ### 5.2 三个选项
 
@@ -87,7 +87,7 @@ spx 游戏 = Godot 引擎 + Go 写的扩展（gdspx）+ Go 写的 XGo 解释器�
 | **Steam** | 三个平台的单文件程序（`build.sh desktop`） | 用 Steamworks 的上传工具传三个 depot；macOS 和 Linux 包的启动脚本里设了 `GODEBUG=asyncpreemptoff=1`（防止 Go 的 SIGURG 崩溃），Steam 的启动选项要指向启动脚本，而不是 `TankBattle-bin` |
 | **Microsoft Store** | Windows zip | 用 MSIX Packaging Tool 封装；微软重新签名，不需要自己买证书。注意：spx 的启动器第一次运行时把引擎解压到用户缓存目录，MSIX 容器里能不能写**要实测** |
 | **iOS** | 不签名的 IPA（`exportios` + `xcodebuild CODE_SIGNING_ALLOWED=NO`） | 用 Xcode 26 编译、开发者证书和描述文件签名、加隐私清单、上传 TestFlight。需要一台装 Xcode 26 的 Mac；GitHub Actions 额度恢复后也可以在 CI 上做 |
-| **Android** | 调试签名的 APK | 等 spx 升级 Godot（AAB、目标 API 36、16 KB 页，见 [PLATFORMS.md 第七节](PLATFORMS.md#七google-play)）；gdspx 的 Go 库用新 NDK 加 16 KB 对齐参数重新编译；上传密钥不进仓库 |
+| **Android** | 调试签名的 APK | 等 spx 升级 Godot（AAB、目标 API 36、16 KB 页，见 [PLATFORMS.md 第六节](PLATFORMS.md#六google-play)）；gdspx 的 Go 库用新 NDK 加 16 KB 对齐参数重新编译；上传密钥不进仓库 |
 
 所有正式签名的证书和密钥**都不进仓库**，路径和密码通过环境变量传给 `build.sh`（现在 Android 调试证书就是这样处理的）。证书丢了就没法更新已上架的应用，要备份到安全的地方。
 

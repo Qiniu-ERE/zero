@@ -1,6 +1,6 @@
 # 坦克大战 v5.0 · 平台评估
 
-> [v5.0 规划](PLAN.md)的第一个方向：Steam、Xbox、PlayStation、Apple App Store、Google Play 逐个评估。**公开资料**都是 2026-10-25 查阅的，有官方文档也有第三方文章，来源列在文末。**提交前一律以官方文档重新核对。** 本文不是法律或税务意见。
+> [v5.0 规划](PLAN.md)的第一个方向：Steam、Xbox、Apple App Store、Google Play 逐个评估。**公开资料**都是 2026-10-25 查阅的，有官方文档也有第三方文章，来源列在文末。**提交前一律以官方文档重新核对。** 本文不是法律或税务意见。
 
 ## 一、总表
 
@@ -11,7 +11,6 @@
 | **Apple App Store** | $99 / 年 | 个人可以 | ⚠️ 不签名的 IPA | 签名、Xcode 26 / iOS 26 SDK、隐私清单、一台装 Xcode 的 Mac | ⚠️ 中国区以外可以 |
 | **Google Play** | 一次性 $25 | 个人可以，但新应用要 12 人连续 14 天封闭测试 | ⚠️ 调试签名的 APK | AAB、目标 API 36、16 KB 页对齐、正式签名 | ⚠️ 等 spx 升级引擎 |
 | **Xbox 主机** | ID@Xbox 免费加入，开发机申请 | 需要公司信息（注册号、法定名称） | ❌ | 主机移植模板、**Go 不支持主机系统** | ❌ 近期不做 |
-| **PlayStation 5** | PlayStation Partners 免费，开发机可借用 | 法人主体（欧洲可以个体户） | ❌ | 同上 | ❌ 近期不做 |
 
 ## 二、Steam
 
@@ -58,21 +57,15 @@ Xbox 分成三条路，难度差别很大：
 |---|---|---|
 | **Microsoft Store（PC）** | 个人开发者注册免费（2025-09-10 起）；Win32 程序封装成 MSIX 后提交，微软负责签名；付费应用微软抽成（以官方说明为准） | ✅ 能做。Windows 包封装成 MSIX，审核一般 1~7 天 |
 | **PC Game Pass / Xbox PC 应用** | 通过 ID@Xbox，和微软谈 | ⚠️ 要先有 ID@Xbox 资格；Microsoft 的 Godot 示例（XBOX-Godot-Sample，C++）提供了 PC 上的 GDK 绑定 |
-| **Xbox 主机** | ID@Xbox：注册 Xbox 合作伙伴、签保密协议、提交游戏概念（审批一般 10~15 个工作日）、签授权协议；申请表要填公司注册号和法定名称；概念通过后可以订开发机（有报道说 2026 年初开发机交付有延迟） | ❌ 见第五节 |
+| **Xbox 主机** | ID@Xbox：注册 Xbox 合作伙伴、签保密协议、提交游戏概念（审批一般 10~15 个工作日）、签授权协议；申请表要填公司注册号和法定名称；概念通过后可以订开发机（有报道说 2026 年初开发机交付有延迟） | ❌ 见第四节 |
 
-## 四、PlayStation
+## 四、Xbox 主机为什么近期做不了
 
-- 在 partners.playstation.net 注册，要求**法人主体**（公司），欧洲接受个体户；提交项目计划，签 Sony 的开发与发行协议后获得 SDK（公开资料）。
-- Sony 对新注册的合作伙伴免费借出一台开发机和一台测试机，两年内归还（Sony 官方博客，2026）。
-- 技术上和 Xbox 主机一样卡在引擎（第五节）。
-
-## 五、主机为什么近期做不了
-
-1. **Godot 本身没有官方主机支持**：主机 SDK 受保密协议约束，开源引擎不能附带。用 Godot 的游戏上主机要通过第三方移植（例如 W4 Games 的主机模板，支持 Xbox Series、PS5、Switch，适配 Godot 4.3 以上）。W4 的价格公开资料说法不一：早期公布过“单平台每年 $800 起”，后来的文章说按项目报价，没有公开价。
+1. **Godot 本身没有官方主机支持**：主机 SDK 受保密协议约束，开源引擎不能附带。用 Godot 的游戏上 Xbox 主机要通过第三方移植（例如 W4 Games 的主机模板，适配 Godot 4.3 以上）。W4 的价格公开资料说法不一：早期公布过“单平台每年 $800 起”，后来的文章说按项目报价，没有公开价。
 2. **spx 的游戏逻辑跑在 Go 里**：spx 游戏 = Godot 引擎 + 一个 Go 写的扩展（gdspx）+ Go 写的 XGo 解释器（ixgo）。Go 官方支持的操作系统里没有任何主机系统；Go 的 Godot 绑定项目也写明“不支持主机，以后可能通过 WASM 实现”（公开资料）。**也就是说，即使拿到主机移植模板，我们的游戏代码也跑不起来。**
-3. **出路**：把游戏逻辑改写成 GDScript（或 C#），美术、音效、地图数据可以直接复用。工作量评估见 [TECH.md 第五节](TECH.md#五主机改写还是等待)。
+3. **出路**：把游戏逻辑改写成 GDScript（或 C#），美术、音效、地图数据可以直接复用。工作量评估见 [TECH.md 第五节](TECH.md#五xbox-主机改写还是等待)。
 
-## 六、Apple App Store
+## 五、Apple App Store
 
 | 项目 | 要求（公开资料） | 我们现在 |
 |---|---|---|
@@ -91,7 +84,7 @@ Xbox 分成三条路，难度差别很大：
 
 Mac App Store 可以作为附带：同一个开发者账号；要求沙盒，spx 的启动器把引擎解压到 `~/Library/Caches`，在沙盒里会落到应用容器目录，**能不能运行要实测**。优先级低于 Steam 的 macOS 版。
 
-## 七、Google Play
+## 六、Google Play
 
 | 要求（公开资料） | 我们现在（代码） | 怎么解决 |
 |---|---|---|
@@ -104,7 +97,7 @@ Mac App Store 可以作为附带：同一个开发者账号；要求沙盒，spx
 
 结论：**Google Play 卡在 spx 的引擎版本上**，不是我们自己改几行能解决的。P4 先跟踪 spx 上游的 Godot 升级；如果上游迟迟不升，再评估自己维护一套 Gradle 构建的成本。
 
-## 八、知识产权：上架前必须处理
+## 七、知识产权：上架前必须处理
 
 游戏是 1985 年 FC《坦克大战》（Namco，英文名 *Battle City*）的复刻重铸版。比赛作品这样写没有问题，上架商店就不一样了：
 
@@ -118,16 +111,11 @@ Mac App Store 可以作为附带：同一个开发者账号；要求沙盒，spx
 | 字体 | Noto Sans SC，SIL OFL 1.1，构建时转成路径 | 低，OFL 允许商用 | 在“关于”里注明 |
 | 引擎和工具 | spx（Apache-2.0）、Godot（MIT） | 低 | 安装包里附上许可证文本 |
 
-## 九、暂不聚焦的渠道
-
-之前评估过的海外 H5 门户（CrazyGames 等）、微信 / 抖音小游戏、国内安卓商店，这一版不做：小游戏和国内商店需要软著、ICP 备案甚至版号；H5 门户和小游戏都靠广告变现，而广告需要游戏脚本调用平台 SDK，这正是 spx 做不到的。技术细节见 [v3.0 微信小游戏评估](../v3/WECHAT_MINIGAME.md)。
-
 ## 来源
 
 - Steam：[Steam Direct 费用（Steamworks 文档）](https://partner.steamgames.com/doc/gettingstarted/appfee)、[Steam Deck / Steam Machine 兼容性评审（Steamworks 文档）](https://partner.steamgames.com/doc/steamhardware/compat)、[为 Steam Deck 做准备（Steamworks 文档）](https://partner.steamgames.com/doc/steamhardware/recommendations)、[Steam 2026 年 AI 披露规则解读](https://www.strayspark.studio/blog/steam-ai-disclosure-rules-2026-indie-developer-guide)
 - Microsoft Store：[Windows 开发者博客（2025-05）](https://blogs.windows.com/windowsdeveloper/2025/05/19/microsoft-store-expands-opportunities-for-windows-app-developers/)、[Windows Central：个人开发者免注册费](https://www.windowscentral.com/microsoft/windows-11/microsoft-store-drops-fees-for-individual-developers-apple-still-charges-usd99-per-year)
 - Xbox：[加入 ID@XBOX（Microsoft Learn）](https://learn.microsoft.com/en-us/gaming/game-publishing/onboarding/onboarding-join-id-at-xbox)、[Xbox 合作伙伴入门（devdocs.xbox.com）](https://devdocs.xbox.com/home/onboarding)、[Windows Central：ID@Xbox 开发机延迟](https://www.windowscentral.com/gaming/indies-idxbox/indie-studio-says-xbox-is-encouraging-development-for-its-platform-yet-id-xbox-dev-kit-delays-are-leaving-approved-projects-stuck-in-limbo)
-- PlayStation：[Sony：免费开发硬件](https://sonyinteractive.com/en/news/blog/complimentary-development-hardware/)、[2026 年主机移植指南](https://gamedo.live/news/how-to-port-indie-game-consoles-2026/)
 - Godot 主机移植与 Go：[GamingOnLinux：W4 Games 主机移植定价](https://www.gamingonlinux.com/forum/topic/5925/)、[2026 年 Godot 游戏移植主机](https://zivadotsh.hashnode.dev/how-to-port-a-godot-game-to-switch-ps5-and-xbox-in-2026)、[Heroic Labs 论坛：Godot 游戏的主机支持](https://forum.heroiclabs.com/t/console-support-for-godot-games/6518)、[graphics.gd（Go 的 Godot 绑定）](https://github.com/grow-graphics/gd)
 - Apple：[App Store Connect 发布说明](https://developer.apple.com/app-store-connect/release-notes)、[Xcode 26 要求（2026-04-28）](https://ptkd.com/journal/app-store-xcode-26-sdk-requirement)、[IT之家：中国区 App 必须有 ICP 备案号](https://www.ithome.com/0/722/535.htm)、[搜狐：苹果游戏上架资质（2026）](https://www.sohu.com/a/1004819505_122670629)
 - Google Play：[新个人开发者账号的测试要求（Play Console 帮助）](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en)、[目标 API 36 截止日期](https://primetestlab.com/blog/google-play-target-api-level-2026)、[Godot PR #106358：NDK r28 与 16 KB 页](https://github.com/godotengine/godot/pull/106358)、[Godot PR #106152：Android 版本升级](https://github.com/godotengine/godot/pull/106152)、[Godot 论坛：16 KB 页警告](https://forum.godotengine.org/t/godot-and-google-play-policy-warning-about-16-kb-memory-page-size/120934)
