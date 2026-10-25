@@ -69,7 +69,7 @@ flowchart LR
 | 流程 | `goHome()`、`newGame(n, two)`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头 |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
-| 路演演示 | `demoFlow` 消息处理、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
+| 路演演示 | `demoFlow` 消息处理（v2 内容之后调用 `demoV3()`：新关卡、双人合作、编辑器里画地图并试玩）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
 
 ### 3.2 精灵
 
@@ -238,7 +238,7 @@ stateDiagram-v2
 - **注意**：测试脚本只放在副本里，不要提交；脚本开头至少 `wait 3`，让游戏先完成初始化。
 - **关卡地图**：`python3 tools/levels/check.py` 检查 8 张地图（编辑器里的实时检查是同一套规则）。
 - **安装包**：`tools/export/build.sh` 本地打包；CI（`.github/workflows/release.yml`）里的 `smoke-windows` / `smoke-macos` / `smoke-linux` 会解压桌面包、启动游戏并截图。
-- **演示视频**：`tools/dev/record_demo.sh` 复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
+- **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v3-demo.mp4` 和 `tankbattle-v3.gif`）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
 
 ## 11. 开发流程与分工
 
