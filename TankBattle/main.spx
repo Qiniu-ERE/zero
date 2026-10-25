@@ -333,7 +333,10 @@ func touchZone(x, y float64) int {
 		}
 		return 180
 	}
-	return 1
+	if cellIndex(x, y) >= 0 {
+		return 1 // 战场上（战场里没有按钮）
+	}
+	return -1 // 顶栏、右侧面板（暂停、语言、广告卡等按钮都在这里）
 }
 
 // (x, y) 离哪辆玩家坦克更近：1 或 2
@@ -626,6 +629,10 @@ func edRandom() {
 
 // 试玩自制地图，two 表示双人
 func playCustom(two bool) {
+	if two && touchUI {
+		toast "msg.coop.touch", 2 // 和 newGame 一样：手机 App 只认一根手指，2P 没法操作
+		return
+	}
 	edCheck()
 	if edProblem != 0 {
 		toast "msg.ed.bad", 2
@@ -1396,6 +1403,7 @@ func startGame() {
 	buildMap
 	broadcast "hud"
 	Player.respawn
+	Player.fireHeld = true // 触屏：点“开始 / 再来一局”开局时手指还按着，先松开才开火
 	if coop {
 		if p2Exists {
 			broadcast "p2respawn"

@@ -5,7 +5,7 @@ var (
 	face     int     // 朝向：0 上，90 右，180 下，-90 左
 	shield   float64 // 活着时：出生保护剩余时间；死了以后：离重生还有多久（秒）
 	dead     bool
-	fireHeld bool // 2P：开火键是否还按着（开火键要松开再按才能再开火）
+	fireHeld bool // 2P：开火键是否还按着（开火键要松开再按才能再开火）；1P 触屏：手指要先松开才能开火
 	engine   int  // 引擎声：0 无声，1 怠速，2 行驶
 )
 
@@ -187,15 +187,22 @@ func step() {
 		} else if keyPressed(KeyD) || (!coop && keyPressed(KeyRight)) {
 			d = 90
 		}
-		if touchUI && mousePressed {
+		if touchUI {
 			// 触屏模式（手机 App）：按住右侧方向键移动并自动开火；点战场任意位置开火（见舞台的 touchZone）。
-			// 引擎只把一根手指当作鼠标，没法一边按方向一边点开火，所以按方向时自动开火
-			z := touchZone(mouseX, mouseY)
-			if z != -1 {
-				if z != 1 {
-					d = z
+			// 引擎只把一根手指当作鼠标，没法一边按方向一边点开火，所以按方向时自动开火。
+			// 手指按在按钮上、或者开局时还按着“再来一局”，都不开火，要先松开（fireHeld）
+			if !mousePressed {
+				fireHeld = false
+			} else if !fireHeld {
+				z := touchZone(mouseX, mouseY)
+				if z == -1 {
+					fireHeld = true
+				} else {
+					if z != 1 {
+						d = z
+					}
+					shoot
 				}
-				shoot
 			}
 		}
 		if autopilot {
