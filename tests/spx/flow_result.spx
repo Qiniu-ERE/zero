@@ -20,6 +20,11 @@ onStart => {
 	tInt "F18 胜利金币 = 1100 / 50 + 100", coins, 1100/50+100
 	tStr "F21 胜利结算画面", screen, "result_win_plain"
 
+	// F24 结算画面出现后 0.6 秒内按确认键不算数（J / Enter 也是开火键）
+	confirm
+	tInt "F24 结算刚出现时按确认：不播广告", state, stResult
+	wait 0.7
+
 	// F12 看视频翻倍，只能翻一次
 	confirm
 	tInt "F12 结算 → 播放广告", state, stAd
@@ -28,6 +33,7 @@ onStart => {
 	tCheck "F12 已翻倍", doubled
 	tInt "F12 金币翻倍", coins, (1100/50+100)*2
 	tStr "F21 翻倍后的结算画面", screen, "result_win_done"
+	wait 0.7
 	confirm
 	tInt "F12 不能再翻倍", state, stResult
 
@@ -45,11 +51,15 @@ onStart => {
 	revived = true
 	baseDestroyed
 	tInt "F14 战败结算", state, stResult
-	tInt "F18 失败金币 = 1500 / 50", coins, 1500/50
+	tInt "F18 失败金币只算本关得分 = (1500 - 1100) / 50", coins, (1500-1100)/50
 	again
 	wait 0.5
 	tInt "F14 重打第 2 关", stage, 2
 	tInt "F14 得分回到进关时", score, 1100
+
+	// F18 第 2 关胜利：金币只算本关得分（得分会带到下一关，不能重复算）
+	win 1500
+	tInt "F18 第 2 关胜利金币 = (1600 - 1100) / 50 + 100", coins, (1600-1100)/50+100
 
 	// F15 第 8 关胜利 → 全部通关 → 从第 1 关重新开始
 	playStage lastStage

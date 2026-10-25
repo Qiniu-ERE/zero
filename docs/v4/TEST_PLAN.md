@@ -166,7 +166,7 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | F15 | 结算 → 对局：第 8 关胜利显示「全部通关」，`again()` 回到第 1 关、得分清零 |
 | F16 | 结算 → 主页：`goHome()`，战场清空、2P 去掉、镜头复位 |
 | F17 | 编辑器 → 对局 → 结算 → 编辑器：自制地图的结算画面是 `result_ewin` / `result_elose`，`again()` 回到编辑器 |
-| F18 | 金币：`coins = score / 50`，胜利额外 +100 |
+| F18 | 金币按本关得分折算：`coins = (score - stageScore) / 50`，胜利额外 +100（v3.0.2 起，得分会带到下一关，不能重复算） |
 | F19 | `gameOver` 时战场冻结：`defeat` / `baseDestroyed` 重复调用没有副作用 |
 | F20 | 播放广告时再次 `watchAd` 被忽略 |
 | F21 | 每个状态下 `setScreen` 的画面名正确（`home`、`revive_*`、`adplay_*`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`） |
