@@ -61,12 +61,12 @@ for suite in "$@"; do
 	[ "${fail}" -eq 0 ] || why="${fail} 个断言失败"
 	grep -a -q "^TEST DONE ${name}" "${log}" || why="${why:+${why}；}没有跑完（缺少 TEST DONE）"
 	[ $timedout -eq 0 ] || why="${why:+${why}；}超时（${TIMEOUT} 秒）"
-	! grep -a -q -E 'panic|cannot alloc method' "${log}" || why="${why:+${why}；}引擎报错"
+	! grep -a -q -E 'panic|cannot alloc method|failed to build|Engine failed: exit status' "${log}" || why="${why:+${why}；}引擎报错（编译失败或崩溃）"
 	if [ -z "${why}" ]; then
 		echo "ok    ${name}  pass=${pass}  (${secs}s)"
 	else
 		echo "FAIL  ${name}  pass=${pass} fail=${fail}  ${why}  (日志：${log})"
-		grep -a -E '^TEST FAIL|panic|cannot alloc method|error' "${log}" | head -20 | sed 's/^/      /'
+		grep -a -E '^TEST FAIL|panic|cannot alloc method|failed to build|error' "${log}" | head -20 | sed 's/^/      /'
 		failed="${failed} ${name}"
 	fi
 done
