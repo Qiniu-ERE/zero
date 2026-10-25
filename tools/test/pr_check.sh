@@ -57,10 +57,31 @@ else
 fi
 
 t=$(date +%s)
-if PYTHON="$PY" tools/test/run_all.sh "$@" > "$TMP/tests.log" 2>&1; then
-	row "自动化测试（run_all.sh $*）" ✅ $(($(date +%s) - t)) ""
+# 用这个提交里有的测试脚本：run_all.sh（构建工具 + 引擎内），较早的提交只有其中一部分
+if [ -x tools/test/run_all.sh ]; then
+	what="run_all.sh $*"
+	PYTHON="$PY" tools/test/run_all.sh "$@" > "$TMP/tests.log" 2>&1
+	rc=$?
 else
-	row "自动化测试（run_all.sh $*）" ❌ $(($(date +%s) - t)) "见下面的输出"
+	what=""
+	rc=0
+	: > "$TMP/tests.log"
+	if [ -d tests/tools ]; then
+		what="unittest"
+		{ echo "==> 构建工具测试（tests/tools）"; "$PY" -m unittest discover -s tests/tools 2>&1 | tail -3; } >> "$TMP/tests.log" || rc=1
+		grep -q '^FAILED' "$TMP/tests.log" && rc=1
+	fi
+	if [ -x tools/test/run_spx.sh ]; then
+		what="${what:+${what} + }run_spx.sh"
+		{ echo "==> 引擎内测试（tests/spx）"; tools/test/run_spx.sh 2>&1; } >> "$TMP/tests.log" || rc=1
+	fi
+fi
+if [ -z "$what" ]; then
+	row "自动化测试" ⚠️ $(($(date +%s) - t)) "这个提交里还没有测试（只有文档）"
+elif [ $rc -eq 0 ]; then
+	row "自动化测试（${what}）" ✅ $(($(date +%s) - t)) ""
+else
+	row "自动化测试（${what}）" ❌ $(($(date +%s) - t)) "见下面的输出"
 fi
 
 {
