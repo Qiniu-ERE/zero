@@ -1,6 +1,6 @@
 # 坦克大战 2026 · XBuilder 复刻重铸版
 
-[x.qiniu.com](https://x.qiniu.com) | [下载 .xbp](TankBattle.xbp) | [演示视频](docs/demo/tankbattle-v2-demo.mp4) | [快速开始](#快速开始) | [玩法](#玩法) | [架构文档](docs/ARCHITECTURE.md) | [设计方案](docs/v2/DESIGN.md) | [XGo](https://xgo.dev) | [spx 引擎](https://github.com/goplus/spx)
+[x.qiniu.com](https://x.qiniu.com) | [下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest) | [下载 .xbp](TankBattle.xbp) | [演示视频](docs/demo/tankbattle-v2-demo.mp4) | [快速开始](#快速开始) | [玩法](#玩法) | [架构文档](docs/ARCHITECTURE.md) | [设计方案](docs/v2/DESIGN.md) | [v3.0 规划](docs/v3/PLAN.md) | [XGo](https://xgo.dev) | [spx 引擎](https://github.com/goplus/spx)
 
 [![1024 HACKATHON](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![Made with XBuilder](https://img.shields.io/badge/made_with-XBuilder-b4521e)](https://x.qiniu.com)
@@ -12,11 +12,13 @@
 
 用 [XBuilder](https://x.qiniu.com) 把 1985 年的 FC 经典《坦克大战》重做成 2026 年的样子：保留“守住老鹰、打穿砖墙”的玩法内核，换上现代画风，支持中英文，并且设计了一套**干净、不打扰玩家**的广告商业化方案。
 
+v3.0 加入了 **8 个关卡、双人合作和自己做地图**，并打包成 **Windows / macOS / Linux / 网页版（PWA）/ Android / iOS** 安装包，在 [Releases](https://github.com/Qiniu-ERE/zero/releases/latest) 下载。
+
 *Talk is cheap, show me what you build.*
 
 ![坦克大战 2026 演示](docs/demo/tankbattle-v2.gif)
 
-> 动图截自[完整演示视频](docs/demo/tankbattle-v2-demo.mp4)（约 1 分钟，无声）。视频由 spx 引擎实际运行录制，用的是游戏内置的**路演演示模式**（主页按 P）：玩家坦克自动驾驶，脚本依次展示画风切换、中英文切换、复活、激励视频广告和结算。
+> 动图是 v2.0 的画面，截自[完整演示视频](docs/demo/tankbattle-v2-demo.mp4)（约 1 分钟，无声）。视频由 spx 引擎实际运行录制，用的是游戏内置的**路演演示模式**（主页按 P）：玩家坦克自动驾驶，脚本依次展示画风切换、中英文切换、复活、激励视频广告和结算。
 
 | 主页 + 横幅广告 | 对局（English） | 复活询问（激励视频） | 结算（金币翻倍） |
 |---|---|---|---|
@@ -98,6 +100,19 @@ spx run .
 | 8 最终决战 | 水面、草丛、钢墙都有，基地两侧有钢墙 | 重型和快速各 45%，每 1.3 秒出兵，场上最多 5 辆 |
 
 ![8 个关卡](docs/v3/stages/stages.png)
+
+## v3.0 做了什么
+
+| 方向 | 内容 | 文档 |
+|---|---|---|
+| 关卡 | 从 1 关扩展到 8 关，每关地形和敌军配置不同；主页按 1~8 选关，胜利后进入下一关，第 8 关胜利显示「全部通关」 | [规划总览](docs/v3/PLAN.md) |
+| 双人合作 | 主页按 C：同一键盘两人各开一辆坦克（1P WASD + J，2P 方向键 + Enter），一起守基地 | [COOP.md](docs/v3/COOP.md) |
+| 自己做地图 | 主页按 E：鼠标或手指画地图，出生点和基地锁定，实时检查能不能玩，马上试玩（也能双人试玩）；PC 版可以保存 | [MAP_EDITOR.md](docs/v3/MAP_EDITOR.md) |
+| 跨平台 | 推送 `v*` 标签后 GitHub Actions 打出六个平台的安装包并发布 Release；网页版带触屏虚拟按键（PWA），手机 App 带触屏模式 | [CROSS_PLATFORM.md](docs/v3/CROSS_PLATFORM.md) |
+
+| 8 个关卡 | 双人合作 | 自己做地图 | 手机网页版（虚拟按键） |
+|---|---|---|---|
+| ![](docs/v3/stages/stage-4.png) | ![](docs/v3/coop/coop-zh.png) | ![](docs/v3/editor/editor-zh.png) | ![](docs/v3/release/web-phone-play.png) |
 
 ## v2.0 做了什么
 

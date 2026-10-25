@@ -1,6 +1,6 @@
 # 坦克大战 2026 · 架构文档
 
-本文说明 v2.0 的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2 设计方案](v2/DESIGN.md)。
+本文说明游戏（v3.0）的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2 设计方案](v2/DESIGN.md)，v3.0 的关卡、双人合作、自己做地图和跨平台见 [v3.0 规划](v3/PLAN.md)。
 
 ## 目录
 
@@ -22,7 +22,7 @@
 |---|---|
 | 语言 | [XGo](https://xgo.dev)（`.spx` 类文件：`main.spx` 是舞台，其他每个文件是一个精灵） |
 | 引擎 | [spx 4.0](https://github.com/goplus/spx)，底层是 Godot 4.4，SVG 由 LunaSVG 光栅化 |
-| 运行方式 | ① [XBuilder](https://x.qiniu.com) 网页版：导入 `TankBattle.xbp` 运行；② 本地：`spx run .`（解释执行，和网页版用同一个解释器） |
+| 运行方式 | ① [XBuilder](https://x.qiniu.com) 网页版：导入 `TankBattle.xbp` 运行；② 本地：`spx run .`（解释执行）；③ 各平台安装包：`tools/export/`，见 [跨平台文档](v3/CROSS_PLATFORM.md#七实现结果)。注意：XBuilder 线上的解释器基于 spx v3.3.0（[goplus/builder](https://github.com/goplus/builder) 的 `tools/ispx`），本地和安装包用的是 spx 4.0，同属 ispx 解释器，但 v3.0 的新功能还没在 XBuilder 里实测 |
 | 画布 | 480×360（XBuilder 固定的运行尺寸，见[设计方案](v2/DESIGN.md#一技术确认画布尺寸)） |
 | 资源生成 | Python 3 + fontTools：`tools/assets/build.py` 用代码生成 SVG 造型，`strings.py` 是中英文案表 |
 
@@ -236,14 +236,17 @@ stateDiagram-v2
 - **本地运行**：`cd TankBattle && spx run .`
 - **自动截图**：`tools/dev/shot.sh <工程副本> <输出前缀> <秒数…>`。在**工程副本**的 `main.spx` 末尾追加一段 `onStart` 测试脚本（例如 `startGame`、`baseDestroyed`、`watchAd rewardRevive`），就能不靠键盘把各个画面跑一遍。只截游戏窗口，不会截到桌面上的其他内容。PR 里的截图都是这样得到的。
 - **注意**：测试脚本只放在副本里，不要提交；脚本开头至少 `wait 3`，让游戏先完成初始化。
+- **关卡地图**：`python3 tools/levels/check.py` 检查 8 张地图（编辑器里的实时检查是同一套规则）。
+- **安装包**：`tools/export/build.sh` 本地打包；CI（`.github/workflows/release.yml`）里的 `smoke-windows` / `smoke-macos` / `smoke-linux` 会解压桌面包、启动游戏并截图。
 - **演示视频**：`tools/dev/record_demo.sh` 复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
 
 ## 11. 开发流程与分工
 
 ### 开发流程
 
-- `main` 是发布分支，`v2.0` 是 v2 的集成分支。
-- 每个功能一个分支、一个 Pull Request，合入 `v2.0`；最后由 `v2.0` 合入 `main`。不直接往 `main` / `v2.0` 推送。
+- `main` 是发布分支，不直接推送；每个功能一个分支、一个 Pull Request。
+- v2.0：功能分支合入集成分支 `v2.0`，最后由 `v2.0` 合入 `main`。v3.0：功能 PR 依次叠在前一个 PR 上（#10 → #9 → #12 → #13 → #14 → #15），按顺序合入 `main`。
+- 发布：在 `main` 上推送 `v*` 标签，GitHub Actions 打出全部安装包并创建 Release（带 `-rc` 的版本是预发布）。
 - PR 描述写清楚：改了什么、为什么、怎么验证的（附实机截图）。
 - 改了文案或美术代码，要重新运行 `build.py` 并把生成的文件一起提交；发布前运行 `package_xbp.sh` 更新 `.xbp`。
 
@@ -267,9 +270,12 @@ stateDiagram-v2
 | #12 | v3.0 规划：自己做地图、双人合作的评估（文档和效果图） |
 | #13 | 双人合作：2P 坦克、按键、规则、HUD、主页入口 |
 | #14 | 自己做地图：编辑器、绘制、实时检查、随机起点、复制关卡、试玩、PC 保存 |
-| #15 | 跨平台打包与发布：Windows / macOS / Linux / 网页版 / Android / iOS，手机 App 的触屏模式 |
+| #15 | 跨平台打包与发布：Windows / macOS / Linux / 网页版 / Android / iOS，手机 App 的触屏模式；发布 [v3.0.0](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.0) |
+| #16 | 微信小游戏可行性评估（文档） |
 
 ### 分工
+
+表中的 `dn-mbp14-qn` 是本地 git 用户名，对应 GitHub 账号 [danielfeng](https://github.com/danielfeng)。
 
 | 模块 | 负责人 | 内容 |
 |---|---|---|
@@ -278,5 +284,7 @@ stateDiagram-v2
 | 美术与界面管线（`tools/assets`） | dn-mbp14-qn | 生成器、现代画风、HUD 与弹窗、文字转路径 |
 | 商业化（广告位） | dn-mbp14-qn | 广告位设计与实现、正式接入方案 |
 | 测试、演示视频与文档 | dn-mbp14-qn | 实机截图验证、演示视频、架构文档 |
+| v3.0 关卡、双人合作、地图编辑器 | dn-mbp14-qn | 8 张地图与关卡检查工具、2P 坦克、编辑器与实时检查 |
+| v3.0 跨平台打包与发布 | dn-mbp14-qn | 打包脚本、网页版外壳、手机触屏模式、GitHub Actions 发布与冒烟测试 |
 
 开发全程使用 AI 编程助手（Claude Code）结对完成：人负责方向、取舍和验收，AI 负责实现和验证，每一步都通过 PR 留下记录。团队成员加入后，请在这张表里补充各自负责的模块。

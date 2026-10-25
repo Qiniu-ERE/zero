@@ -8,7 +8,7 @@
 
 ## 实现状态
 
-**✅ 打包工具和发布流程已实现**（[PR #15](https://github.com/Qiniu-ERE/zero/pull/15)），详见下面的[第七节](#七实现结果)。本地已经验证 macOS 单文件程序和网页版；Windows、Linux、Android、iOS 由 GitHub Actions 打包，在 CI 上验证。下面第一到六节是当初的评估记录。
+**✅ 打包工具和发布流程已实现**（[PR #15](https://github.com/Qiniu-ERE/zero/pull/15)），已发布 [v3.0.0](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.0)。详见下面的[第七节](#七实现结果)。本地已经验证 macOS 单文件程序和网页版；Windows、Linux、Android、iOS 由 GitHub Actions 打包，在 CI 上验证。下面第一到六节是当初的评估记录。
 
 ## 结论速览
 
@@ -305,7 +305,7 @@ tools/export/build.sh web            # 网页版
 ### 7.5 限制和没验证的部分
 
 - **GitHub Pages 用不了**：仓库是私有的，组织是免费套餐，不支持 Pages。所以网页版以 zip 发布，需要自己上传到静态网站（例如七牛云 Kodo）。仓库公开后可以加一个 Pages 部署任务。
-- **Actions 分钟数**：私有仓库每月 2000 分钟，macOS 机器按 10 倍计算。一次完整发布大约用 400~500 分钟，所以调试时用提交信息里的 `[ci 平台]` 只打需要的平台。
+- **Actions 分钟数**：私有仓库每月 2000 分钟，macOS 机器按 10 倍计算。实际一次完整发布（含冒烟测试）各任务只要 1~4 分钟，macOS 任务 1~2 分钟；调试时推到 `ci/` 开头的分支，用提交信息里的 `[ci 平台]` 只打需要的平台。
 - **签名**：macOS 和 Windows 都没有付费签名证书，第一次打开会有系统提示（说明里写了怎么打开）；APK 用调试证书；IPA 不签名。上架应用商店不在 v3.0 范围内。
 - **Intel Mac、Windows ARM、Linux ARM** 没有打包。
 - **真机**：Android、iOS 的包在 CI 上打出来，还没有在真机上装过；手机网页版只在模拟器里测过。
