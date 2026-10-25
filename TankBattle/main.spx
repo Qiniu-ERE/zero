@@ -840,6 +840,18 @@ func buildHud() {
 	UI.toastBar -72, 20
 }
 
+// 生命图标第 slot 个（0~2）的造型：有 n 条命，p2 表示 2P 的图标
+func lifeLook(n, slot int, p2 bool) string {
+	name := "life"
+	if p2 {
+		name = "life2"
+	}
+	if slot < n {
+		return name + "_on"
+	}
+	return name + "_off"
+}
+
 func baseLook() string {
 	if baseDown {
 		return look("broken")
