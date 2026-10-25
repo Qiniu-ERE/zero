@@ -1068,6 +1068,64 @@ func autopilotBlocked() {
 	apTimer = rand(0.4, 0.9)
 }
 
+// 路演演示的 v3.0 部分：几个新关卡 → 双人合作 → 地图编辑器里画一张“河流城堡”并试玩
+func demoV3() {
+	for _, n := range []int{2, 3, 4, 8} {
+		newGame n, false
+		autopilot = true
+		apTimer = 0
+		tgtAge = 9
+		wait 3.5
+	}
+	newGame 1, true // 双人合作（演示时 1P 自动驾驶，2P 停在出生点）
+	autopilot = true
+	apTimer = 0
+	tgtAge = 9
+	wait 5
+	autopilot = false
+	edLoaded = true // 演示时不读取玩家保存的地图
+	openEditor
+	edBlank()
+	edMirror = true
+	edTool = 1
+	edRebuild()
+	broadcast "edit"
+	wait 1.5
+	castle := []string{
+		".............",
+		".B.........B.",
+		"...WWW.WWW...",
+		"..W.......W..",
+		"..W.SBBBS.W..",
+		"....B...B....",
+		"..W.B.S.B.W..",
+		"..W.SB.BS.W..",
+		"...WWW.WWW...",
+		".B.........B.",
+		".BB..B.B..BB.",
+	}
+	for r := 1; r < len(castle); r++ {
+		for c := 0; c <= 6; c++ {
+			ch := castle[r][c]
+			if ch == '.' {
+				continue
+			}
+			edTool = strings.IndexByte(".BSWG", ch) // 工具跟着换，右侧的选中框会动
+			edPaint r*cols+c, ch
+			edPaint r*cols+cols-1-c, ch // 对称绘制
+			edCheck()
+			broadcast "edit"
+			wait 0.07
+		}
+	}
+	wait 1.5
+	playCustom false
+	autopilot = true
+	apTimer = 0
+	tgtAge = 9
+	wait 6
+}
+
 // 等到画面进入状态 st（最多等 secs 秒），用于演示脚本按实际状态推进
 func waitState(st int, secs float64) {
 	for secs > 0 && state != st {
@@ -1368,7 +1426,8 @@ onMsg "adFlow", => {
 	}
 }
 
-// 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → 回主页。
+// 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍
+// → v3.0：新关卡、双人合作、自己做地图（demoV3）→ 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
 	newGame 1, false
@@ -1404,6 +1463,7 @@ onMsg "demoFlow", => {
 	}
 	waitState stResult, 10
 	wait 4
+	demoV3
 	autopilot = false
 	broadcast "demoDone"
 }

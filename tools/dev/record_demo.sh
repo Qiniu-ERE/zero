@@ -2,7 +2,7 @@
 # 录制路演演示视频（macOS / Linux，需要 spx 和 ffmpeg）
 #
 # 做法：复制一份工程，追加“自动开始演示、结束后退出”的脚本（不改仓库里的游戏），
-# 用 spx run --movie 录制，再用 ffmpeg 转成 docs/demo/tankbattle-v2-demo.mp4。
+# 用 spx run --movie 录制，再用 ffmpeg 转成 docs/demo/tankbattle-v3-demo.mp4。
 #
 # 为什么要拉伸时间：spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，
 # 但游戏逻辑按真实时间以 60 Hz 运行。机器渲染不到 30 帧/秒时视频会被“快进”。
@@ -44,6 +44,6 @@ VID=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$IN")
 F=$(echo "$REAL / $VID" | bc -l)
 echo "game time ${REAL}s, video ${VID}s, stretch x$F"
 mkdir -p "$ROOT/docs/demo"
-ffmpeg -v error -y -i "$IN" -an -vf "setpts=PTS*$F,fps=30,format=yuv420p" -c:v libx264 -preset slow -crf 23 -movflags +faststart "$ROOT/docs/demo/tankbattle-v2-demo.mp4"
-ffmpeg -v error -y -ss 5 -t 14 -i "$ROOT/docs/demo/tankbattle-v2-demo.mp4" -vf "fps=12,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" "$ROOT/docs/demo/tankbattle-v2.gif"
+ffmpeg -v error -y -i "$IN" -an -vf "setpts=PTS*$F,fps=30,format=yuv420p" -c:v libx264 -preset slow -crf 23 -movflags +faststart "$ROOT/docs/demo/tankbattle-v3-demo.mp4"
+ffmpeg -v error -y -ss 54 -t 30 -i "$ROOT/docs/demo/tankbattle-v3-demo.mp4" -vf "fps=8,scale=420:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" "$ROOT/docs/demo/tankbattle-v3.gif"
 ls -la "$ROOT/docs/demo"
