@@ -1,0 +1,66 @@
+// 子弹和地形（C01~C07）：砖墙、钢墙、水面、草丛、基地、弹头两个检测点、2P 子弹、打中了哪辆坦克
+// 见 docs/v4/TEST_PLAN.md 第 3.3 节；tQuiet / tAt 在 tools/test/prelude.spx
+onStart => {
+	wait 3
+
+	tQuiet
+	gameOver = true // 只调用函数，不需要战场在动
+	i := tAt(5, 5)
+	grid[i] = 1
+	breakBrick i
+	tInt "C01 砖墙打一下变成裂砖", grid[i], 3
+	breakBrick i
+	tInt "C01 裂砖再打一下消失", grid[i], 0
+
+	grid[i] = 2
+	tCheck "C02 钢墙挡住子弹", hitPoint(cellX(5), cellY(5), false)
+	tInt "C02 钢墙打不碎", grid[i], 2
+
+	for _, v := range []int{0, 4, 5} {
+		grid[i] = v
+		tCheck "C03 格子 "+strconv.Itoa(v)+" 子弹能飞过", !hitPoint(cellX(5), cellY(5), false)
+	}
+	grid[i] = 1
+	tCheck "C03 砖墙挡住子弹", hitPoint(cellX(5), cellY(5), false)
+	tInt "C03 子弹打砖墙会打裂", grid[i], 3
+	tCheck "C03 战场外挡住子弹", hitPoint(cellX(0)-24, cellY(0), false)
+
+	// C05 弹头左右两个检测点：从两块砖中间往上打，两块一起裂开
+	grid[tAt(5, 5)] = 1
+	grid[tAt(5, 6)] = 1
+	tCheck "C05 打中了", bulletHit(cellX(5)+12, cellY(5)-3, 0, true)
+	tInt "C05 左边的砖裂开", grid[tAt(5, 5)], 3
+	tInt "C05 右边的砖裂开", grid[tAt(5, 6)], 3
+
+	// C04 打中基地：失守；路演演示时不会失守
+	grid[baseIdx] = 9
+	autopilot = true
+	gameOver = false
+	tCheck "C04 演示模式：子弹被基地挡住", hitPoint(baseX, baseY, false)
+	tCheck "C04 演示模式：基地没有失守", !baseDown
+	autopilot = false
+	hitPoint baseX, baseY, false
+	tCheck "C04 基地失守", baseDown
+	tInt "C04 进入复活询问", state, stRevive
+
+	// C06 2P 的子弹朝向 + 1000
+	for _, d := range []int{0, 90, 180, -90} {
+		tInt "C06 1P 朝向 "+strconv.Itoa(d), bulletDir(d), d
+		tInt "C06 2P 朝向 "+strconv.Itoa(d), bulletDir(d+1000), d
+	}
+
+	// C07 敌人子弹打中的是哪辆（Player 每帧都会更新 p1x / p2x，所以设置后马上检查，中间不等待）
+	tQuiet
+	keep := p2Exists
+	p2Exists = false
+	p1x, p1y, p2x, p2y = 0, 0, 10, 10
+	tInt "C07 单人：永远是 1P", nearestPlayer(10, 10), 1
+	p2Exists = true
+	p1x, p1y, p2x, p2y = 0, 0, 100, 0
+	tInt "C07 离 1P 近", nearestPlayer(20, 0), 1
+	p1x, p1y, p2x, p2y = 0, 0, 100, 0
+	tInt "C07 离 2P 近", nearestPlayer(80, 0), 2
+	p2Exists = keep
+
+	tDone "bullets"
+}
