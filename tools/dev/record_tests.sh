@@ -11,7 +11,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 OUT="$ROOT/docs/demo/tankbattle-v4-tests.mp4"
 FONT="$ROOT/tools/assets/.cache/NotoSansSC-500.ttf"   # tools/assets/build.py 第一次运行时下载
-[ -f "$FONT" ] || { echo "缺少字体 $FONT：先运行一次 python3 tools/assets/build.py"; exit 1; }
+[ -f "$FONT" ] || { echo "缺少字体 ${FONT}：先运行一次 python3 tools/assets/build.py"; exit 1; }
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/tankbattle-rectests.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 
@@ -25,12 +25,12 @@ import sys, time
 t0 = time.time()
 for line in sys.stdin:
     line = line.rstrip("\n")
-    if line.strip() and not line.startswith(("test_", "  ")):   # unittest 的逐条输出太多，只留汇总
+    if line.strip() and not line.startswith("test_"):   # unittest 的逐条输出太多，只留汇总
         print(f"{time.time() - t0:.2f}\t{line}", flush=True)
         print(line, file=sys.stderr, flush=True)
 ' > "$WORK/lines.tsv"
 cp "$WORK/lines.tsv" "$SAVED"
-echo "    输出记录：$SAVED（以后可以 --from 它重新生成）"
+echo "    输出记录：${SAVED}（以后可以 --from 它重新生成）"
 fi
 
 echo "==> 生成视频"
