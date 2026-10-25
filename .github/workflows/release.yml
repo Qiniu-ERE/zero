@@ -44,7 +44,8 @@ jobs:
           if [ "${{ github.ref_type }}" = tag ]; then
             version="${GITHUB_REF_NAME#v}"
           else
-            version="3.0.0-dev.${GITHUB_RUN_NUMBER}"
+            # 开发版：CHANGELOG.md 里最新的版本号 + -dev.运行编号
+            version="$(sed -n 's/^## v\([0-9][0-9.]*\)$/\1/p' CHANGELOG.md | head -1)-dev.${GITHUB_RUN_NUMBER}"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           all=false
@@ -209,8 +210,9 @@ jobs:
           (./TankBattle > run.log 2>&1 &)
           sleep 40
           import -window root ../smoke-linux.png
-          pgrep -f gdspxrt > /dev/null && echo "running" || { echo "not running"; tail -50 run.log; }
           cp run.log ../smoke-linux.log
+          pgrep -f gdspxrt > /dev/null || { echo "::error::游戏没有在运行"; tail -50 run.log; exit 1; }
+          echo "running"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -240,7 +242,9 @@ jobs:
           $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
           [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
           $bmp.Save("$PWD\smoke-windows.png")
-          Get-Process | Where-Object { $_.Name -like 'TankBattle*' -or $_.Name -like 'gdspx*' } | Format-Table Name, Id, WS -AutoSize
+          $p = Get-Process | Where-Object { $_.Name -like 'gdspx*' }
+          $p | Format-Table Name, Id, WS -AutoSize
+          if (-not $p) { Write-Error "游戏没有在运行"; exit 1 }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -264,8 +268,8 @@ jobs:
           ("$app/Contents/MacOS/TankBattle" > run.log 2>&1 &)
           sleep 45
           screencapture -x smoke-macos.png || true
-          pgrep -fl gdspxrt || { echo "not running"; tail -50 run.log; }
           cp run.log smoke-macos.log
+          pgrep -fl gdspxrt || { echo "::error::游戏没有在运行"; tail -50 run.log; exit 1; }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -275,7 +279,7 @@ jobs:
             smoke-macos.log
 
   release:
-    needs: [plan, desktop, web, android, ios]
+    needs: [plan, desktop, web, android, ios, smoke-linux, smoke-windows, smoke-macos]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
