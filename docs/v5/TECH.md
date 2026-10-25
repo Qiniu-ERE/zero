@@ -43,7 +43,8 @@
 
 ## 二、商店版构建
 
-- `main.spx` 加一个常量 `storeBuild = false`；`build.sh` 加 `--store` 选项，导出前用 sed 改成 `true`（和 `touch_mode()` 一样，并检查替换成功）。XBuilder 里打开的 `.xbp` 永远是路演版。
+- `main.spx` 的常量块里加两行 `storeBuild = false`、`demoBuild = false`（各占一行，导出脚本按整行替换）。
+- 打包命令：`build.sh <平台> --store [--demo]`，只在工作副本里把常量改成 `true`，产物放在 `dist/store/`、`dist/demo/` 或 `dist/store-demo/`。`--store` 找不到常量会直接失败，`--demo` 找不到只警告。打包脚本这部分已在 [#72](https://github.com/Qiniu-ERE/zero/pull/72) 做好，游戏里的常量和对应逻辑还没加。XBuilder 里打开的 `.xbp` 永远是路演版。
 - `storeBuild` 为 `true` 时：不画横幅和原生广告卡；复活询问只有“免费复活 / 金币复活 / 放弃”；结算没有金币 ×2；选关按存档里的进度解锁。
 - **试玩版**：再加一个 `demoBuild` 常量，只开放第 1~2 关、编辑器不能保存，结尾显示“购买完整版”。
 - v4 的测试框架里给商店版和试玩版各加一组用例（差异点逐条测）。

@@ -91,3 +91,26 @@
 | **从现在起** | C13 | 中文 PR 标题和提交说明 |
 
 每一项实施时一个 PR（小项可以同类合并），PR 描述写明对应的编号；改游戏代码的 PR 附 `tools/test/pr_check.sh` 的结果，修 bug 的 PR 先提交能复现的失败测试。
+
+## 五、进度（2026-10-25）
+
+P1 和 P2 里能并行的分成四条线同时做，结果如下（合并状态以 GitHub 为准）。
+
+| 线 | PR | 对应编号 |
+|---|---|---|
+| 游戏代码 | [#59](https://github.com/Qiniu-ERE/zero/pull/59) A1、[#60](https://github.com/Qiniu-ERE/zero/pull/60) A2、[#61](https://github.com/Qiniu-ERE/zero/pull/61) A12 A16 A17、[#62](https://github.com/Qiniu-ERE/zero/pull/62) A7 A18、[#64](https://github.com/Qiniu-ERE/zero/pull/64) A15（已合并）；[#69](https://github.com/Qiniu-ERE/zero/pull/69) 去掉每日挑战、[#71](https://github.com/Qiniu-ERE/zero/pull/71) 老鹰友伤测试、[#73](https://github.com/Qiniu-ERE/zero/pull/73) A22、[#74](https://github.com/Qiniu-ERE/zero/pull/74) A3 选关画面、[#76](https://github.com/Qiniu-ERE/zero/pull/76) 英文名改为 Brickline Tanks，以及最后一个 PR：复活规则调整（A16 最终规则：只有暂停里的“重新开始本关”不清零，结算后重打本关可以再复活一次）和窗口标题加英文名 | A1 A2 A3 A7 A12 A15~A18 A22；PLAN 3.1 3.2；改名 |
+| 打包与工具 | [#65](https://github.com/Qiniu-ERE/zero/pull/65) → [#66](https://github.com/Qiniu-ERE/zero/pull/66) → [#67](https://github.com/Qiniu-ERE/zero/pull/67) → [#68](https://github.com/Qiniu-ERE/zero/pull/68) → [#70](https://github.com/Qiniu-ERE/zero/pull/70) → [#72](https://github.com/Qiniu-ERE/zero/pull/72) → [#75](https://github.com/Qiniu-ERE/zero/pull/75) | B1~B11、B13~B17、B18 的 P1 部分、B7 |
+| 文档 | [#54](https://github.com/Qiniu-ERE/zero/pull/54)~[#58](https://github.com/Qiniu-ERE/zero/pull/58)（已合并）；代码 PR 对应的文档另开一个 PR | C1~C9、C11、C12、C14 |
+| 难度模拟 | [#63](https://github.com/Qiniu-ERE/zero/pull/63)（已合并）：`tools/test/difficulty.sh`，数据和调参建议见 PR 描述 | A4 的分析部分 |
+
+还没做的：A4 的调参、A5 道具、A6 触屏按键提示、A8 演示模式、A9 退出、A10 设置、A11 出生点、A13 编辑器撤销、A19 结算统计（和商店版一起做）；A14、A20、A21、A23（P3）；B12 按键处理的测试（要先把按键处理抽成函数）；B18 的 P2~P4 部分；C10 最终演示视频；C15 README 链接 v5（本规划合入后）。
+
+### 难度模拟的结论（[#63](https://github.com/Qiniu-ERE/zero/pull/63)，每关 8 局）
+
+| 关卡 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| 玩家不动时基地失守 | 8/8 | 7/8 | 8/8 | **0/8** | 8/8 | 8/8 | 8/8 | **3/8** |
+| 失守时间中位数（秒） | 46 | 67 | 31 | 120（上限） | 67 | 22 | **18** | 120（上限） |
+
+第 2、4、8 关基地正上方有钢墙，挡住了敌人的子弹；最终关两侧也有钢墙，所以反而很少失守。目标曲线：第 1 关约 60 秒逐关降到第 8 关约 20 秒，每关都会失守。已验证：第 8 关把这些钢墙改成砖墙、敌人参数调为 `45,45,1.2,6` 后，8 局全部失守，中位数 44 秒。调参用工具的 `SIM_SED` 先验证再改游戏。
+
