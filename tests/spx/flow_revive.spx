@@ -1,6 +1,6 @@
 // 流程：战败、复活询问、激励视频复活（F05~F10、F19、F20），见 docs/v4/TEST_PLAN.md 第 3.4 节
 // 复活询问先等 2.2 秒（爆炸和镜头特写），再倒计时 7 秒；模拟广告 5 秒
-// timeout: 90
+// timeout: 150
 onStart => {
 	wait 3
 
@@ -105,6 +105,62 @@ onStart => {
 	hitPoint baseX, baseY, false
 	tCheck "F30 保护结束后基地能被打掉", baseDown
 	tInt "F30 已经复活过 → 结算", state, stResult
+
+	// F31 基地刚被毁、复活弹窗还没出现（2.2 秒内）时按 Esc（本想暂停）不算放弃复活（v5 REVIEW A12）
+	playStage 1
+	wait 0.5
+	tCalm
+	baseDestroyed
+	escKey
+	tInt "F31 弹窗出现前按 Esc：还在复活询问", state, stRevive
+	wait 2.6
+	tStr "F31 复活弹窗出现了", screen, "revive_7"
+	escKey
+	tInt "F31 弹窗出现后按 Esc = 放弃 → 结算", state, stResult
+
+	// F32 暂停菜单的“重新开始本关”不会把复活次数清零（v5 REVIEW A16：复活次数按关卡记录）
+	playStage 2
+	wait 0.5
+	tCalm
+	baseDestroyed
+	wait 2.6
+	confirm
+	tCheck "F32 复活了", tWaitState(stPlay, 7) && revived
+	wait 3.3 // 等复活后的基地保护结束
+	pauseGame
+	startGame // 暂停菜单的“重新开始本关”（R）
+	wait 0.5
+	tCheck "F32 重新开始本关：还是复活过", revived
+	tCalm
+	baseDestroyed
+	tInt "F32 重新开始后再战败 → 直接结算", state, stResult
+	again // 输了重打本关
+	wait 0.5
+	tCheck "F32 结算后重打本关：也还是复活过", revived
+	goHome
+	wait 0.3
+	playStage 2
+	wait 0.5
+	tCheck "F32 从主页重新进关：可以再复活", !revived
+	won = true
+	stage = 2
+	again // 赢了进下一关
+	wait 0.5
+	tInt "F32 下一关", stage, 3
+	tCheck "F32 新的一关：可以再复活", !revived
+
+	// F33 最后一辆敌人和基地在同一帧被打掉：基地先没了就不判胜利（v5 REVIEW A17）
+	playStage 1
+	wait 0.5
+	tCalm
+	killed = totalEnemy - 1
+	baseDestroyed
+	enemyKilled 100
+	tInt "F33 基地已失守时打掉最后一辆：还是复活询问", state, stRevive
+	tCheck "F33 没有判胜利", !won
+	wait 2.6
+	confirm
+	tCheck "F33 复活后敌人已经全灭 → 胜利结算", tWaitState(stResult, 8) && won
 
 	tDone "flow_revive"
 }
