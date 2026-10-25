@@ -1128,6 +1128,13 @@
       "bitmapResolution": 4
     },
     {
+      "name": "pausebtn",
+      "path": "pausebtn.svg",
+      "x": 28,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
       "name": "edsel",
       "path": "edsel.svg",
       "x": 50.0,
@@ -1186,6 +1193,20 @@
     {
       "name": "home_zh",
       "path": "home_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pause_zh",
+      "path": "pause_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pause_edit_zh",
+      "path": "pause_edit_zh.svg",
       "x": 480.0,
       "y": 360.0,
       "bitmapResolution": 2
@@ -1389,6 +1410,20 @@
     {
       "name": "home_en",
       "path": "home_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pause_en",
+      "path": "pause_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pause_edit_en",
+      "path": "pause_edit_en.svg",
       "x": 480.0,
       "y": 360.0,
       "bitmapResolution": 2

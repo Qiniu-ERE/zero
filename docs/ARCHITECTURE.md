@@ -66,6 +66,7 @@ flowchart LR
 | 子弹判定 | `bulletHit()`（弹头左右两个检测点）→ `hitPoint()` → `breakBrick()` / `baseDestroyed()` |
 | 规则 | `spawnEnemy()`（左中右轮流出生，类型和数量按 `stageTune()`）、`enemyKilled()`、`defeat()`、`endGame()` |
 | 地图编辑器 | `openEditor()`、`edPaint()`、`edCheck()`（规则同 `check.py`）、`edRebuild()`、`edRandom()`、`edSave()` / `edLoad()`（PC 版存到 `os.UserConfigDir()/TankBattle/maps.txt`）、`edCommand()`、`playCustom()` |
+| 暂停 | `pauseGame()`（`gameOver = true` 冻结战场）、`resumeGame()`、`quitFromPause()`（自制地图回编辑器，其他回主页） |
 | 流程 | `goHome()`、`newGame(n, two)`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`、`showResult()`、`setScreen()`、`confirm()`，见[第 5 节](#5-游戏流程状态机) |
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头 |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
@@ -95,9 +96,10 @@ flowchart LR
 | `kToast` | 提示条（自动隐藏） | `msg.*_<lang>` | `toast` |
 | `kAd` | 广告位：原生广告卡 `card` / 主页横幅 `banner`（可点击、可关闭） | `card_<lang>`、`banner_<lang>` | `screen`、`langChanged` |
 | `kLife2` | 2P 的生命图标 | `life2_on/off` | `hud` |
+| `kPauseBtn` | 顶栏的暂停按钮（对局中显示，可点击） | `pausebtn` | `screen` |
 | `kTouchPad` | 触屏模式（手机 App，`touchUI` 为 true）的方向键，替换右侧的按键说明 | `touchpad_<lang>` | `hud`、`screen` |
 | `kEdSel` `kEdSwitch` `kEdStatus` `kEdCursor` `kEdMark` | 地图编辑器的小部件：工具选中框、对称开关和对称线、检查结果、光标、问题标记 | `edsel` `edsw_on/off` `edline` `edok/edbad1/edbad2_<lang>` `edcursor` `edmark` | `edit`、`edCursor` |
-| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`editor`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`，再加 `_<lang>` | `screen` |
+| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`editor`、`pause`、`pause_edit`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`，再加 `_<lang>` | `screen` |
 
 ### 3.4 构建工具 `tools/`
 
@@ -146,6 +148,9 @@ stateDiagram-v2
   [*] --> 主页: onStart
   主页 --> 对局: Enter / 空格 / 点击开始（第 1 关）；1~8 选关；C 双人合作
   主页 --> 编辑器: E / 点击自己做地图
+  对局 --> 暂停: Esc / 点击顶栏 Ⅱ
+  暂停 --> 对局: Esc / Enter 继续；R 重新开始本关
+  暂停 --> 主页: H（自制地图试玩时回到编辑器）
   编辑器 --> 对局: Enter 试玩 / P 双人试玩（自制地图）
   编辑器 --> 主页: Esc
   主页 --> 对局: P（路演演示，自动驾驶）
@@ -161,7 +166,7 @@ stateDiagram-v2
   结算 --> 主页: H / 点击主页
 ```
 
-- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stEdit`。按键处理都先看 `state`，同一个键在不同画面有不同含义。
+- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stEdit` `stPause`。按键处理都先看 `state`，同一个键在不同画面有不同含义。
 - `gameOver` 表示“战场冻结”，坦克和子弹在冻结时不动。除了 `stPlay` 以外的状态，战场都是冻结的。
 - 每局只能复活一次（`revived`），金币只能翻倍一次（`doubled`）。
 
