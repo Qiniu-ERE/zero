@@ -1,7 +1,8 @@
 #!/bin/bash
 # 录制“一条命令跑完全部测试”的演示视频（v4.0）：docs/demo/tankbattle-v4-tests.mp4
 #
-# 用法：tools/dev/record_tests.sh       （需要 spx、ffmpeg；PYTHON 指向装了 fontTools 的 Python 时美术测试也会跑）
+# 用法：tools/dev/record_tests.sh               真实运行一次全部测试并生成视频（需要 spx、ffmpeg；PYTHON 指向装了 fontTools 的 Python 时美术测试也会跑）
+#       tools/dev/record_tests.sh --from 文件   用上次保存的输出记录重新生成视频（只改画面时用，不再跑测试）
 #
 # 做法：真实运行一次 tools/test/run_all.sh，记下每一行输出的时间；再用 ffmpeg 画成“终端”画面，
 # 每一行在它真实出现的时刻出现，整体按比例加速到大约 45 秒，画面上标明实际用时和倍速。
@@ -14,6 +15,10 @@ FONT="$ROOT/tools/assets/.cache/NotoSansSC-500.ttf"   # tools/assets/build.py �
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/tankbattle-rectests.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 
+SAVED="${TMPDIR:-/tmp}/tankbattle-v4-tests.tsv"   # 每一行输出和它出现的时间，留着以后只重画视频
+if [ "${1:-}" = --from ]; then
+	cp "$2" "$WORK/lines.tsv"
+else
 echo "==> 运行 tools/test/run_all.sh（约 6 分钟）"
 (cd "$ROOT" && tools/test/run_all.sh 2>&1 || true) | python3 -u -c '
 import sys, time
@@ -24,6 +29,9 @@ for line in sys.stdin:
         print(f"{time.time() - t0:.2f}\t{line}", flush=True)
         print(line, file=sys.stderr, flush=True)
 ' > "$WORK/lines.tsv"
+cp "$WORK/lines.tsv" "$SAVED"
+echo "    输出记录：$SAVED（以后可以 --from 它重新生成）"
+fi
 
 echo "==> 生成视频"
 python3 - "$WORK" "$FONT" "$OUT" <<'PY'
@@ -38,7 +46,7 @@ screens, shown = [], []
 for i, (t, s) in enumerate(rows):
     shown.append(s)
     nxt = rows[i + 1][0] if i + 1 < len(rows) else t + 4 * speed   # 最后一屏停 4 秒
-    screens.append((max((nxt - t) / speed, 0.15), head + shown[-24:]))
+    screens.append((max((nxt - t) / speed, 0.15), head + shown[-17:]))   # 1280×800 一屏放得下 19 行
 mins, secs = divmod(int(total), 60)
 note = f"坦克大战 v4.0 · 一条命令跑完全部自动化测试 · 实际用时 {mins} 分 {secs} 秒 · 视频 {speed} 倍速"
 segs = []
