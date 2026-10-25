@@ -132,6 +132,12 @@ STRINGS = {
     "m.coop.d": ("同一台电脑，两人一起守基地", "Two players, one keyboard"),
     "m.maker": ("自己做地图", "Map Maker"),
     "m.maker.d": ("画一张地图，马上试玩", "Draw a map, play it now"),
+    "m.levels": ("选择关卡", "Select Stage"),
+    "m.levels.d": ("8 个关卡任你挑", "Jump to any of the 8 stages"),
+    # 选择关卡画面（v5）
+    "lv.title": ("选择关卡", "SELECT STAGE"),
+    "lv.sub": ("点一关直接开始，也可以按数字键 1~8", "Tap a stage to play, or press 1-8"),
+    "lv.back": ("返回主页", "Home"),
     "new": ("新", "NEW"),
     "language": ("语言", "Language"),
     "subtitle": ("经典重铸", "REFORGED"),

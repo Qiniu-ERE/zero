@@ -46,7 +46,7 @@ onStart => {
 	wait 0.3
 	tInt "F16 编辑器 Esc → 主页", state, stHome
 
-	// F34 主页只有三个入口：开始战役、双人合作、自己做地图（v5 去掉了“每日挑战 · 即将推出”）
+	// F34 主页的入口：开始战役、双人合作、自己做地图、选择关卡（v5 去掉了“每日挑战 · 即将推出”，原来的位置换成选择关卡）
 	tCheck "F34 开始战役按钮", UI.hit("home.start", -140, 70)
 	tCheck "F34 双人合作按钮", UI.hit("home.coop", -140, 17)
 	tCheck "F34 自己做地图按钮", UI.hit("home.maker", -140, -27)
@@ -54,6 +54,31 @@ onStart => {
 		tCheck "F34 原来每日挑战卡的位置没有按钮："+b, !UI.hit(b, -140, -71)
 	}
 	tCheck "F34 没有每日挑战按钮", !UI.hit("home.daily", -140, -71)
+	tCheck "F34 选择关卡按钮", UI.hit("home.levels", -140, -71)
+
+	// F35 选择关卡画面（v5 REVIEW A3）：鼠标、触屏也能选关，键盘 1~8 照样能用
+	openLevels
+	wait 0.3
+	tInt "F35 主页 → 选关画面", state, stLevels
+	tStr "F35 选关画面", screen, "levels"
+	for n := 1; n <= lastStage; n++ {
+		x := float64(16+(n-1)%4*112+52) - 240 // 卡片中心（build.py 的 levels：4 x 2，卡片 104 x 84，间距 8）
+		y := 180 - float64(80+(n-1)/4*92+42)
+		tCheck "F35 第 "+strconv.Itoa(n)+" 关的卡片", UI.hit("lv."+strconv.Itoa(n), x, y)
+	}
+	tCheck "F35 返回按钮", UI.hit("lv.back", -169, -109)
+	escKey
+	tInt "F35 选关画面 Esc → 主页", state, stHome
+	tStr "F35 回到主页画面", screen, "home"
+	openLevels
+	wait 0.3
+	newGame 6, false // 点第 6 关的卡片（或按 6）
+	wait 0.5
+	tInt "F35 选关 → 对局", state, stPlay
+	tInt "F35 第 6 关", stage, 6
+	tCheck "F35 单人", !coop
+	goHome
+	wait 0.3
 
 	tDone "flow_home"
 }
