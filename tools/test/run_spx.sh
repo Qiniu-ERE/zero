@@ -44,6 +44,11 @@ for suite in "$@"; do
 		!done && /^func / { while ((getline line < prelude) > 0) print line; done = 1 }
 		{ print }
 	' "$main" > "$main.new" && mv "$main.new" "$main"
+	# 测试文件里写一行 “// touch: true”：打开触屏模式（和 tools/export/build.sh 打手机包时的改法相同）
+	if grep -q '^// touch: true' "$suite"; then
+		sed -i.bak 's/^\(\ttouchUI *= *\)false/\1true/' "$main" && rm -f "$main.bak"
+		grep -q 'touchUI *= *true' "$main" || { echo "FAIL  ${name}  没能打开触屏模式（main.spx 里的 touchUI）"; failed="${failed} ${name}"; continue; }
+	fi
 	{ printf '\n// ---- 测试：%s ----\n' "${name}"; cat "$suite"; } >> "$main"
 
 	# 地图编辑器的存档写到 os.UserConfigDir()，指向临时目录，不碰玩家自己的存档
