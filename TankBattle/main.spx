@@ -10,7 +10,6 @@ var (
 	score        int   // 得分
 	best         int   // 本次运行的最高分
 	lives        int   // 玩家剩余生命
-	enemiesLeft  int   // 还需要消灭的敌人数量
 	spawned      int   // 已经出场的敌人数量
 	enemiesAlive int   // 场上活着的敌人数量
 	killed       int   // 已消灭的敌人数量
@@ -1335,7 +1334,6 @@ func enemyKilled(points int) {
 	score += points
 	killed++
 	enemiesAlive--
-	enemiesLeft = totalEnemy - killed
 	if score > best && !autopilot { // 路演演示（自动驾驶）的分数不算最高分
 		best = score
 	}
@@ -1410,7 +1408,6 @@ func startGame() {
 	enemiesAlive = 0
 	killed = 0
 	pbCount = 0
-	enemiesLeft = totalEnemy
 	baseDown = false
 	revived = reviveStage == stage
 	won = false

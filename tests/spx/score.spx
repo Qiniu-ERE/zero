@@ -11,7 +11,7 @@ onStart => {
 	tInt "C10 加分", score, 100
 	tInt "C10 killed + 1", killed, 1
 	tInt "C10 enemiesAlive - 1", enemiesAlive, 0
-	tInt "C10 敌军剩余", enemiesLeft, totalEnemy-1
+	tInt "C10 敌军剩余（顶栏按 killed 显示）", totalEnemy-killed, totalEnemy-1
 	tInt "C10 刷新最高分", best, 100
 	best = 99999
 	enemyKilled 200
