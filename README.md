@@ -162,6 +162,7 @@ spx run .
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、状态机、解释器限制、分工 |
 | [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x |
 | [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
+| [v4.0 规划](docs/v4/PLAN.md) | 测试与质量：自动化测试、覆盖率、PR 自动测试，[测试方案](docs/v4/TEST_PLAN.md) |
 | [跨平台](docs/v3/CROSS_PLATFORM.md) | 打包方法、实测截图、限制 |
 | [微信小游戏](docs/v3/WECHAT_MINIGAME.md) | 可行性评估 |
 | [v2.0 设计方案](docs/v2/DESIGN.md) | 玩法、画风、商业化设计和效果图 |
@@ -190,6 +191,7 @@ docs/
 ├── ARCHITECTURE.md       # 架构文档
 ├── v2/                   # v2.0 设计方案、截图
 ├── v3/                   # v3.0 规划和各方向的文档、截图
+├── v4/                   # v4.0 规划：PLAN.md 总览、TEST_PLAN.md 测试方案
 └── demo/                 # 演示视频和动图
 ```
 
