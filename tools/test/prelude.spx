@@ -42,19 +42,35 @@ func tAt(r, c int) int {
 	return r*cols + c
 }
 
-// “安静的战场”：开第 1 关，清掉所有克隆，地图清空，并且不再出兵（spawned = totalEnemy），
-// 这样不会有随机出现的敌人和子弹干扰结果。返回时战场在运行（gameOver = false）
-func tQuiet() {
-	playStage 1
-	wait 0.5
+// 让当前这一局“安静”下来：清掉所有克隆（敌人、子弹），并且不再出兵（spawned = totalEnemy）。
+// 地图和玩家坦克保留。用于测流程：不会有随机的敌人打到基地或玩家。返回时战场在运行
+func tCalm() {
 	gameOver = true
 	broadcastAndWait "clear"
 	spawned = totalEnemy
 	enemiesAlive = 0
+	gameOver = false
+}
+
+// “安静的战场”：开第 1 关，tCalm，再把地图清空。返回时战场在运行（gameOver = false）
+func tQuiet() {
+	playStage 1
+	wait 0.5
+	tCalm
 	for i := range grid {
 		grid[i] = 0
 	}
-	gameOver = false
+}
+
+// 等到 state 变成 st，最多等 secs 秒；返回是否等到了
+func tWaitState(st int, secs float64) bool {
+	for t := 0.0; t < secs; t += 0.1 {
+		if state == st {
+			return true
+		}
+		wait 0.1
+	}
+	return state == st
 }
 
 // 这一组跑完了：输出 TEST DONE 并退出（run_spx.sh 没看到 TEST DONE 就判失败）
