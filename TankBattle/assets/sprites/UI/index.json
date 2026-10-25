@@ -1128,6 +1128,48 @@
       "bitmapResolution": 4
     },
     {
+      "name": "lifex4",
+      "path": "lifex4.svg",
+      "x": 36,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lifex5",
+      "path": "lifex5.svg",
+      "x": 36,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lifex6",
+      "path": "lifex6.svg",
+      "x": 36,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lifex7",
+      "path": "lifex7.svg",
+      "x": 36,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lifex8",
+      "path": "lifex8.svg",
+      "x": 36,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lifex9",
+      "path": "lifex9.svg",
+      "x": 36,
+      "y": 24,
+      "bitmapResolution": 4
+    },
+    {
       "name": "touchpad_zh",
       "path": "touchpad_zh.svg",
       "x": 240,
