@@ -2,7 +2,7 @@
 
 **[下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · [下载 .xbp](TankBattle.xbp) · [演示视频](docs/demo/tankbattle-v3-demo.mp4) · [快速开始](#快速开始) · [玩法](#玩法) · [更新记录](CHANGELOG.md)
 
-[架构文档](docs/ARCHITECTURE.md) · [v2.0 设计方案](docs/v2/DESIGN.md) · [v3.0 规划](docs/v3/PLAN.md) · [XBuilder](https://x.qiniu.com)
+[架构文档](docs/ARCHITECTURE.md) · [v2.0 设计方案](docs/v2/DESIGN.md) · [v3.0 规划](docs/v3/PLAN.md) · [v4.0 规划](docs/v4/PLAN.md) · [测试方案](docs/v4/TEST_PLAN.md) · [XBuilder](https://x.qiniu.com)
 
 [![1024 HACKATHON](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![Made with XBuilder](https://img.shields.io/badge/made_with-XBuilder-b4521e)](https://x.qiniu.com)
@@ -16,7 +16,7 @@
 
 用 [XBuilder](https://x.qiniu.com) 把 1985 年的 FC 经典《坦克大战》重做成 2026 年的样子：保留“守住老鹰、打穿砖墙”的玩法内核，换上现代画风，支持中英文，并设计了一套**干净、不打扰玩家**的广告方案。
 
-v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 **Windows / macOS / Linux / 网页版 / Android / iOS** 安装包。
+v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 **Windows / macOS / Linux / 网页版 / Android / iOS** 安装包。v4.0 专门做**测试与质量**：每条游戏规则都有自动化测试，v4.0.1 修复了测试发现的子弹相撞问题。
 
 *Talk is cheap, show me what you build.*
 
@@ -26,7 +26,9 @@ v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 *
 
 | 主页 | 对局（English） | 复活（激励视频） | 结算（金币翻倍） |
 |---|---|---|---|
-| ![](docs/v2/screens/home-zh.png) | ![](docs/v2/screens/hud-en-modern.png) | ![](docs/v2/screens/revive-zh.png) | ![](docs/v2/screens/result-win-doubled-zh.png) |
+| ![](docs/v3/editor/home.png) | ![](docs/v2/screens/hud-en-modern.png) | ![](docs/v2/screens/revive-zh.png) | ![](docs/v2/screens/result-win-doubled-zh.png) |
+
+> 主页是 v3.0 的截图；对局、复活、结算是 v2.0 的截图，v3.0.1 起对局顶栏多了一个 Ⅱ 暂停按钮，其他基本一样。
 
 ## 下载安装
 
@@ -57,8 +59,14 @@ v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 *
 ### 方式二：在本地用 spx 运行
 
 ```sh
-# 1. 安装 spx 运行时（需要 Git、Make、Go，详见 goplus/spx 的 README）
-git clone https://github.com/goplus/spx.git && cd spx && make setup
+# 1. 安装 spx 运行时（需要 Git、Go、Python 3）
+#    推荐用仓库里的脚本：装的是固定版本（spx 提交 c3c0da5），和打包、测试用的一样
+cd /path/to/zero
+tools/export/setup_spx.sh
+export PATH="$(go env GOPATH)/bin:$PATH"   # spx 装在这里
+
+#    也可以手动装，但一定要切到同一个提交（spx 的主分支在变，最新版不一定兼容）：
+#    git clone https://github.com/goplus/spx.git && cd spx && git checkout c3c0da5 && make setup
 
 # 2. 运行游戏
 cd /path/to/zero/TankBattle
@@ -138,7 +146,7 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 
 | 方向 | 内容 |
 |---|---|
-| 引擎内测试 | `spx run -headless` 运行工程副本里的测试脚本，直接调用游戏函数检查结果，不改游戏代码。21 组、416 个断言：地图、子弹、出兵、得分、玩家、敌人、流程状态机、编辑器、双人合作、暂停菜单、触屏模式 |
+| 引擎内测试 | `spx run -headless` 运行工程副本里的测试脚本，直接调用游戏函数检查结果，不改游戏代码。19 组、416 个断言：地图、子弹、出兵、得分、玩家、敌人、流程状态机、编辑器、双人合作、暂停菜单、触屏模式 |
 | 工具和外壳 | 关卡检查、文案表、美术生成器（生成文件是否过期）、网页外壳的虚拟按键和布局；248 张地图上游戏和 `check.py` 的地图检查结论完全相同 |
 | 兼容和打包 | 用 XBuilder 线上的 spx v3.3.0 编译检查（#18 那类问题合入前就能发现）；打出安装包后运行，确认能启动、开一局 |
 | 覆盖率 | 函数 96%、`main.spx` 函数 99%、事件处理 100%、消息 100%（v4.0.1 修复子弹相撞后；v4.0 时事件处理 98%，子弹相撞抵消的处理受已知问题影响时有时无）；保存基线，覆盖率退步时检查失败 |
@@ -172,6 +180,8 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | 商业化 | 4 个广告位，全部在战场之外 |
 | 路演 | 路演演示模式（P），展台无人值守循环 |
 
+改版前（2026-10-23 的初版）是这样的：[初版玩法动图](docs/tankbattle.gif)。
+
 广告位目前是**游戏内的模拟广告位**（画面上标明了“模拟广告位”），用「七牛云 · 广告位招商」的文案展示。设计原则见[设计方案](docs/v2/DESIGN.md#四广告干净不打扰)，正式接入方案见[架构文档](docs/ARCHITECTURE.md#8-广告)。
 
 ## 文档
@@ -179,13 +189,13 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | 文档 | 内容 |
 |---|---|
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、状态机、解释器限制、分工 |
-| [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x |
+| [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x → v4.0.0 → v4.0.1 |
 | [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
 | [v4.0 规划](docs/v4/PLAN.md) | 测试与质量：自动化测试、覆盖率、本地检查，[测试方案](docs/v4/TEST_PLAN.md)（测试分层、用例清单、覆盖率、测试发现的问题） |
 | [跨平台](docs/v3/CROSS_PLATFORM.md) | 打包方法、实测截图、限制 |
 | [微信小游戏](docs/v3/WECHAT_MINIGAME.md) | 可行性评估 |
 | [v2.0 设计方案](docs/v2/DESIGN.md) | 玩法、画风、商业化设计和效果图 |
-| [演示视频](docs/demo/tankbattle-v3-demo.mp4) | v3.0 完整流程（[v2.0 版](docs/demo/tankbattle-v2-demo.mp4)） |
+| [演示视频](docs/demo/tankbattle-v3-demo.mp4) | v3.0 完整流程（[v2.0 版](docs/demo/tankbattle-v2-demo.mp4)）；v4.0：[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4) |
 
 ## 项目结构
 
@@ -235,7 +245,7 @@ python3 tools/levels/check.py
 cd TankBattle && spx run .
 ./tools/package_xbp.sh
 
-# 自动化测试（见 docs/v4/TEST_PLAN.md；需要 spx，美术生成器的测试需要 pip install -r tools/assets/requirements.txt）
+# 自动化测试（见 docs/v4/TEST_PLAN.md；需要什么见下面的“跑测试需要什么”）
 tools/test/run_all.sh               # 全部：构建工具 + 网页外壳 + 引擎内测试（约 6 分钟）
 tools/test/run_spx.sh tests/spx/flow_revive.spx   # 只跑一组引擎内测试
 tools/test/pr_check.sh --coverage   # PR 合入前：和 check.yml 相同的检查 + 全部测试 + 覆盖率，生成报告贴到 PR 里
@@ -256,7 +266,18 @@ tools/export/release_local.sh
 ./tools/dev/record_demo.sh
 ```
 
-- **版本标签**：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的；`v2.0.0`、`v3.0.0`、`v3.0.1` 是发布版本。
+**跑测试需要什么**：缺了某样东西时，有的测试会**跳过**，不会报错，注意看输出。
+
+| 测试 | 需要 | 没有时 |
+|---|---|---|
+| 引擎内测试（`tests/spx`） | spx（见[快速开始](#方式二在本地用-spx-运行)），只支持 macOS / Linux | 用 `SKIP_SPX=1 tools/test/run_all.sh` 只跑其他测试 |
+| 网页外壳测试（`tests/web`） | Node.js 18 以上（用自带的 `node --test`） | 跳过，只打印一行“跳过：没有 node” |
+| 美术生成器测试、`pr_check.sh` 的“生成的素材”一项 | Python 的 fontTools：`pip install -r tools/assets/requirements.txt`；第一次运行会下载字体（要联网） | 跳过。装在虚拟环境里时用 `PYTHON=虚拟环境/bin/python` 指定 |
+| XBuilder 兼容检查（`xbuilder_check.sh`，T09） | Go 1.25 以上和网络（第一次要下载 spx v3.3.0 和 xgo） | 没有 Go 时跳过；有 Go 但没网络会失败 |
+| 安装包启动测试（`package_boot.sh`） | 先运行一次 `tools/export/setup_spx.sh` | — |
+
+- **版本标签**：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1` 是发布版本。`v4.0.0` 只有标签、没有安装包，安装包见 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1)。
+- **GitHub 上的红叉**：main 上有几次 Actions 运行显示失败（#22、#23、#50 合入时，还有 v3.0.2、v4.0.0 的标签），都是组织的 Actions 额度用完、任务没启动（3~5 秒就结束），不是代码问题。现在工作流都只能手动触发，检查以 PR 里贴的本地检查报告（`pr_check.sh`）为准。
 - **开发规范**：每次改动都通过 Pull Request 合入，详见[架构文档](docs/ARCHITECTURE.md#11-开发流程与分工)。
 
 ## 代码里的教学要点
