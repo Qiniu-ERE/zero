@@ -4,8 +4,11 @@
 # 用法：tools/export/build.sh <desktop|web|android|ios>
 #   desktop  当前系统的单文件程序（macOS 打成 .app，Windows 是 .exe，Linux 是可执行文件）
 #   web      网页版 / PWA（iPhone、安卓、电脑浏览器都能玩，需要放到 HTTPS 静态服务器上）
-#   android  APK（需要 ANDROID_NDK_ROOT、JDK 17、Android SDK；用调试证书签名，可以直接安装）
+#   android  APK（需要 ANDROID_NDK_ROOT、JDK 17、Android SDK；用调试证书签名，可以直接安装。
+#            证书默认在 ~/.config/tankbattle/debug.keystore，KEYSTORE_DIR 或 GODOT_ANDROID_KEYSTORE_DEBUG_* 可以改）
 #   ios      不签名的 IPA（需要 Xcode；用 AltStore / Sideloadly 等工具以自己的 Apple ID 签名后安装）
+#   android 和 ios 打包前核对 spx 模板里的版本号（setup_spx.sh 写进去的）和 APP_VERSION 一致；
+#   不一致时报错，设置 SPX_REPATCH=1 则自动重新运行 setup_spx.sh（build_local.sh 默认这样做）
 #
 # 产物放在 dist/，文件名带版本号和平台，例如 TankBattle-3.0.0-macos-arm64.zip
 set -euo pipefail
@@ -144,6 +147,47 @@ build_web() {
   (cd "$BUILD_DIR/web" && zip -q -r "$DIST_DIR/$APP_NAME-$APP_VERSION-web.zip" "$APP_NAME" README.txt play-local.py)
 }
 
+# Android / iOS 的版本号不是打包时写的：setup_spx.sh 调 patch_spx.py 把它写进 spx 源码里的模板，
+# 模板再编进 spx 程序。只改 CHANGELOG / APP_VERSION 然后跑 build.sh，包里还是旧版本号（v4.0.1 的 APK 就是 4.0.0）。
+# 所以打包前从 spx 程序里读出模板的版本号核对；不一致时：SPX_REPATCH=1 自动重新运行 setup_spx.sh，否则报错退出。
+template_version() {  # 打印 spx 程序里模板的版本：android → "版本名 版本代码"，ios → 所有 short_version（每行一个）
+  local spx_bin; spx_bin=$(command -v spx) || { echo "找不到 spx：先运行 tools/export/setup_spx.sh $target" >&2; exit 1; }
+  case "$1" in
+    android)
+      local name code
+      name=$(LC_ALL=C grep -a -o 'version/name="[^"]*"' "$spx_bin" | head -1 | sed 's/^version\/name="\(.*\)"$/\1/' || true)
+      code=$(LC_ALL=C grep -a -o 'version/code=[0-9]*' "$spx_bin" | head -1 | sed 's/^version\/code=//' || true)
+      echo "$name $code"
+      ;;
+    ios) LC_ALL=C grep -a -o 'application/short_version="[^"]*"' "$spx_bin" | sed 's/^[^"]*"\(.*\)"$/\1/' | sort -u || true ;;
+  esac
+}
+
+check_template_version() {
+  local info base code want got
+  info=$(python3 "$EXPORT_DIR/patch_spx.py" --version-info "$APP_VERSION") || exit 1
+  base=${info% *}; code=${info#* }
+  case "$target" in
+    android) want="$APP_VERSION $code" ;;
+    ios) want="$base" ;;
+  esac
+  got=$(template_version "$target")
+  [ "$got" = "$want" ] && { echo "spx 模板版本号：${got}（和 APP_VERSION=${APP_VERSION} 一致）"; return; }
+  echo "spx 模板里的版本号是「${got:-（读不到）}」，要打的是「${want}」（APP_VERSION=${APP_VERSION}）" >&2
+  if [ "${SPX_REPATCH:-}" = 1 ]; then
+    log "重新给 spx 模板打补丁并安装 spx（SPX_REPATCH=1）"
+    "$EXPORT_DIR/setup_spx.sh" "$target"
+    hash -r
+    got=$(template_version "$target")
+    [ "$got" = "$want" ] && return
+    echo "重新运行 setup_spx.sh 以后版本号还是「${got}」：检查 PATH 里的 spx（$(command -v spx)）是不是刚装的那个" >&2
+  else
+    echo "版本号是 setup_spx.sh 写进 spx 的，请先运行：APP_VERSION=$APP_VERSION tools/export/setup_spx.sh $target" >&2
+    echo "（或者设置 SPX_REPATCH=1，让 build.sh 自动重新运行）" >&2
+  fi
+  exit 1
+}
+
 # 手机 App：打开游戏的触屏模式（右侧面板变成方向键，按住移动并自动开火）
 touch_mode() {
   sed -i.bak 's/^\(\ttouchUI *= *\)false/\1true/' "$G/main.spx" && rm -f "$G/main.spx.bak"
@@ -152,16 +196,31 @@ touch_mode() {
 
 build_android() {
   : "${ANDROID_NDK_ROOT:?需要设置 ANDROID_NDK_ROOT（NDK r23c，23.2.8568313）}"
+  check_template_version
   prepare
-  # 调试证书：Godot 从环境变量读取。没有就临时生成一个（每次打包都一样的话，覆盖安装不用先卸载）
+  # 调试证书：Godot 从环境变量读取（GODOT_ANDROID_KEYSTORE_DEBUG_PATH / _USER / _PASSWORD，设置了就用设置的）。
+  # 没设置时用仓库外固定位置的证书 $KEYSTORE_DIR/debug.keystore（默认 ~/.config/tankbattle/），没有就生成一个。
+  # 证书必须每次都一样，玩家才能覆盖安装新版本；以前放在 .build/cache/ 里，删掉 .build 就换了证书。
+  # 这个文件不要提交到仓库（.gitignore 已忽略 *.keystore），换电脑打包时自己拷过去。
   if [ -z "${GODOT_ANDROID_KEYSTORE_DEBUG_PATH:-}" ]; then
-    export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$CACHE_DIR/debug.keystore"
+    local dir="${KEYSTORE_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/tankbattle}"
+    export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$dir/debug.keystore"
     export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
     export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
     if [ ! -f "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" ]; then
-      keytool -genkeypair -v -keystore "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" -storepass android -keypass android \
-        -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
+      mkdir -p "$dir" && chmod 700 "$dir"
+      if [ -f "$CACHE_DIR/debug.keystore" ]; then
+        # 旧位置的证书（v4.0.1 的 APK 就是用它签的）：搬过来继续用，从 v4.0.1 升级不用卸载
+        log "调试证书从 $CACHE_DIR 搬到 $dir"
+        cp "$CACHE_DIR/debug.keystore" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+      else
+        log "生成调试证书：${GODOT_ANDROID_KEYSTORE_DEBUG_PATH}（备份好它，换了证书玩家就得先卸载旧版）"
+        keytool -genkeypair -v -keystore "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" -storepass android -keypass android \
+          -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
+      fi
+      chmod 600 "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
     fi
+    echo "调试证书：$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
   fi
   # Godot 只在第一次生成编辑器设置时从 JAVA_HOME / ANDROID_HOME 取默认值；
   # 本机以前跑过 Godot 的话，设置里留着空路径，导出会报“需要有效的 Java SDK 路径”，这里补上
@@ -179,6 +238,7 @@ build_android() {
 }
 
 build_ios() {
+  check_template_version
   prepare
   touch_mode
   log "spx exportios（只导出 Xcode 工程）"

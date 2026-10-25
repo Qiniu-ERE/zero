@@ -1,3 +1,10 @@
 .build/
 dist/
 __pycache__/
+
+# 签名证书、描述文件和密钥不进仓库（Android 调试证书默认在 ~/.config/tankbattle/，见 tools/export/build.sh）
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+.env
