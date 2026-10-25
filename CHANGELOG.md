@@ -2,13 +2,22 @@
 
 安装包在 [Releases](https://github.com/Qiniu-ERE/zero/releases) 下载。每个版本对应一个 Git 标签。
 
+## 未发布
+
+- **发布说明里缺的平台指向最近一个有包的版本**：`release_local.sh` 遇到本机没打的平台（Windows、iOS），不再固定指向上一个版本，而是找最近一个真的有这个平台安装包的版本（v3.0.2 没有这两个包，所以指向 v3.0.1）；`DRY_RUN=1` 只打印发布说明、不发布（[#53](https://github.com/Qiniu-ERE/zero/pull/53)）。
+
 ## v4.0.1
+
+安装包：macOS、Linux、网页版、Android。Windows 和 iOS 没有新包，仍是 v3.0.1 的（不含 v3.0.2 和本版的修复）。
 
 - **修复子弹迎面相撞经常不抵消**（v4.0 的测试 C17 发现的已知问题）：原来 10 次只有 1~2 次能抵消。原因是引擎里子弹的碰撞区域几乎只是一个点（两颗子弹相距 2 像素就不算碰到），迎面飞来时很少正好落在同一个点上。现在改成按距离判断：玩家子弹这一帧飞过的路线上，离敌人子弹不到一颗子弹的直径就算撞上，两颗一起消失。实测 10 次都抵消；错开 3 像素（画面上重叠）也抵消，错开 12 像素或者相邻两行擦肩而过不会误判。
 - 测试 C17 从“已知问题”改回普通断言，并增加错开和擦肩而过的情况：引擎内 416 个断言全部通过，没有已知问题。覆盖率：事件处理从 98% 到 100%，不再有“不稳定”的项；README 徽章更新为 tests 456 passing、coverage 96% functions · 100% handlers。
 - 重新打包 `TankBattle.xbp`；已用 XBuilder 线上的 spx v3.3.0 编译检查通过。
+- **打包改为全部在本机做，GitHub Actions 只能手动触发**：新增 `tools/export/build_local.sh`（打本机能打的全部平台：macOS、网页版、Android、Linux，每个包都检查，结果写在 `dist/BUILD_LOCAL.md`）和 `linux_vm.sh`（在 OrbStack 的 x86_64 Ubuntu 虚拟机里打 Linux 包并做启动测试）；`release.yml`、`check.yml` 不再在推送标签或 PR 时自动运行（组织的 Actions 额度用完）（[#51](https://github.com/Qiniu-ERE/zero/pull/51)）。
 
 ## v4.0.0
+
+> **只打了标签，没有安装包**：推送 `v4.0.0` 标签时 Actions 已经启动不了，这一版没有创建 GitHub Release。安装包请用 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1)（包含 v4.0.0 的全部内容，另外修复了子弹相撞）。
 
 v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有自动化测试，合入前在本地一条命令跑完，覆盖率只升不降。详见 [v4.0 规划](docs/v4/PLAN.md) 和 [测试方案](docs/v4/TEST_PLAN.md)。
 

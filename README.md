@@ -41,7 +41,9 @@ v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 *
 | Android | `android.apk` | 直接安装 |
 | iPhone / iPad | `ios-unsigned.ipa` | 用 Sideloadly / AltStore 签名安装 |
 
-安装包从 v3.0.2 起在本机打包（`tools/export/build_local.sh`，不用 GitHub Actions），详见[跨平台文档](docs/v3/CROSS_PLATFORM.md#七实现结果)。v3.0.2 是本机打包的，没有 Windows 和 iOS 包，这两个平台请用 [v3.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.1)。
+安装包从 v3.0.2 起在一台 Mac 上本机打包（现在用 `tools/export/build_local.sh` + `release_local.sh`），GitHub Actions 只能手动触发，详见[跨平台文档](docs/v3/CROSS_PLATFORM.md#七实现结果)。
+
+> **Windows 和 iOS 暂时没有新包**：这台 Mac 打不了这两个平台，最新的包还是 [v3.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.1)（最新版的下载说明里也指向它）。v3.0.1 **不含**之后的修复，例如误点“看视频”（v3.0.2）、子弹迎面相撞不抵消（v4.0.1）。想玩最新版可以用网页版。
 
 ## 快速开始
 
@@ -152,7 +154,7 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | 关卡 | 8 关、选关、下一关、全部通关 | [PLAN](docs/v3/PLAN.md) |
 | 双人合作 | 同一键盘两人一起守基地 | [COOP](docs/v3/COOP.md) |
 | 自己做地图 | 画地图、实时检查、马上试玩 | [MAP_EDITOR](docs/v3/MAP_EDITOR.md) |
-| 跨平台 | 六个平台的安装包，自动发布 | [CROSS_PLATFORM](docs/v3/CROSS_PLATFORM.md) |
+| 跨平台 | 六个平台的安装包（v3.0.0、v3.0.1 由 GitHub Actions 打包发布，v3.0.2 起本机打包） | [CROSS_PLATFORM](docs/v3/CROSS_PLATFORM.md) |
 | 暂停（v3.0.1） | 对局中随时继续、重来或退出 | [CHANGELOG](CHANGELOG.md) |
 
 | 8 个关卡 | 双人合作 | 自己做地图 | 手机网页版 |

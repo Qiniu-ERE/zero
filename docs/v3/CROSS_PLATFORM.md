@@ -8,7 +8,7 @@
 
 ## 实现状态
 
-**✅ 打包工具和发布流程已实现**（[PR #15](https://github.com/Qiniu-ERE/zero/pull/15)），已发布 [v3.0.0](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.0)。详见下面的[第七节](#七实现结果)。本地已经验证 macOS 单文件程序和网页版；Windows、Linux、Android、iOS 由 GitHub Actions 打包，在 CI 上验证。下面第一到六节是当初的评估记录。
+**✅ 打包工具和发布流程已实现**（[PR #15](https://github.com/Qiniu-ERE/zero/pull/15)），已发布 [v3.0.0](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.0)。详见下面的[第七节](#七实现结果)。v3.0.0、v3.0.1 由 GitHub Actions 打包发布，Windows、Linux、Android、iOS 在 CI 上验证。组织的 Actions 额度用完后，**v3.0.2 起改为本机打包**（现在用 `build_local.sh` + `release_local.sh`，见 [7.1 节](#71-发布了哪些包)末尾），Actions 只能手动触发。下面第一到六节是当初的评估记录。
 
 ## 结论速览
 
@@ -237,7 +237,7 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 
 ### 7.1 发布了哪些包
 
-推送 `v*` 标签（例如 `v3.0.0`）后，GitHub Actions（`.github/workflows/release.yml`）打出下面这些包，并创建 GitHub Release：
+v3.0.0、v3.0.1 时，推送 `v*` 标签后 GitHub Actions（`.github/workflows/release.yml`）打出下面这些包，并创建 GitHub Release。v3.0.2 起改为本机打包（见本节后面的「本地打包」），`release.yml` 只能手动触发。文件名和内容不变：
 
 | 文件 | 平台 | 怎么打出来的 | 怎么安装 |
 |---|---|---|---|
@@ -262,7 +262,7 @@ tools/export/release_local.sh        # 把 dist/ 里的包发布成 GitHub Relea
 
 **本机发布（v3.0.2）**：组织的 Actions 额度用完后，v3.0.2 改成在一台 Apple 芯片 Mac 上打包：macOS、网页版、Android 直接打；Linux 在 OrbStack 的 x86_64 Ubuntu 虚拟机里打（Rosetta 转译），并用 Xvfb + 软件 Vulkan 启动截图验证。Windows 和 iOS 本机打不了（`buildlauncher` 只能打本机平台；iOS 需要 Xcode），`release_local.sh` 会把说明里这两行改成指向上一个版本（v3.0.1）的下载链接。Android 导出时如果本机以前运行过 Godot，编辑器设置里的 Java SDK 路径可能是空的，`build.sh android` 会用 `JAVA_HOME` / `ANDROID_HOME` 补上。
 
-**本地打包（v4.0 起的标准做法，不用 GitHub Actions）**：推送标签不再触发 Actions（`release.yml`、`check.yml` 都改成只能手动运行），打包、检查、发布都在本机做：
+**本地打包（现在的标准做法，不用 GitHub Actions；`build_local.sh` 从 v4.0.1 起使用）**：推送标签不再触发 Actions（`release.yml`、`check.yml` 都改成只能手动运行），打包、检查、发布都在本机做：
 
 ```sh
 tools/export/setup_spx.sh android            # 第一次：spx、xgo、运行时、安卓模板（只打桌面和网页可以不加 android）
@@ -312,6 +312,8 @@ tools/export/release_local.sh                # 发布 GitHub Release；空着的
 - 触屏模式：在 `spx run` 里打开 `touchUI` 预览布局（截图右下）。
 
 ### 7.4 CI 上的冒烟测试
+
+> 这是 v3.0.0、v3.0.1 时的做法。v3.0.2 起不用 Actions，启动测试改在本机做（`tools/test/package_boot.sh`，Linux 包在 `linux_vm.sh` 的虚拟机里测）。
 
 在提交说明里带 `[ci smoke]` 时，CI 会把打好的桌面包解压、启动，45 秒后截屏（`smoke-windows` / `smoke-macos` / `smoke-linux` 三个任务）：
 
