@@ -20,6 +20,8 @@ mkdir -p "$DIST_DIR"
 SDK=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 NDK=${ANDROID_NDK_ROOT:-$SDK/ndk/23.2.8568313}
 LOGS=$(mktemp -d "${TMPDIR:-/tmp}/tankbattle-build-local.XXXXXX")
+# Android / iOS 的版本号编在 spx 里：和 APP_VERSION 不一致时让 build.sh 自动重新运行 setup_spx.sh（见 build.sh 的 check_template_version）
+export SPX_REPATCH=${SPX_REPATCH:-1}
 rows=""
 row() { rows="${rows}| $1 | $2 | $3 | $4 |
 "; printf '%s  %-8s %s %s\n' "$2" "$1" "$3" "$4"; }
@@ -67,7 +69,22 @@ for p in "$@"; do
 			export ANDROID_HOME="'"$SDK"'" ANDROID_NDK_ROOT="'"$NDK"'"
 			"'"$EXPORT_DIR"'/build.sh" android && f=$(ls "'"$DIST_DIR"'"/*-'"$APP_VERSION"'-android.apk) &&
 			"$ANDROID_HOME"/build-tools/*/apksigner verify "$f"' > "$log_file" 2>&1 && f=$(art android) && [ -n "$f" ]; then
-			row android ✅ "$(basename "$f")（$(size "$f")）" "签名验证通过；本机没有模拟器，启动要在真机上手工检查"
+			# 再核对 APK 里的版本号（v4.0.1 的 APK 写的是 4.0.0：版本号在 spx 模板里，见 build.sh 的 check_template_version）
+			want="$APP_VERSION $(python3 "$EXPORT_DIR/patch_spx.py" --version-info "$APP_VERSION" | cut -d' ' -f2)"
+			aapt=$(ls "$SDK"/build-tools/*/aapt 2>/dev/null | tail -1)
+			got=""
+			if [ -n "$aapt" ]; then
+				# 不看 aapt 的退出码：Godot 的 APK 会让它报一行 “android:required ... not an integer” 并返回 1，但版本信息照样输出
+				"$aapt" dump badging "$f" > "$LOGS/apk-badging.txt" 2>&1
+				got="$(sed -n "s/^package: .*versionCode='\([0-9]*\)' versionName='\([^']*\)'.*/\2 \1/p" "$LOGS/apk-badging.txt")"
+			fi
+			if [ -z "$aapt" ]; then
+				row android ✅ "$(basename "$f")（$(size "$f")）" "签名验证通过（没有 aapt，没核对版本号）；本机没有模拟器，启动要在真机上手工检查"
+			elif [ "$got" = "$want" ]; then
+				row android ✅ "$(basename "$f")（$(size "$f")）" "签名和版本号（${got}）验证通过；本机没有模拟器，启动要在真机上手工检查"
+			else
+				row android ❌ "$(basename "$f")" "APK 的版本号是「${got:-读不到}」，应该是「${want}」，见 $LOGS/apk-badging.txt"
+			fi
 		else
 			row android ❌ — "打包或签名验证失败，见 $log_file"
 		fi
