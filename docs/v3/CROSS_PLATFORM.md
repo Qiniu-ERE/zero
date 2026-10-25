@@ -269,7 +269,8 @@ tools/export/setup_spx.sh android            # 第一次：spx、xgo、运行时
 tools/export/linux_vm.sh setup               # 第一次：OrbStack 的 x86_64 Ubuntu 虚拟机（约 3.7 GB），以后可以 linux_vm.sh delete 释放
 tools/export/build_local.sh                  # 打本机能打的全部平台，每个包都检查，结果写在 dist/BUILD_LOCAL.md
 git tag v4.1.0 && git push origin v4.1.0     # 在 main 上打标签
-tools/export/release_local.sh                # 发布 GitHub Release；空着的平台指向上一个版本的下载
+DRY_RUN=1 tools/export/release_local.sh      # 先看发布说明（不发布）
+tools/export/release_local.sh                # 发布 GitHub Release；空着的平台指向最近一个有这个平台安装包的版本
 ```
 
 `build_local.sh` 在一台 Apple 芯片 Mac 上（2026-10-25 实测，v4.0.0）：
