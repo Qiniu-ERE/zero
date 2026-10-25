@@ -840,11 +840,18 @@ func buildHud() {
 	UI.toastBar -72, 20
 }
 
-// 生命图标第 slot 个（0~2）的造型：有 n 条命，p2 表示 2P 的图标
+// 生命图标第 slot 个（0~2）的造型：有 n 条命，p2 表示 2P 的图标；"" 表示不显示。
+// 超过 3 条命（复活后可能有 4 条）显示成“图标 ×N”：第 2 个位置是 ×N，第 3 个不显示
 func lifeLook(n, slot int, p2 bool) string {
 	name := "life"
 	if p2 {
 		name = "life2"
+	}
+	if n > 3 && slot == 1 {
+		return "lifex" + strconv.Itoa(int(math.Min(float64(n), 9)))
+	}
+	if n > 3 && slot == 2 {
+		return ""
 	}
 	if slot < n {
 		return name + "_on"

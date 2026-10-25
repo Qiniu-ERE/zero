@@ -279,7 +279,12 @@ func refresh() {
 		}
 		show
 	case kLife:
-		setCostume lifeLook(lives, slot, false)
+		c := lifeLook(lives, slot, false)
+		if c == "" {
+			hide
+			return
+		}
+		setCostume c
 		x := 110.0
 		if coop {
 			x = 124 // 双人时左边留出「1P」标签的位置
@@ -291,7 +296,12 @@ func refresh() {
 			hide
 			return
 		}
-		setCostume lifeLook(lives2, slot, true)
+		c := lifeLook(lives2, slot, true)
+		if c == "" {
+			hide
+			return
+		}
+		setCostume c
 		show
 	case kLang:
 		if state == stAd {

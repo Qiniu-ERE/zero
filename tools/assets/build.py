@@ -329,6 +329,10 @@ def icon_costumes():
     defs, body = tank_body(*TANKS["player2"])
     for name, op in (("life2_on", 1), ("life2_off", 0.22)):
         out.append((name, svg(12, 12, f'<g opacity="{op}" transform="scale(0.5)">{body}</g>', defs, res=HR), (6, 6)))
+    # 超过 3 条命时跟在第一个图标后面的“×N”（放在第 2 个图标的位置，锚点让文字紧挨着第一个图标）
+    for n in range(4, 10):
+        s = f"×{n}"
+        out.append((f"lifex{n}", svg(width(s, 8, True) + 2, 12, text(1, 9.2, s, 8, "#ffffff", True), res=HR), (9, 6)))
     return out
 
 
