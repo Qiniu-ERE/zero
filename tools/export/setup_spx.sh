@@ -7,6 +7,7 @@
 # spx 和运行时会装进 $(go env GOPATH)/bin。本地测试时可以先 export GOPATH=/tmp/xxx，不影响自己已经装好的 spx。
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
+check_go_version
 
 log "spx 源码 ($SPX_COMMIT)"
 if [ ! -d "$SPX_DIR/.git" ]; then

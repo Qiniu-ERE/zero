@@ -10,7 +10,7 @@
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 VM=${LINUX_VM:-tankbattle-linux}
-GO_VERSION=${GO_VERSION:-1.26.5}   # 和 .github/workflows/release.yml、spx 的 runtime.lock.json 一致
+# Go 的版本和安装包的 sha256 在 env.sh（GO_VERSION、GO_LINUX_AMD64_SHA256）
 in_vm() { orb -m "$VM" bash -lc "$*"; }
 as_root() { orb -m "$VM" -u root bash -lc "$*"; }
 
@@ -26,9 +26,12 @@ setup)
 	as_root "apt-get update -q && DEBIAN_FRONTEND=noninteractive apt-get install -y -q git curl ca-certificates python3 gcc make zip unzip \
 		libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev \
 		xvfb xauth mesa-vulkan-drivers libgl1-mesa-dri libvulkan1"
-	if ! in_vm "test -x /usr/local/go/bin/go && /usr/local/go/bin/go version | grep -q go$GO_VERSION"; then
-		log "Go $GO_VERSION"
-		as_root "rm -rf /usr/local/go && curl -fsSL https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz | tar -C /usr/local -xz"
+	if ! in_vm "test -x /usr/local/go/bin/go && /usr/local/go/bin/go version | grep -q 'go$GO_VERSION '"; then
+		log "Go ${GO_VERSION}（下载后核对 sha256）"
+		as_root "set -e; f=/tmp/go$GO_VERSION.linux-amd64.tar.gz
+			curl -fsSL -o \$f https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz
+			echo '$GO_LINUX_AMD64_SHA256  '\$f | sha256sum -c - || { rm -f \$f; echo 'Go 安装包的 sha256 不对，停止' >&2; exit 1; }
+			rm -rf /usr/local/go && tar -C /usr/local -xzf \$f && rm -f \$f"
 	fi
 	log "spx（虚拟机里的缓存：~/tankbattle-cache）"
 	in_vm "export PATH=/usr/local/go/bin:\$HOME/go/bin:\$PATH CACHE_DIR=\$HOME/tankbattle-cache && cd '$ROOT' && tools/export/setup_spx.sh"
