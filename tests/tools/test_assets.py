@@ -53,7 +53,7 @@ class TextPath(unittest.TestCase):
     def test_T05_missing_glyph_raises(self):
         import textpath
         font = textpath.Font("medium")
-        font.check("坦克大战 BATTLE CITY")  # 正常的文字不报错
+        font.check("坦克大战 BRICKLINE TANKS")  # 正常的文字不报错
         with self.assertRaises(textpath.MissingGlyph):
             font.check("坦克\U0001F600")  # 字体里没有表情符号
 

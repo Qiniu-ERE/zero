@@ -467,6 +467,8 @@ def home(lang):
     s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>',
          '<circle cx="330" cy="170" r="140" fill="#3ee8ff" fill-opacity="0.05"/><circle cx="330" cy="170" r="90" fill="#ffd23a" fill-opacity="0.05"/>']
     t = tr("title", lang)
+    if 16 + width(t, 22, True) + 6 + width("2026", 22, True) > 290:
+        sys.exit(f"主页标题太长，会压到右边的坦克展示台：{t} 2026")
     s.append(text(16, 46, t, 22, "#ffffff", True))
     s.append(text(16 + width(t, 22, True) + 6, 46, "2026", 22, "url(#gold)", True))
     s.append(text(16, 60, tr("subtitle", lang), 7.5, "#7f8ba3", True))
