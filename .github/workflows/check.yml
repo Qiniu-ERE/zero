@@ -1,0 +1,37 @@
+# 每个 PR 和 main 上的推送都跑的轻量检查（只用 Ubuntu，一两分钟）：
+# - 8 张关卡地图合法（tools/levels/check.py）
+# - 生成的美术和界面（tools/assets/build.py）和提交的一致：改了文案或生成器却忘了重新生成，这里会报错
+# - TankBattle.xbp 的内容和 TankBattle/ 一致：改了游戏却忘了重新打包 .xbp，这里会报错
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 关卡地图
+        run: python3 tools/levels/check.py
+      - name: 生成的素材是最新的
+        run: |
+          pip install -q -r tools/assets/requirements.txt
+          python3 tools/assets/build.py
+          if ! git diff --quiet || [ -n "$(git status --porcelain TankBattle tools)" ]; then
+            echo "::error::生成的素材和提交的不一致：改了 strings.py / build.py 后请运行 python3 tools/assets/build.py 并提交生成的文件"
+            git status --short TankBattle tools | head -30
+            exit 1
+          fi
+      - name: TankBattle.xbp 是最新的
+        run: |
+          mkdir -p /tmp/xbp && cd /tmp/xbp && unzip -q "$GITHUB_WORKSPACE/TankBattle.xbp"
+          if ! diff -rq /tmp/xbp "$GITHUB_WORKSPACE/TankBattle" -x .temp; then
+            echo "::error::TankBattle.xbp 和 TankBattle/ 不一致：请运行 ./tools/package_xbp.sh 并提交"
+            exit 1
+          fi

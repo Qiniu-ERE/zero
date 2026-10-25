@@ -245,6 +245,10 @@ func refresh() {
 	switch kind {
 	case kLabel:
 		k := key
+		if touchUI && strings.HasPrefix(key, "hint.") {
+			hide // 触屏模式：按键说明的位置换成方向键（双人的按键说明也不显示）
+			return
+		}
 		if key == "stage" && stage == customStage {
 			k = "stage.custom"
 			if coop {
@@ -261,9 +265,6 @@ func refresh() {
 			k = "hint.p2"
 		} else if !coop && (key == "tag.1p" || key == "tag.2p") {
 			hide
-			return
-		} else if touchUI && strings.HasPrefix(key, "hint.") {
-			hide // 触屏模式：按键说明的位置换成方向键
 			return
 		}
 		setCostume k + "_" + langCode()

@@ -4,7 +4,7 @@
 用法：python3 tools/levels/check.py            # 检查 main.spx 里的所有关卡
       python3 tools/levels/check.py map.txt   # 检查一个文本文件里的地图（13 行，每行 13 个字符）
 
-v3.0 规划中的“自己做地图”（docs/v3/MAP_EDITOR.md）也用这套规则做实时检查。
+地图编辑器（main.spx 的 edCheck）用同一套规则做实时检查。
 不依赖第三方库。发现问题时打印原因并以非零状态退出。
 """
 import os
@@ -17,7 +17,7 @@ CHARS = set(".BSWGE")     # 空地 砖墙 钢墙 水面 草丛 基地
 PASS = set(".G")          # 坦克能直接开过去的格子
 BREAK = set("B")          # 能打掉的格子（打掉以后就能通过）
 SPAWNS = [(0, 0), (0, 6), (0, 12)]  # 敌人出生点（main.spx 的 spawnEnemy）
-PLAYER = (12, 4)          # 玩家出生点（Player.spx 的 respawn）
+PLAYERS = [(12, 4), (12, 8)]  # 1P / 2P 出生点（Player.spx 的 respawn）
 BASE = (12, 6)            # 基地（老鹰）
 
 
@@ -42,8 +42,9 @@ def problems(rows):
     for p in SPAWNS:
         if at(p) != ".":
             out.append(f"敌人出生点（第 {p[0]} 行第 {p[1]} 列）必须是空地 .")
-    if at(PLAYER) != ".":
-        out.append(f"玩家出生点（第 {PLAYER[0]} 行第 {PLAYER[1]} 列）必须是空地 .")
+    for i, p in enumerate(PLAYERS):
+        if at(p) != ".":
+            out.append(f"{i+1}P 出生点（第 {p[0]} 行第 {p[1]} 列）必须是空地 .")
 
     # 连通性：砖墙能打掉，所以算“可以通过”；钢墙和水面不行
     def reach(start):
@@ -62,11 +63,12 @@ def problems(rows):
     for p in SPAWNS:
         if at(p) == "." and not (reach(p) & near_base):
             out.append(f"从出生点（第 {p[0]} 行第 {p[1]} 列）到不了基地旁边（钢墙或水面把路堵死了）")
-    if at(PLAYER) == ".":
-        got = reach(PLAYER)
-        for p in SPAWNS:
-            if p not in got:
-                out.append(f"玩家开不到敌人出生点（第 {p[0]} 行第 {p[1]} 列）")
+    for i, pl in enumerate(PLAYERS):
+        if at(pl) == ".":
+            got = reach(pl)
+            for p in SPAWNS:
+                if p not in got:
+                    out.append(f"{i+1}P 开不到敌人出生点（第 {p[0]} 行第 {p[1]} 列）")
 
     # 基地不能被钢墙或水面完全包住，否则敌人永远打不到它，关卡失去意义
     for p in near_base:

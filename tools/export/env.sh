@@ -13,7 +13,8 @@ XGO_VERSION="v1.7.5"                                   # 和 spx 的 runtime.loc
 APP_NAME="TankBattle"
 APP_TITLE="坦克大战 2026"
 APP_ID="com.qiniu.tankbattle"
-APP_VERSION="${APP_VERSION:-3.0.0}"
+# 默认版本号：CHANGELOG.md 里最新的一节（"## v3.0.1" → 3.0.1）；CI 打标签发布时会传入标签上的版本
+APP_VERSION="${APP_VERSION:-$(sed -n 's/^## v\([0-9][0-9.]*\)$/\1/p' "$ROOT/CHANGELOG.md" | head -1)}"
 
 CACHE_DIR="${CACHE_DIR:-$ROOT/.build/cache}"
 SPX_DIR="${SPX_DIR:-$CACHE_DIR/spx}"
