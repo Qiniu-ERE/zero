@@ -95,9 +95,14 @@ done
 echo "---- 断言：通过 ${total_pass}，失败 ${total_fail}，已知问题 ${total_xfail}"
 [ ! -s "$WORK/xfail.txt" ] || { echo "---- 已知问题（还没修好，不算失败）："; cat "$WORK/xfail.txt"; }
 if [ -n "$COVERAGE" ]; then
-	python3 "$ROOT/tools/test/spx_coverage.py" report ${UNITTEST_LOG:+--unittest-log "$UNITTEST_LOG"} "$WORK"/*/run.log > "$WORK/coverage.md"
+	base=""
+	[ ! -f "$ROOT/tests/coverage-baseline.json" ] || [ -n "${NO_BASELINE:-}" ] || base="$ROOT/tests/coverage-baseline.json"
+	if ! python3 "$ROOT/tools/test/spx_coverage.py" report ${UNITTEST_LOG:+--unittest-log "$UNITTEST_LOG"} ${base:+--baseline "$base"} "$WORK"/*/run.log > "$WORK/coverage.md"; then
+		failed="${failed} 覆盖率比基线退步"
+	fi
 	echo "---- 覆盖率报告：$WORK/coverage.md"
 	sed -n '/^## 目标/,/^## 没覆盖/p' "$WORK/coverage.md" | grep '^|'
+	sed -n '/^## 和基线比较/,$p' "$WORK/coverage.md"
 fi
 if [ -n "${failed}" ]; then
 	echo "失败的测试组：${failed}"
