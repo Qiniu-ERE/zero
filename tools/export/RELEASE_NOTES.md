@@ -13,7 +13,7 @@ XBuilder 复刻重铸版《坦克大战》：**8 个关卡、双人合作、自�
 | Android（arm64） | `TankBattle-@VERSION@-android.apk` | 直接安装（调试证书签名）；触屏模式：右侧方向键按住移动并自动开火 |
 | iPhone / iPad | `TankBattle-@VERSION@-ios-unsigned.ipa` | 没有签名，需要用 Sideloadly / AltStore 以自己的 Apple ID 签名安装（免费账号 7 天有效） |
 
-每个安装包里都有一份README.txt（安装说明）。`SHA256SUMS.txt` 是所有文件的校验和。
+每个安装包里都有一份 README.txt（安装说明）。`SHA256SUMS.txt` 是所有文件的校验和。
 
 ### 玩法
 
@@ -22,4 +22,4 @@ XBuilder 复刻重铸版《坦克大战》：**8 个关卡、双人合作、自�
 - **自己做地图**（主页按 E）：鼠标 / 手指画地图，实时检查能不能玩，马上试玩；PC 版可以保存
 - 方向键 / WASD 移动，空格 / J 开火，Esc 暂停 / 退出（手机上点顶栏的 Ⅱ），T 切换画风，L 切换中英文
 
-完整说明见仓库的 README 和 `docs/v3/`。
+完整说明见仓库的 README、`docs/v3/`（玩法和打包）和 `docs/v4/`（测试）。
