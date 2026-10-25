@@ -2,6 +2,11 @@
 
 安装包在 [Releases](https://github.com/Qiniu-ERE/zero/releases) 下载。每个版本对应一个 Git 标签。
 
+## 未发布
+
+- **路演演示模式可以按 Esc 退出**：原来对局中按 Esc 没反应，在编辑器那一段按 Esc 虽然能回主页，演示脚本还在后台继续。现在任何时候按 Esc 都马上回主页，画风、语言、编辑器里的地图都还原；演示开始时提示“按 Esc 退出”（REVIEW A8，新测试 F36）。
+- 文档统一叫法：v2.0 的设计文档改称“v2.0 规划”。
+
 ## v5.0.0
 
 v5.0 是**商业化落地探索**：评估怎么把游戏放到 Steam、Xbox（Microsoft Store）、App Store、Google Play 上卖，算清楚盈利预期和每个平台的盈利周期；同时把全面审查发现的问题先修掉一批。英文名定为 **Brickline Tanks**。
