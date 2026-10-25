@@ -850,6 +850,11 @@ func bulletHit(x, y float64, d int, byPlayer bool) bool {
 	px := dirDY(d) * 6
 	py := dirDX(d) * 6
 	a := hitPoint(fx+px, fy+py, byPlayer)
+	// 两个检测点落在同一格时只算一次：否则正对一块砖打，一发就会扣两下（砖墙应该打两下才碎）
+	i := cellIndex(fx+px, fy+py)
+	if i >= 0 && i == cellIndex(fx-px, fy-py) {
+		return a
+	}
 	b := hitPoint(fx-px, fy-py, byPlayer)
 	return a || b
 }
