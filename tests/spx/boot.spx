@@ -13,7 +13,7 @@ onStart => {
 	tCheck "B02 战场没有冻结", !gameOver
 	tInt "B02 地图已建好", len(grid), rows*cols
 	tInt "B02 3 条命", lives, 3
-	tInt "B02 敌军剩余", enemiesLeft, totalEnemy
+	tInt "B02 还没有消灭敌人", killed, 0
 
 	tDone "boot"
 }
