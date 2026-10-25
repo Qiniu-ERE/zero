@@ -23,7 +23,7 @@
 | 方案 | 做法 | 优点 | 缺点 |
 |---|---|---|---|
 | **A. spx 补丁：手柄转按键（推荐）** | 在 spx 的输入层读 Godot 的手柄状态，转成游戏已经认识的按键事件：手柄 1 → 1P（WASD / J），手柄 2 → 2P（方向键 / Enter）；A → 开火 / 确认，B → 返回，Start → Esc；摇杆加死区 | **游戏代码基本不用改**，`onKey` 和 `keyPressed` 照常工作；双人合作直接支持两只手柄；补丁用现有的 `patch_spx.py` 维护 | 要读懂 spx 的输入管线；以后 spx 升级要重新适配。做通后给上游提 PR |
-| B. Steam Input 键盘模拟 | 在 Steamworks 后台给游戏配一套“手柄 → 键盘”的官方配置 | 不改代码 | **只在 Steam 上有效**；按键提示对不上，Steam Deck 只能评“可玩”；其他平台没用 |
+| B. Steam Input 键盘模拟 | 在 Steamworks 后台给游戏配一套“手柄 → 键盘”的官方配置 | 不改代码 | **只在 Steam 上有效**；按键提示对不上，Steam Deck 只能评“可玩”；**两只手柄映射出的按键会合并成同一个键盘输入，游戏分不清 1P / 2P，双人合作用不了**（[EXPERIENCE.md 3.2](EXPERIENCE.md#32-手柄与双人合作)）；其他平台没用 |
 | C. 等 spx 上游加手柄接口 | 提 issue / PR | 最干净 | 时间不可控 |
 
 先做 A 的验证（P1 spike）：能在 macOS 上用一只 Xbox 手柄控制 1P、两只手柄控制双人合作，就算通过。不通过就用 B 先上 Steam。
@@ -48,18 +48,26 @@
 - **试玩版**：再加一个 `demoBuild` 常量，只开放第 1~2 关、编辑器不能保存，结尾显示“购买完整版”。
 - v4 的测试框架里给商店版和试玩版各加一组用例（差异点逐条测）。
 
-## 三、存档
+## 三、存档与匿名统计
 
 - 一个纯文本文件 `save.txt`，`key=value`，第一行是版本号（`v=1`）；读到不认识的版本就当作新存档，**不崩溃**。
 - 内容：解锁进度、每关最高分、金币、已购外观、画风、语言、地图槽位（每张图一行，沿用 `edRows()` 的格式）。
 - 位置：`os.UserConfigDir()/<新名字>/save.txt`，和现在的 `maps.txt` 同一个目录（PC 版已经验证能写）。iOS / Android 上 Go 的 `os.UserConfigDir()` 返回什么**要实测**；iOS 应用沙盒里应该落在应用自己的目录（推测）。
-- Steam 云存档可以不接 SDK：在 Steamworks 后台配置“自动云同步”，指定存档目录即可（Steam Auto-Cloud，公开资料，要核实）。
+- Steam 云存档不用接 SDK：在 Steamworks 后台配置 Auto-Cloud，三个系统的目录对应见 [EXPERIENCE.md 3.4](EXPERIENCE.md#34-steam-云存档不用接-sdk)。
+
+**匿名统计和远程配置（已验证可行）**：spx 的解释器注册了标准库的 `net/http`（还有 `os`、`os/exec` 等），游戏脚本可以直接发 HTTP 请求。2026-10-25 本机实测（spx 4.0，macOS，`spx run -headless`）：脚本 `import "net/http"` 后从本地 HTTP 服务读到配置文件，输出 `NETTEST OK 200 v=1 price=399`。注意解释器里 `io.ReadAll`、`io.Copy` 编译不过，要用 `resp.Body.Read` 读。
+
+- 用途：关卡通过率、复活率、每关用时（判断难度）；远程调整金币价格等数值。
+- 做法：玩家**第一次启动时询问是否发送匿名统计**（默认不发），只发随机 ID 和游戏事件，不收集个人信息；接收端一个 HTTP 接口按天存成文本文件。
+- XBuilder（spx v3.3.0）里是否也有 `net/http` 没有验证；统计只在商店版打开。
 
 ## 四、暂不做：SDK 集成
 
 Steamworks（成就、排行榜、创意工坊）、StoreKit / Play 结算（内购）、AdMob（广告）都要游戏脚本调用平台 SDK。spx 没有提供这样的接口：
 
-- 桌面和移动端：游戏逻辑跑在 Go 的解释器里，要调用 C++ / Objective-C / Java 的 SDK，只能改 spx（给 gdspx 加一个通用的“宿主消息”接口，再在 Godot 侧接 SDK 插件）。
+- spx 的引擎是**带 spx 模块的定制版 Godot**（源码 `godot_modules/spx`），游戏脚本能用的引擎功能是一张**固定的函数表**（约 340 个 `SPX_BIND` 函数，Go 侧代码由生成器产生），里面没有调用任意 Godot 单例或插件的接口。
+- 要接 SDK，需要在 spx 模块里加一个“宿主消息”接口（例如 `host_send(kind, arg)` / `host_poll()`），C++ 侧转给对应的 Godot 插件；然后**每个平台重新编译引擎**（spx 的 `buildctl` 有引擎构建流程）；Android 还要启用 Gradle 构建，因为 AdMob、Play 结算都是 Android 插件 v2。
+- 主流 AdMob 插件的新版本要求 Godot 4.5 以上（[MONETIZATION.md 第五节](MONETIZATION.md#五技术前提为什么-sdk-现在接不上代码)），spx 是 4.4.1。所以手机上的内购和广告，实际都要等 spx 升级引擎。
 - 网页版有 `syscall/js` 这条路（[v3.0 小游戏评估 4.2](../v3/WECHAT_MINIGAME.md#42-watchad-怎么接到微信关键问题)），但网页版不在本次的四个平台里。
 
 v5 的买断制不需要这些。等商店版上架、有了真实数据，再决定要不要给 spx 做宿主接口。

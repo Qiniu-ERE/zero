@@ -12,9 +12,11 @@ v2.0 做出了现代画风和 4 个**模拟**广告位，v3.0 做出了 8 个关
 | 方向 | 内容 | 状态 | 详细文档 |
 |---|---|---|---|
 | **1. 平台评估** | 四个平台逐个看：要什么账号和资质、花多少钱、我们的包差什么、能不能做 | 📝 评估完成 | [PLATFORMS.md](PLATFORMS.md) |
-| **2. 商业模式** | 买断制为主，不放广告；Steam 免费试玩版；金币只换外观 | 📝 方案已定 | [MONETIZATION.md](MONETIZATION.md) |
-| **3. 技术前提** | **手柄支持**、商店版（去掉模拟广告）、改名、存档、Android 引擎升级、iOS 签名、Xbox 主机的引擎问题 | 📝 方案已定，手柄未验证 | [TECH.md](TECH.md) |
-| **4. 游戏内容调整** | 去掉“每日挑战”；确认自己的子弹能打掉自己的老鹰并补测试 | 📝 已定 | 本文第三节 |
+| **2. 游戏体验** | 每个平台怎样才算“原生”、怎样过认证：Steam Deck 认证、手柄与双人合作、4:3 画面、字号、设置、分级、本地化 | 📝 清单已列 | [EXPERIENCE.md](EXPERIENCE.md) |
+| **3. 盈利方案** | PC：买断 $4.99 + 免费试玩版，不放广告；手机：先付费下载，SDK 接得上后改“免费 + 一次性解锁”，激励视频最后再考虑；收入试算 | 📝 方案已定 | [MONETIZATION.md](MONETIZATION.md) |
+| **4. 推广方案** | 给游戏打广告：Coming Soon 页、Couch Co-Op Fest、Next Fest、试玩版、主播、B 站 / 小红书、付费广告的止损线；目标发售前 5000 个愿望单 | 📝 时间线已定 | [MARKETING.md](MARKETING.md) |
+| **5. 技术前提** | **手柄支持**、商店版（去掉模拟广告）、改名、存档与匿名统计、Android 引擎升级、iOS 签名、Xbox 主机的引擎问题 | 📝 方案已定，手柄未验证；HTTP 已验证 | [TECH.md](TECH.md) |
+| **6. 游戏内容调整** | 去掉“每日挑战”；确认自己的子弹能打掉自己的老鹰并补测试 | 📝 已定 | 本文第三节 |
 
 ---
 
@@ -28,7 +30,11 @@ v2.0 做出了现代画风和 4 个**模拟**广告位，v3.0 做出了 8 个关
 | **Google Play** | ⚠️ 要先升级引擎 | 新应用必须交 AAB、目标 API 36（2026-08-31 起），64 位原生库要支持 16 KB 页（更新包从 2027-02-01 起强制）。spx 现在的 Android 模板是 Godot 4.4.1、只能出 APK、目标 API 34，**做不到**。要等 spx 升级 Godot 或者自己改 |
 | **Xbox · 主机（Series X\|S）** | ❌ v5 只评估 | 需要公司主体加入 ID@Xbox、Godot 的主机移植（W4 Games 等第三方，收费）；更根本的是 **spx 的游戏逻辑跑在 Go 写的解释器里，Go 不支持主机系统**。要上主机只能把游戏逻辑改写成 GDScript（见 TECH.md 第五节），Steam 卖得好再考虑 |
 
-**商业模式**：这四个平台的玩家习惯买断制，而且买断**不需要接任何 SDK**（我们最大的技术卡点就是游戏脚本调不到外部 SDK）。所以 v5 的商店版都是**付费下载、没有广告**，模拟广告位全部去掉；Steam 再出一个免费试玩版拉愿望单。详见 [MONETIZATION.md](MONETIZATION.md)。
+**怎么赚钱**：PC（Steam、Microsoft Store）**买断 $4.99、不放广告**，Steam 加免费试玩版。手机上 96% 以上的下载是免费下载，更适合“免费 + 一次性解锁”，但内购和广告都要接平台 SDK，**spx 现在接不上**（引擎是固定函数表，主流广告插件还要求 Godot 4.5+），所以手机分三步：先付费下载 → SDK 能接后改免费 + 解锁 → 最后才考虑给没付费的玩家放自愿的激励视频。模拟广告位在所有商店版里去掉。详见 [MONETIZATION.md](MONETIZATION.md)。
+
+**怎么让人知道**：Steam 上 2025 年约三分之二的游戏收入不到 $1000，销量主要由发售时的愿望单决定（首周销量约为愿望单的 0.10~0.20 倍）。v5 的推广目标是**发售前 5000 个愿望单**：2026-11 开 Coming Soon 页，2027-02 参加 Couch Co-Op Fest（本地合作游戏节，正好对口）和 Next Fest，3~4 月发售；不到 5000 就推迟。详见 [MARKETING.md](MARKETING.md)。
+
+**体验上最大的缺口是手柄**：Steam Deck 认证、远程同乐、手机上的双人合作都靠它；而且 Steam Input 的键盘模拟会把两只手柄合并成一个键盘，双人合作没法用，必须在游戏里按设备区分。详见 [EXPERIENCE.md](EXPERIENCE.md)。
 
 ## 二、现状：离“能上架”还差什么（代码）
 
@@ -98,7 +104,7 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 **做**：
 
-- 文档：本文、[PLATFORMS.md](PLATFORMS.md)、[MONETIZATION.md](MONETIZATION.md)、[TECH.md](TECH.md)（本 PR）。
+- 文档：本文、[PLATFORMS.md](PLATFORMS.md)、[EXPERIENCE.md](EXPERIENCE.md)、[MONETIZATION.md](MONETIZATION.md)、[MARKETING.md](MARKETING.md)、[TECH.md](TECH.md)（本 PR）。
 - 游戏内容：去掉每日挑战；老鹰友伤的回归测试。
 - 商店版：改名、去掉模拟广告、存档、手柄。
 - 上架 Steam（含试玩版），同时提交 Microsoft Store（PC）。
@@ -125,7 +131,7 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 | 阶段 | PR | 内容 | 前提 | 估计 |
 |---|---|---|---|---|
-| **P0 文档** | docs: v5.0 规划 | 本文和三份详细文档 | — | 0.5 天 |
+| **P0 文档** | docs: v5.0 规划 | 本文和五份详细文档 | — | 0.5 天 |
 | **P1 内容与商店版** | chore: 去掉每日挑战 | 第三节 3.1 | — | 0.5 天 |
 | | test: 老鹰友伤 | 第三节 3.2 的四条回归测试 | — | 0.5 天 |
 | | chore: 改名 | 新的中英文名字、图标、标题画面；README 保留“复刻自 Battle City”的来历说明，商店页不提原作 | 定好名字 | 0.5 天 |
@@ -136,11 +142,12 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 | **决策点 1** | | **手柄补丁可行**：继续 Steam；**不可行**：先用 Steam Input 的“键盘模拟”配置上架（Steam Deck 只能评为“可玩”，不是“已验证”），同时给 spx 提上游 PR | | |
 | **P2 Steam + Microsoft Store** | chore: Steam 打包 | 三个平台的 depot、启动选项；Steam Deck 实机测试 | Steamworks 账号（$100） | 1 天 |
 | | docs: 商店页素材 | 截图、预告片（复用路演演示模式录制）、胶囊图、描述（中英） | — | 1 天 |
+| | feat: 设置与字号 | 全屏、两个音量、整数缩放；最小字号放大到 6.5 以上（Steam Deck 要求 9 像素，[EXPERIENCE.md 2.2](EXPERIENCE.md#22-字号)） | — | 1 天 |
 | | feat: 试玩版 | 只开放第 1~2 关、不能保存地图；结尾引导加愿望单 | — | 0.5 天 |
-| | | “即将推出”页面至少挂两周，收集愿望单；之后正式发售 | | |
+| | | 时间线按 Steam 活动倒排（[MARKETING.md 第三节](MARKETING.md#三时间线按-2027-年春季发售倒排)）：2026-11 开 Coming Soon 页 → 2027-02-08 Couch Co-Op Fest → 2027-02-22 Next Fest → 愿望单 ≥ 5000 则 3~4 月发售 | | |
 | | feat: Microsoft Store | Windows 包封装成 MSIX，提交 Microsoft Store（PC） | 开发者账号（免费） | 1 天 |
 | **决策点 2** | | 看愿望单、试玩版转化、首月销量（标准见 MONETIZATION.md 第四节）。**达标**：做移动端，评估 Xbox 主机；**不达标**：改游戏，不扩平台 | | |
-| **P3 iOS** | feat: iOS 正式包 | 开发者证书签名、Xcode 26 编译、隐私清单、TestFlight；付费下载，中国区以外上架 | Apple 开发者账号；一台装 Xcode 26 的 Mac | 2 天 |
+| **P3 iOS** | feat: iOS 正式包 | 开发者证书签名、Xcode 26 编译、隐私清单、安全区、手柄标识、TestFlight；付费下载 $2.99，中国区以外上架；上架前向 Apple Arcade 投递一次 | Apple 开发者账号；一台装 Xcode 26 的 Mac | 2 天 |
 | **P4 Android** | feat: Google Play | spx 升级到支持 AAB / API 36 / 16 KB 的 Godot 版本后，改导出脚本；正式签名；12 人连续 14 天封闭测试 | spx 上游升级；Play 开发者账号（$25） | 视上游 |
 | **P5 Xbox 主机评估** | docs: Xbox 主机移植评估 | 把游戏逻辑改写成 GDScript 的工作量、第三方移植模板的报价、公司主体和 ID@Xbox 申请；只出文档 | 决策点 2 达标 | 1 天 |
 | | release: v5.0.0 | 更新 README、架构文档、演示视频 | — | 0.5 天 |
