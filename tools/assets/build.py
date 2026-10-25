@@ -458,8 +458,8 @@ def banner(lang):
     return svg(w, h, "".join(body), res=HR), (w / 2, h / 2)
 
 
-# 主页上的其他模式：(文案 key, 按键)，按键为空表示“即将推出”
-HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.daily", "")]
+# 主页上的其他模式：(文案 key, 按键)。v5 去掉了“每日挑战 · 即将推出”（需要服务器和排行榜，不会做）
+HOME_MODES = [("m.coop", "C"), ("m.maker", "E")]
 
 
 def home(lang):
@@ -476,26 +476,18 @@ def home(lang):
     s.append(text(28, 122, tr("home.start.d", lang), 6.8, "#fff2e0"))
     c, cw = chip(0, 0, "Enter", dark=True)
     s.append(f'<g transform="translate({186-10-cw:.2f},96)">{c}</g>')
-    # 其他模式：可以玩的带「新」标签和按键，没做好的标「即将推出」
+    # 其他模式：带「新」标签和按键
     for i, (k, key) in enumerate(HOME_MODES):
         y = 144 + i * 44
-        if key:
-            button(f"home.{k[2:]}", 16, y, 170, 38)
-            s.append(f'<rect x="16.4" y="{y+0.4}" width="169.2" height="37.2" rx="8" fill="#3ee8ff" fill-opacity="0.08" stroke="#3ee8ff" stroke-opacity="0.7" stroke-width="0.8"/>')
-            s.append(text(28, y + 17, tr(k, lang), 10.5, "#ffffff", True))
-            s.append(text(28, y + 29, tr(k + ".d", lang), 6.2, "#9fdcea"))
-            nw = width(tr("new", lang), 5.8, True) + 10
-            c, cw = chip(0, 0, key, dark=True)
-            s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
-            s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
-            s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
-        else:
-            s.append(f'<rect x="16.3" y="{y+0.3}" width="169.4" height="37.4" rx="8" fill="#ffffff" fill-opacity="0.035" stroke="#263046" stroke-width="0.6"/>')
-            s.append(text(28, y + 17, tr(k, lang), 10.5, "#7f8ba3", True))
-            s.append(text(28, y + 29, tr(k + ".d", lang), 6.2, "#5a6680"))
-            sw = width(tr("soon", lang), 5.8, True) + 10
-            s.append(f'<rect x="{186-10-sw:.2f}" y="{y+8}" width="{sw:.2f}" height="11" rx="5.5" fill="#2c3850"/>')
-            s.append(text(186 - 10 - sw / 2, y + 15.6, tr("soon", lang), 5.8, MUTED, True, "middle"))
+        button(f"home.{k[2:]}", 16, y, 170, 38)
+        s.append(f'<rect x="16.4" y="{y+0.4}" width="169.2" height="37.2" rx="8" fill="#3ee8ff" fill-opacity="0.08" stroke="#3ee8ff" stroke-opacity="0.7" stroke-width="0.8"/>')
+        s.append(text(28, y + 17, tr(k, lang), 10.5, "#ffffff", True))
+        s.append(text(28, y + 29, tr(k + ".d", lang), 6.2, "#9fdcea"))
+        nw = width(tr("new", lang), 5.8, True) + 10
+        c, cw = chip(0, 0, key, dark=True)
+        s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
+        s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
+        s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
     # 路演演示模式提示
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))

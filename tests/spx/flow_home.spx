@@ -46,5 +46,14 @@ onStart => {
 	wait 0.3
 	tInt "F16 编辑器 Esc → 主页", state, stHome
 
+	// F34 主页只有三个入口：开始战役、双人合作、自己做地图（v5 去掉了“每日挑战 · 即将推出”）
+	tCheck "F34 开始战役按钮", UI.hit("home.start", -140, 70)
+	tCheck "F34 双人合作按钮", UI.hit("home.coop", -140, 17)
+	tCheck "F34 自己做地图按钮", UI.hit("home.maker", -140, -27)
+	for _, b := range []string{"home.start", "home.coop", "home.maker"} {
+		tCheck "F34 原来每日挑战卡的位置没有按钮："+b, !UI.hit(b, -140, -71)
+	}
+	tCheck "F34 没有每日挑战按钮", !UI.hit("home.daily", -140, -71)
+
 	tDone "flow_home"
 }
