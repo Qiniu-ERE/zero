@@ -40,6 +40,8 @@ build)
 	in_vm "export PATH=/usr/local/go/bin:\$HOME/go/bin:\$PATH CACHE_DIR=\$HOME/tankbattle-cache BUILD_DIR=\$HOME/tankbattle-build DIST_DIR='$DIST_DIR' APP_VERSION='$APP_VERSION' && cd '$ROOT' && tools/export/build.sh desktop"
 	log "启动测试（Xvfb + 软件 Vulkan）"
 	in_vm "export PATH=/usr/local/go/bin:\$HOME/go/bin:\$PATH CACHE_DIR=\$HOME/tankbattle-cache && cd '$ROOT' && xvfb-run -a -s '-screen 0 1280x960x24' tools/test/package_boot.sh"
+	log "直接运行要发出去的安装包（B14，tools/test/dist_boot.sh）"
+	in_vm "cd '$ROOT' && xvfb-run -a -s '-screen 0 1280x960x24' tools/test/dist_boot.sh '$DIST_DIR/$APP_NAME-$APP_VERSION-linux-x64.tar.gz' ${DIST_BOOT_SECS:-30}"
 	ls -la "$DIST_DIR"/*linux* 2>/dev/null
 	;;
 delete)

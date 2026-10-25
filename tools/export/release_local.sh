@@ -57,6 +57,33 @@ if [ ${#files[@]} -eq 0 ] && [ -z "$APPEND" ]; then
   exit 1
 fi
 
+# ---- 已有的 Release 和它们的安装包（先查：Release 已经存在时不用往下检查）
+if [ -n "${RELEASE_ASSETS_FILE:-}" ]; then
+  all_assets="$(cat "$RELEASE_ASSETS_FILE")"
+  release_exists() { awk -v t="$1" '$1 == t {f = 1} END {exit !f}' <<<"$all_assets"; }
+  tags="$(cut -d' ' -f1 <<<"$all_assets" | sort -u)"
+else
+  release_exists() { gh release view "$1" --json tagName >/dev/null 2>&1; }
+  tags="$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName -q '.[].tagName')"
+  all_assets="$(for t in $tags; do gh release view "$t" --json assets -q '.assets[].name' | sed "s|^|$t |"; done)"
+  if [ -n "$APPEND" ] && ! grep -qxF "$TAG" <<<"$tags" && release_exists "$TAG"; then   # 预发布不在上面的列表里
+    all_assets="$all_assets
+$(gh release view "$TAG" --json assets -q '.assets[].name' | sed "s|^|$TAG |")"
+  fi
+fi
+# 比这个版本旧的正式版，按版本号从新到旧（gh release list 是按创建时间排的，补发旧版本时会排错）
+prev_tags="$({ grep -vxF "$TAG" <<<"$tags" || true; echo "$TAG"; } | sed '/^$/d' | sort -V -r | awk -v t="$TAG" 'found; $0 == t {found = 1}')"
+
+if [ -n "$APPEND" ]; then
+  release_exists "$TAG" || { echo "还没有 $TAG 的 Release：去掉 --append 新建" >&2; exit 1; }
+  existing="$(awk -v t="$TAG" '$1 == t {print $2}' <<<"$all_assets")"
+else
+  if release_exists "$TAG"; then
+    stop "已经有 $TAG 的 Release：补包用 --append"
+  fi
+  existing=""
+fi
+
 # ---- 标签
 tag_commit=""
 if git -C "$ROOT" rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
@@ -95,33 +122,6 @@ else
     grep -qF "$(basename "$f")" "$summary" ||
       echo "⚠️  $(basename "$f") 不在 BUILD_LOCAL.md 里（别的机器打的？还是以前留下的旧包？）"
   done
-fi
-
-# ---- 已有的 Release 和它们的安装包
-if [ -n "${RELEASE_ASSETS_FILE:-}" ]; then
-  all_assets="$(cat "$RELEASE_ASSETS_FILE")"
-  release_exists() { awk -v t="$1" '$1 == t {f = 1} END {exit !f}' <<<"$all_assets"; }
-  tags="$(cut -d' ' -f1 <<<"$all_assets" | sort -u)"
-else
-  release_exists() { gh release view "$1" --json tagName >/dev/null 2>&1; }
-  tags="$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName -q '.[].tagName')"
-  all_assets="$(for t in $tags; do gh release view "$t" --json assets -q '.assets[].name' | sed "s|^|$t |"; done)"
-  if [ -n "$APPEND" ] && ! grep -qxF "$TAG" <<<"$tags" && release_exists "$TAG"; then   # 预发布不在上面的列表里
-    all_assets="$all_assets
-$(gh release view "$TAG" --json assets -q '.assets[].name' | sed "s|^|$TAG |")"
-  fi
-fi
-# 比这个版本旧的正式版，按版本号从新到旧（gh release list 是按创建时间排的，补发旧版本时会排错）
-prev_tags="$({ grep -vxF "$TAG" <<<"$tags" || true; echo "$TAG"; } | sed '/^$/d' | sort -V -r | awk -v t="$TAG" 'found; $0 == t {found = 1}')"
-
-if [ -n "$APPEND" ]; then
-  release_exists "$TAG" || { echo "还没有 $TAG 的 Release：去掉 --append 新建" >&2; exit 1; }
-  existing="$(awk -v t="$TAG" '$1 == t {print $2}' <<<"$all_assets")"
-else
-  if release_exists "$TAG"; then
-    stop "已经有 $TAG 的 Release：补包用 --append"
-  fi
-  existing=""
 fi
 
 # ---- 要上传的文件（--append 时跳过 Release 里已经有的）
