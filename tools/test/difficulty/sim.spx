@@ -1,0 +1,62 @@
+// 难度模拟（tools/test/difficulty.sh 用）：同一关连打 SIM_RUNS 局，每局输出一行 SIM 结果。
+// SIM_STAGE / SIM_RUNS / SIM_CAP / SIM_MODE 由脚本替换成具体的值；
+// simSpawnOverlap / simOverlapSecs 是脚本插到副本里的计数（敌人出生后第一帧就和别的坦克重叠的次数、
+// 敌人和敌人重叠的累计秒数，见 docs/v5 REVIEW 的 A11）。
+//
+// SIM_MODE：
+//   "idle"  无人防守：玩家坦克藏起来（dead + hide，命数 0 不会重生），只看基地多久失守
+//   "auto"  自动驾驶：用路演演示的自动驾驶当玩家，但副本里去掉了演示的保护（基地会被打掉、玩家会被击毁）
+//
+// 输出：SIM 模式 关卡 第几局 结局 真实秒数 游戏秒数 消灭 出兵 场上最多 丢命 出生重叠 重叠秒数 自己打基地次数
+// 结局：base 基地失守，lives 命用完，win 消灭全部敌人，cap 到时间上限还没分出胜负
+onStart => {
+	wait 3
+	mode := SIM_MODE
+	for rep := 1; rep <= SIM_RUNS; rep++ {
+		simSpawnOverlap = 0
+		simOverlapSecs = 0
+		simSelfHits = 0
+		playStage SIM_STAGE
+		won = false // startGame 不清 won，上一局赢了会留下来
+		if mode == "auto" {
+			autopilot = true
+		} else {
+			lives = 0
+			Player.dead = true
+			Player.hide
+		}
+		t := 0.0  // 真实时间（每帧 deltaTime 累加）
+		gt := 0.0 // 游戏时间（和游戏里一样，每帧最多算 0.05 秒；机器卡的时候比真实时间少）
+		maxAlive := 0
+		for !gameOver && t < SIM_CAP {
+			waitNextFrame
+			dt := deltaTime
+			t += dt
+			if dt > 0.05 {
+				dt = 0.05
+			}
+			gt += dt
+			if enemiesAlive > maxAlive {
+				maxAlive = enemiesAlive
+			}
+		}
+		res := "cap"
+		if baseDown {
+			res = "base"
+		} else if won {
+			res = "win"
+		} else if gameOver {
+			res = "lives"
+		}
+		lost := 3 - lives
+		if mode != "auto" {
+			lost = 0
+		}
+		println("SIM", mode, SIM_STAGE, rep, res, strconv.FormatFloat(t, 'f', 1, 64), strconv.FormatFloat(gt, 'f', 1, 64), killed, spawned, maxAlive, lost, simSpawnOverlap, strconv.FormatFloat(simOverlapSecs, 'f', 1, 64), simSelfHits)
+		autopilot = false
+		goHome
+		wait 0.5
+	}
+	println("SIM DONE")
+	exit
+}
