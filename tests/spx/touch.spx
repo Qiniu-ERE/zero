@@ -1,0 +1,23 @@
+// 触屏模式（手机 App）（P09），见 docs/v4/TEST_PLAN.md 第 3.6 节
+// touch: true
+onStart => {
+	wait 3
+
+	tCheck "P09 触屏模式已打开", touchUI
+
+	// P09 手机 App 只认一根手指，2P 没法操作：双人合作被拒绝并提示
+	newGame 1, true
+	wait 0.3
+	tInt "P09 双人合作被拒绝：还在主页", state, stHome
+	tCheck "P09 没有进入双人", !coop && !p2Exists
+	tStr "P09 提示需要键盘或手柄", toastKey, "msg.coop.touch"
+
+	// 单人照常
+	newGame 1, false
+	wait 0.5
+	tInt "P09 单人照常开局", state, stPlay
+
+	goHome
+	wait 0.3
+	tDone "touch"
+}
