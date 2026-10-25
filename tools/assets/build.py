@@ -736,8 +736,39 @@ def ed_widgets():
     cur = svg(C, C, f'<rect x="0.7" y="0.7" width="{C-1.4}" height="{C-1.4}" rx="2" fill="#3ee8ff" fill-opacity="0.15" stroke="#3ee8ff" stroke-width="1.4"/>', res=HR)
     mark = svg(C, C, f'<rect x="0.8" y="0.8" width="{C-1.6}" height="{C-1.6}" rx="3" fill="#ff2a2a" fill-opacity="0.3" stroke="#ff4a3a" stroke-width="1.6"/>'
                + text(12, 17, "!", 13, "#ffffff", True, "middle"), res=HR)
-    return [*touch_pads(), ("edsel", sel, (12.5, 12.5)), ("edsw_on", on, (10, 5)), ("edsw_off", off, (10, 5)),
+    pause = svg(14, 14, '<rect x="0.4" y="0.4" width="13.2" height="13.2" rx="4" fill="#ffffff" fill-opacity="0.06" stroke="#2c3850" stroke-width="0.6"/>'
+                '<rect x="4.3" y="3.8" width="1.9" height="6.4" rx="0.6" fill="#c8d2e3"/><rect x="7.8" y="3.8" width="1.9" height="6.4" rx="0.6" fill="#c8d2e3"/>', res=HR)
+    return [*touch_pads(), ("pausebtn", pause, (7, 7)), ("edsel", sel, (12.5, 12.5)), ("edsw_on", on, (10, 5)), ("edsw_off", off, (10, 5)),
             ("edline", line, (1, 13 * C / 2)), ("edcursor", cur, (C / 2, C / 2)), ("edmark", mark, (C / 2, C / 2))]
+
+
+def pause_screen(lang, edit=False):
+    """暂停菜单：继续（Esc / Enter）、重新开始（R）、返回主页或返回编辑（H）"""
+    m = MX + MW / 2
+    s = [f'<rect width="{W}" height="{H}" fill="#05070c" fill-opacity="0.55"/>', modal_frame("#3ee8ff", 0.5)]
+    s.append(f'<rect x="{m-9}" y="{MY+22}" width="6" height="18" rx="1.5" fill="#3ee8ff"/><rect x="{m+3}" y="{MY+22}" width="6" height="18" rx="1.5" fill="#3ee8ff"/>')
+    s.append(text(m, MY + 62, tr("ps.title", lang), 16, "#ffffff", True, "middle"))
+    bx, by, bw, bh = MX + 20, MY + 82, MW - 40, 30
+    button("pause.resume", bx, by, bw, bh)
+    s.append(f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="15" fill="url(#cta)"/>')
+    s.append(text(m - 6, by + 19.5, tr("ps.resume", lang), 10, "#ffffff", True, "middle"))
+    c, cw = chip(0, 0, "Esc", dark=True)
+    s.append(f'<g transform="translate({bx+bw-10-cw:.2f},{by+10})">{c}</g>')
+    by = MY + 124
+    button("pause.restart", bx, by, bw, 26)
+    s.append(f'<rect x="{bx+0.5}" y="{by+0.5}" width="{bw-1}" height="25" rx="12.5" fill="#ffffff" fill-opacity="0.05" stroke="#3a4660" stroke-width="0.8"/>')
+    s.append(text(m - 6, by + 16.5, tr("ps.restart", lang), 8.5, "#c8d2e3", True, "middle"))
+    c, cw = chip(0, 0, "R")
+    s.append(f'<g transform="translate({bx+bw-10-cw:.2f},{by+8})">{c}</g>')
+    hx, hy, hw, hh = m - 50, MY + 168, 100, 22
+    button("pause.home", hx, hy, hw, hh)
+    label = tr("ps.edit" if edit else "ps.home", lang)
+    c, cw = chip(0, 0, "H")
+    tw = width(label, 8)
+    x0 = m - (tw + 5 + cw) / 2
+    s.append(text(x0, hy + 14.5, label, 8, MUTED))
+    s.append(f'<g transform="translate({x0+tw+5:.2f},{hy+6})">{c}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 
 def screen_costumes():
@@ -746,6 +777,8 @@ def screen_costumes():
         out.append((f"card_{lang}", *native_card(lang)))
         out.append((f"banner_{lang}", *banner(lang)))
         out.append((f"home_{lang}", *home(lang), 2))
+        out.append((f"pause_{lang}", *pause_screen(lang), 2))
+        out.append((f"pause_edit_{lang}", *pause_screen(lang, True), 2))
         out.append((f"editor_{lang}", *editor(lang), 2))
         for k in ("edok", "edbad1", "edbad2"):
             out.append((f"{k}_{lang}", *ed_status(k, lang)))

@@ -39,6 +39,7 @@ const (
 	kEdMark   = 16 // 出问题的格子
 
 	kTouchPad = 17 // 触屏模式的方向键（手机 App 里替换右侧的按键说明）
+	kPauseBtn = 18 // 顶栏的暂停按钮
 )
 
 // ---------- 创建 ----------
@@ -108,6 +109,12 @@ func hit(name string, x, y float64) bool {
 		return x >= -224 && x <= -54 && y >= -2 && y <= 36
 	case "home.maker":
 		return x >= -224 && x <= -54 && y >= -46 && y <= -8
+	case "pause.resume":
+		return x >= -162 && x <= 18 && y >= -8 && y <= 22
+	case "pause.restart":
+		return x >= -162 && x <= 18 && y >= -46 && y <= -20
+	case "pause.home":
+		return x >= -122 && x <= -22 && y >= -86 && y <= -64
 	case "ed.t1":
 		return x >= 102 && x <= 126 && y >= 110 && y <= 134
 	case "ed.t2":
@@ -306,7 +313,7 @@ func refresh() {
 		}
 	case kAd:
 		// 原生广告卡在对局、复活询问、结算时显示，横幅只在主页显示；播放激励视频时都不显示。玩家关掉后不再出现
-		card := key == "card" && (state == stPlay || state == stRevive || state == stResult) && !cardClosed
+		card := key == "card" && (state == stPlay || state == stRevive || state == stResult || state == stPause) && !cardClosed
 		banner := key == "banner" && state == stHome && !bannerClosed
 		if card || banner {
 			setCostume key + "_" + langCode()
@@ -316,6 +323,13 @@ func refresh() {
 		}
 	case kEdSel, kEdSwitch, kEdStatus, kEdCursor, kEdMark:
 		refreshEditor
+	case kPauseBtn:
+		if state == stPlay && !autopilot {
+			setCostume "pausebtn"
+			show
+		} else {
+			hide
+		}
 	case kTouchPad:
 		if touchUI && (state == stPlay || state == stRevive || state == stResult) {
 			setCostume "touchpad_" + langCode()
@@ -409,6 +423,14 @@ func clickScreen() {
 			newGame 1, true
 		} else if hit("home.maker", x, y) {
 			openEditor
+		}
+	case stPause:
+		if hit("pause.resume", x, y) {
+			resumeGame
+		} else if hit("pause.restart", x, y) {
+			startGame
+		} else if hit("pause.home", x, y) {
+			quitFromPause
 		}
 	case stEdit:
 		for n := 1; n <= 5; n++ {
@@ -526,6 +548,8 @@ onClick => {
 		switchLang
 	case kAd:
 		clickAd
+	case kPauseBtn:
+		pauseGame
 	case kScreen, kEdSel, kEdSwitch, kEdStatus, kEdCursor, kEdMark:
 		clickScreen // 编辑器的小部件盖在按钮上面，点击时按鼠标位置判断按了什么
 	}

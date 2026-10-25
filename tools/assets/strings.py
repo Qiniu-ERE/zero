@@ -72,6 +72,12 @@ STRINGS = {
     "rs.doubled": ("已领取双倍", "Doubled"),
     "rs.again": ("再来一局", "Play again"),
     "rs.edit": ("继续编辑", "Keep editing"),
+    # 暂停（游戏）
+    "ps.title": ("暂停", "PAUSED"),
+    "ps.resume": ("继续游戏", "Resume"),
+    "ps.restart": ("重新开始本关", "Restart stage"),
+    "ps.home": ("返回主页", "Home"),
+    "ps.edit": ("返回编辑", "Back to editor"),
     "rs.next": ("下一关", "Next stage"),
     "rs.final": ("全部通关！", "ALL CLEAR!"),
     "rs.home": ("主页", "Home"),

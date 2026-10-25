@@ -79,6 +79,7 @@ const (
 	stAd     = 3 // 正在播放（模拟的）激励视频
 	stResult = 4 // 结算
 	stEdit   = 5 // 自己做地图
+	stPause  = 6 // 对局暂停（Esc 或顶栏的暂停按钮）
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
@@ -742,6 +743,7 @@ func buildHud() {
 		UI.icon kPip, -29+float64(i)*5.8, 163, i
 	}
 	UI.langButton 208, 164
+	UI.icon kPauseBtn, 176, 164, 0 // 暂停按钮（对局中显示；手机上没有 Esc 键，靠它暂停和退出）
 	// 右侧面板：得分、最高分、生命、按键提示
 	UI.label 104, 140, "score"
 	UI.number kScore, 104, 120, 9
@@ -965,6 +967,40 @@ func showResult() {
 	broadcast "hud" // 刷新金币数
 }
 
+// ---------- 暂停 ----------
+
+// 对局中暂停：战场冻结，弹出暂停菜单
+func pauseGame() {
+	if state != stPlay || autopilot {
+		return
+	}
+	state = stPause
+	gameOver = true // 坦克、子弹、出兵、重生倒计时都会停下来
+	if stage == customStage {
+		setScreen "pause_edit"
+	} else {
+		setScreen "pause"
+	}
+}
+
+func resumeGame() {
+	if state != stPause {
+		return
+	}
+	state = stPlay
+	setScreen ""
+	gameOver = false
+}
+
+// 暂停菜单里的“返回”：自制地图回到编辑器，其他回到主页
+func quitFromPause() {
+	if stage == customStage {
+		openEditor
+	} else {
+		goHome
+	}
+}
+
 // 结算后的“再来一局”按钮（R）：赢了进下一关；全部通关后从第 1 关重新开始；输了重打本关
 func again() {
 	if stage == customStage {
@@ -1001,6 +1037,8 @@ func confirm() {
 		newGame 1, false
 	case stEdit:
 		playCustom false
+	case stPause:
+		resumeGame
 	case stRevive:
 		watchAd rewardRevive
 	case stResult:
@@ -1349,12 +1387,18 @@ onKey KeyEscape, => {
 		endGame false
 	} else if state == stEdit {
 		goHome
+	} else if state == stPlay {
+		pauseGame
+	} else if state == stPause {
+		resumeGame
 	}
 }
 
 onKey KeyR, => {
 	if state == stResult {
 		again
+	} else if state == stPause {
+		startGame // 重新开始本关
 	} else if state == stEdit {
 		edCommand "rand"
 	}
@@ -1371,6 +1415,8 @@ onKey KeyP, => {
 onKey KeyH, => {
 	if state == stResult {
 		goHome
+	} else if state == stPause {
+		quitFromPause
 	}
 }
 
