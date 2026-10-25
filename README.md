@@ -1,16 +1,20 @@
+<div align="center">
+
 # 坦克大战 2026 · Brickline Tanks
 
-**[下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · [下载 .xbp](TankBattle.xbp) · [演示视频](docs/demo/tankbattle-v5-demo.mp4) · [快速开始](#快速开始) · [玩法](#玩法) · [更新记录](CHANGELOG.md)
+**守住老鹰，打穿砖墙** —— 用 XBuilder 重铸的经典坦克游戏
 
-[v5.0 商业化规划](docs/v5/PLAN.md) · [路演故事](docs/v5/PITCH.md) · [架构文档](docs/ARCHITECTURE.md) · [测试方案](docs/v4/TEST_PLAN.md) · [v4.0](docs/v4/PLAN.md) · [v3.0](docs/v3/PLAN.md) · [v2.0](docs/v2/DESIGN.md) · [XBuilder](https://x.qiniu.com)
+[![1024 HACKATHON 第五届](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
+[![XBuilder · XGo · spx 4.0](https://img.shields.io/badge/XBuilder-XGo_·_spx_4.0-b4521e)](https://x.qiniu.com)
+[![版本 v5.0.0](https://img.shields.io/badge/版本-v5.0.0-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
+[![测试 579 通过](https://img.shields.io/badge/测试-579_通过-brightgreen)](docs/v4/TEST_PLAN.md)
+[![覆盖率 96%](https://img.shields.io/badge/覆盖率-96%25-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
 
-[![1024 HACKATHON](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
-[![Made with XBuilder](https://img.shields.io/badge/made_with-XBuilder-b4521e)](https://x.qiniu.com)
-[![Language XGo](https://img.shields.io/badge/language-XGo-0a7bbb)](https://xgo.dev)
-[![Engine spx](https://img.shields.io/badge/engine-spx_4.0-555)](https://github.com/goplus/spx)
-[![Battle City 1985](https://img.shields.io/badge/remake_of-Battle_City_1985-red)](#素材与版权说明)
-[![Tests](https://img.shields.io/badge/tests-579_passing-brightgreen)](docs/v4/TEST_PLAN.md)
-[![Coverage](https://img.shields.io/badge/coverage-96%25_functions_·_100%25_handlers-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
+**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v5-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [更新记录](CHANGELOG.md)
+
+[v5.0 商业化规划](docs/v5/PLAN.md) · [路演故事](docs/v5/PITCH.md) · [架构文档](docs/ARCHITECTURE.md) · [测试方案](docs/v4/TEST_PLAN.md) · [全部文档](#文档)
+
+</div>
 
 > 🏆 **第五届 1024 HACKATHON 参赛项目** · 这是一个 Builder 的时代 —— AI 放大执行，我们撬动价值
 
