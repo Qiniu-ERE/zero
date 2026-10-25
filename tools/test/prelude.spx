@@ -1,0 +1,45 @@
+// ---- 测试用的断言函数（tools/test/run_spx.sh 把这段插到工程副本 main.spx 的第一个 func 前面）----
+// 输出协议见 docs/v4/TEST_PLAN.md 第 2.3 节：TEST PASS / TEST FAIL / TEST DONE
+
+// 断言 ok 为 true；id 是用例 ID 加说明，例如 "G01 第 3 关 13 行"
+func tCheck(id string, ok bool) {
+	if ok {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id)
+	}
+}
+
+// 断言两个整数相等
+func tInt(id string, got, want int) {
+	if got == want {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id, "got="+strconv.Itoa(got), "want="+strconv.Itoa(want))
+	}
+}
+
+// 断言两个字符串相等
+func tStr(id string, got, want string) {
+	if got == want {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id, "got="+got, "want="+want)
+	}
+}
+
+// 断言两个小数相差不到 0.001
+func tNum(id string, got, want float64) {
+	if math.Abs(got-want) < 0.001 {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id, "got="+strconv.FormatFloat(got, 'f', 3, 64), "want="+strconv.FormatFloat(want, 'f', 3, 64))
+	}
+}
+
+// 这一组跑完了：输出 TEST DONE 并退出（run_spx.sh 没看到 TEST DONE 就判失败）
+func tDone(suite string) {
+	println("TEST DONE", suite)
+	exit
+}
+
