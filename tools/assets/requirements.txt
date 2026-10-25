@@ -1,2 +1,4 @@
-fonttools>=4.50
-brotli>=1.1
+# 锁定版本：T07（生成结果可复现）依赖 fontTools 的版本，换版本后生成的路径可能不同。
+# 本机装法：tools/dev/venv.sh（建仓库里的 .venv，pr_check.sh / run_all.sh 默认用它）
+fonttools==4.67.0
+brotli==1.2.1

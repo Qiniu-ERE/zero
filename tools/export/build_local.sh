@@ -21,7 +21,17 @@ source "$(dirname "$0")/env.sh"
 mkdir -p "$DIST_DIR"
 SDK=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 NDK=${ANDROID_NDK_ROOT:-$SDK/ndk/23.2.8568313}
-LOGS=$(mktemp -d "${TMPDIR:-/tmp}/tankbattle-build-local.XXXXXX")
+# 剩余磁盘空间：一轮全平台打包要几个 GB（.build/work、Android 的 Gradle 工程、package_boot.sh 的副本……），
+# 打到一半空间不够会留下半截的包。MIN_FREE_GB 可以改（0 表示不检查）
+MIN_FREE_GB=${MIN_FREE_GB:-5}
+free_kb=$(df -Pk "$ROOT" | awk 'NR == 2 {print $4}')
+if [ "$MIN_FREE_GB" -gt 0 ] && [ -n "$free_kb" ] && [ "$free_kb" -lt $((MIN_FREE_GB * 1024 * 1024)) ]; then
+	echo "磁盘剩余空间只有 $((free_kb / 1024 / 1024)) GB，少于 ${MIN_FREE_GB} GB：先运行 tools/dev/clean.sh 看看能清掉什么（或者 MIN_FREE_GB=0 跳过检查）" >&2
+	exit 1
+fi
+# 日志目录名带上仓库路径的校验和，tools/dev/clean.sh 按它找这个仓库的临时文件
+REPO_ID=$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)
+LOGS=$(mktemp -d "${TMPDIR:-/tmp}/tankbattle-build-local-$REPO_ID.XXXXXX")
 # Android / iOS 的版本号编在 spx 里：和 APP_VERSION 不一致时让 build.sh 自动重新运行 setup_spx.sh（见 build.sh 的 check_template_version）
 export SPX_REPATCH=${SPX_REPATCH:-1}
 # 记下打包用的提交和工作区是否干净（写进 dist/BUILD_LOCAL.md，release_local.sh 发布前核对）

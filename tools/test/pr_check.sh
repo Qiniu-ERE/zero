@@ -2,26 +2,33 @@
 # PR 合入前的本地检查（替代 GitHub Actions，见 docs/v4/TEST_PLAN.md 第五节）
 #
 # 用法：tools/test/pr_check.sh [--coverage]
-#   PYTHON=/path/to/python  要有 fontTools（pip install -r tools/assets/requirements.txt），否则“生成的素材”一项跳过
-#   OUT=文件                 结果报告（Markdown），默认 $TMPDIR/pr_check.md；把它贴到 PR 里
+#   PYTHON=/path/to/python  要有 fontTools 的 Python。默认用仓库里的 .venv（tools/dev/venv.sh 建），没有就用 python3
+#   OUT=文件                 结果报告（Markdown），默认 $TMPDIR/pr_check-<仓库路径的校验和>.md；把它贴到 PR 里
 #
 # 检查的内容和 .github/workflows/check.yml 相同，再加上 v4 的全部测试：
 #   1. 关卡地图合法（tools/levels/check.py）
 #   2. 生成的美术和界面和提交的一致（在临时副本里运行 build.py 再比较，不改工作区）
 #   3. TankBattle.xbp 和 TankBattle/ 一致
 #   4. 构建工具测试 + 引擎内测试（tools/test/run_all.sh；--coverage 同时统计覆盖率）
+# 有任何一项跳过（⚠️，例如没有 fontTools、没有 node、有单元测试被 skip）也算不通过，退出码非 0：
+# 跳过的检查等于没检查。
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 PY=${PYTHON:-python3}
-OUT=${OUT:-${TMPDIR:-/tmp}/pr_check.md}
-TMP=${TMPDIR:-/tmp}/tankbattle-prcheck
+[ -n "${PYTHON:-}" ] || [ ! -x "$ROOT/.venv/bin/python" ] || PY="$ROOT/.venv/bin/python"
+# 临时目录带上仓库路径的校验和：同一台机器上两个 clone 同时跑不会互相删
+REPO_ID=$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)
+OUT=${OUT:-${TMPDIR:-/tmp}/pr_check-$REPO_ID.md}
+TMP=${TMPDIR:-/tmp}/tankbattle-prcheck-$REPO_ID
 rm -rf "$TMP" && mkdir -p "$TMP"
 status=0
+skipped=0
 rows=""
 
 row() { # 名字 结果 耗时 说明
 	rows="${rows}| $1 | $2 | ${3}s | $4 |
 "
 	[ "$2" != "❌" ] || status=1
+	[ "$2" != "⚠️" ] || skipped=$((skipped + 1))
 	echo "$2 $1（${3}s）$4"
 }
 
@@ -50,7 +57,7 @@ fi
 
 t=$(date +%s)
 mkdir -p "$TMP/xbp"
-if (cd "$TMP/xbp" && unzip -q "$ROOT/TankBattle.xbp") && diff -rq "$TMP/xbp" TankBattle -x .temp > "$TMP/xbp.diff" 2>&1; then
+if (cd "$TMP/xbp" && unzip -q "$ROOT/TankBattle.xbp") && diff -rq "$TMP/xbp" TankBattle -x .temp -x .DS_Store > "$TMP/xbp.diff" 2>&1; then
 	row "TankBattle.xbp 是最新的" ✅ $(($(date +%s) - t)) ""
 else
 	row "TankBattle.xbp 是最新的" ❌ $(($(date +%s) - t)) "$(head -3 "$TMP/xbp.diff" | tr '\n' ' ')；运行 ./tools/package_xbp.sh 并提交"
@@ -78,6 +85,8 @@ else
 fi
 if [ -z "$what" ]; then
 	row "自动化测试" ⚠️ $(($(date +%s) - t)) "这个提交里还没有测试（只有文档）"
+elif [ $rc -eq 0 ] && grep -q '^⚠️ 跳过' "$TMP/tests.log"; then
+	row "自动化测试（${what}）" ⚠️ $(($(date +%s) - t)) "通过，但$(grep '^⚠️ 跳过' "$TMP/tests.log" | sed 's/^⚠️ //' | tr '\n' ' ')"
 elif [ $rc -eq 0 ]; then
 	row "自动化测试（${what}）" ✅ $(($(date +%s) - t)) ""
 else
@@ -95,15 +104,20 @@ fi
 	echo "|---|---|---|---|"
 	printf '%s' "$rows"
 	echo
+	[ $skipped -eq 0 ] || { echo "**有 ${skipped} 项检查跳过（⚠️），不算通过**：装好缺的工具（tools/dev/venv.sh 建 .venv）后重新运行"; echo; }
 	echo '<details><summary>测试输出</summary>'
 	echo
 	echo '```'
-	grep -E '^(==>|ok |FAIL|Ran |OK|FAILED|---- |# (pass|fail)|  [a-z_]+: |\||## 和基线|✅ 没有退步|❌ |- `)' "$TMP/tests.log" | grep -v -E '^\|---'
+	grep -E '^(==>|ok |FAIL|Ran |OK|FAILED|---- |# (pass|fail)|  [a-z_]+: |\||## 和基线|✅ 没有退步|❌ |⚠️ |- `)' "$TMP/tests.log" | grep -v -E '^\|---'
 	echo '```'
 	echo
 	echo '</details>'
 } > "$OUT"
 
 echo
+if [ $skipped -gt 0 ]; then
+	echo "有 ${skipped} 项检查跳过（⚠️），不算通过"
+	[ $status -ne 0 ] || status=2
+fi
 echo "报告：${OUT}（贴到 PR 的描述或评论里）"
 exit $status
