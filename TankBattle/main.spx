@@ -1109,6 +1109,19 @@ func confirm() {
 	}
 }
 
+// Esc：复活询问时放弃，编辑器里回主页，对局中暂停 / 继续（写成函数，测试可以直接调用）
+func escKey() {
+	if state == stRevive {
+		endGame false
+	} else if state == stEdit {
+		goHome
+	} else if state == stPlay {
+		pauseGame
+	} else if state == stPause {
+		resumeGame
+	}
+}
+
 // ---------- 路演演示模式 ----------
 
 // 敌人汇报自己的位置，自动驾驶只记住离玩家最近的那辆
@@ -1453,15 +1466,7 @@ onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 }
 
 onKey KeyEscape, => {
-	if state == stRevive {
-		endGame false
-	} else if state == stEdit {
-		goHome
-	} else if state == stPlay {
-		pauseGame
-	} else if state == stPause {
-		resumeGame
-	}
+	escKey
 }
 
 onKey KeyR, => {
