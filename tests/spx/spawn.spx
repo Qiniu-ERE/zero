@@ -1,0 +1,43 @@
+// 出兵（C08、C09）：左中右轮流出生；每关采样 300 次，坦克类型比例和配置一致
+// 见 docs/v4/TEST_PLAN.md 第 3.3 节；tQuiet / tAt 在 tools/test/prelude.spx
+onStart => {
+	wait 3
+
+	tQuiet
+	gameOver = true
+	spawned = 0
+	enemiesAlive = 0
+	cols3 := []int{0, 6, 12}
+	for k := 0; k < 6; k++ {
+		spawnEnemy
+		c := cols3[k%3]
+		tNum "C08 第 "+strconv.Itoa(k+1)+" 辆的出生列", Enemy.xpos, cellX(c)
+		tNum "C08 第 "+strconv.Itoa(k+1)+" 辆在第 0 行", Enemy.ypos, cellY(0)
+	}
+	tInt "C08 spawned 计数", spawned, 6
+	tInt "C08 enemiesAlive 计数", enemiesAlive, 6
+
+	// C09 每关采样 300 次，重型 / 快速的比例在配置的 ±10% 以内
+	for n := 1; n <= lastStage; n++ {
+		stage = n
+		heavy, fast, _, _ := stageTune()
+		h, f := 0, 0
+		for k := 0; k < 300; k++ {
+			spawnEnemy
+			if Enemy.kind == 2 {
+				h++
+			} else if Enemy.kind == 1 {
+				f++
+			}
+			if k%30 == 29 {
+				broadcastAndWait "clear" // 别让克隆体越积越多
+			}
+		}
+		s := "C09 第 " + strconv.Itoa(n) + " 关"
+		tCheck s+" 重型占比 "+strconv.Itoa(h/3)+"%（配置 "+strconv.Itoa(heavy)+"%）", math.Abs(float64(h)/3-float64(heavy)) <= 10
+		tCheck s+" 快速占比 "+strconv.Itoa(f/3)+"%（配置 "+strconv.Itoa(fast)+"%）", math.Abs(float64(f)/3-float64(fast)) <= 10
+	}
+	broadcastAndWait "clear"
+
+	tDone "spawn"
+}
