@@ -191,7 +191,14 @@ def report(logs, unittest_log=None, baseline=None):
         out.append("| " + " | ".join(row) + " |")
     out.append("| **合计** | " + " | ".join(f"**{a}/{b}（{pct(a, b):.0f}%）**" for a, b in tot.values()) + " |")
 
-    sent = messages()
+    # 只由“已知不稳定”的事件处理接收的消息不计入目标（例如 clash，受 C17 已知问题影响时有时无），单独列出
+    unstable_msgs = {n.split('"')[1] for n in KNOWN_UNSTABLE if ':onMsg "' in n}
+    receivers = {}
+    for n in pts:
+        if ':onMsg "' in n:
+            receivers.setdefault(n.split('"')[1], []).append(n)
+    skip = {m for m in unstable_msgs if all(r in KNOWN_UNSTABLE for r in receivers.get(m, []))}
+    sent = [m for m in messages() if m not in skip]
     got = {n.split('"')[1] for n in covered if ':onMsg "' in n}
     msg_hit = [m for m in sent if m in got]
 
@@ -203,6 +210,8 @@ def report(logs, unittest_log=None, baseline=None):
     out += ["", "## 目标", "", "| 指标 | 实际 | 目标 | |", "|---|---|---|---|"]
     for k, want in TARGETS.items():
         out.append(f"| {k} | {values[k]:.0f}% | ≥ {want}% | {'✅' if values[k] >= want else '❌'} |")
+    if skip:
+        out.append(f"| 不计入的不稳定消息 | {'、'.join(sorted(skip))} | — | 原因见 KNOWN_UNSTABLE |")
     out.append(f"| 用例清单（TEST_PLAN 第三节） | {len(id_hit)}/{len(ids)}（{pct(len(id_hit), len(ids)):.0f}%） | 参考 | |")
 
     miss = [n for n, k in pts.items() if k != "input" and n not in covered]

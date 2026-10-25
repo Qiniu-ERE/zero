@@ -246,9 +246,38 @@ stateDiagram-v2
 - **自动截图**：`tools/dev/shot.sh <工程副本> <输出前缀> <秒数…>`。在**工程副本**的 `main.spx` 末尾追加一段 `onStart` 测试脚本（例如 `startGame`、`baseDestroyed`、`watchAd rewardRevive`），就能不靠键盘把各个画面跑一遍。只截游戏窗口，不会截到桌面上的其他内容。PR 里的截图都是这样得到的。
 - **注意**：测试脚本只放在副本里，不要提交；脚本开头至少 `wait 3`，让游戏先完成初始化。
 - **关卡地图**：`python3 tools/levels/check.py` 检查 8 张地图（编辑器里的实时检查是同一套规则）。
-- **安装包**：`tools/export/build.sh` 本地打包；CI（`.github/workflows/release.yml`）里的 `smoke-windows` / `smoke-macos` / `smoke-linux` 会解压桌面包、启动游戏并截图。
-- **自动化测试（v4.0）**：用 `spx run -headless` 在工程副本里运行测试脚本，直接调用舞台函数并检查结果，配合覆盖率插桩和 PR 自动测试。设计见 [v4 测试方案](v4/TEST_PLAN.md)。
+- **安装包**：`tools/export/build.sh` 本地打包；`tools/test/package_boot.sh` 打出桌面包后运行里面的程序做启动测试（B03）。CI（`.github/workflows/release.yml`）里的冒烟测试在 Actions 可用时运行。
+
 - **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v3-demo.mp4` 和 `tankbattle-v3.gif`）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
+- **测试演示视频**：`tools/dev/record_tests.sh` 真实运行一次 `tools/test/run_all.sh`，记下每行输出的时间，用 ffmpeg 画成终端画面（加速播放，画面上标明实际用时和倍速），输出 `docs/demo/tankbattle-v4-tests.mp4`。只改画面时用 `--from` 读取上次保存的输出记录，不用重跑测试。
+
+### 自动化测试（v4.0）
+
+设计和完整的用例清单见 [v4 测试方案](v4/TEST_PLAN.md)；这里是日常要用到的部分。
+
+| 命令 | 测什么 | 时间 |
+|---|---|---|
+| `tools/test/run_all.sh` | 构建工具（`tests/tools/`，Python）+ 网页外壳（`tests/web/`，Node.js）+ 引擎内测试（`tests/spx/`） | 约 6 分钟 |
+| `tools/test/run_spx.sh [tests/spx/某组.spx]` | 引擎内测试（全部或一组） | 每组 5~90 秒 |
+| `tools/test/pr_check.sh --coverage` | PR 合入前：`check.yml` 的三项检查 + 全部测试 + 覆盖率和基线比较，生成报告贴到 PR 里 | 约 6 分钟 |
+| `tools/test/xbuilder_check.sh` | 用 XBuilder 线上的 spx v3.3.0 编译检查（T09） | 几秒 |
+| `tools/test/package_boot.sh` | 打出桌面安装包并运行启动测试（B03） | 约 20 秒 |
+| `tools/test/update_baseline.sh` | 覆盖率提高后更新基线 | 约 10 分钟 |
+
+**引擎内测试怎么工作**：`run_spx.sh` 为每组测试复制一份工程，把 `tools/test/prelude.spx` 的断言函数插到 `main.spx` 第一个 `func` 前面（类文件里 func 必须写在事件处理之前），把 `tests/spx/<组>.spx` 追加到末尾，用 `spx run -headless` 运行，按输出判定：`TEST PASS` / `TEST FAIL` / `TEST DONE`，超时、`panic`、编译失败都算失败（进程退出码永远是 0）。仓库里的游戏不会被改动；运行时 `HOME` 指向临时目录，编辑器存档不会碰到玩家自己的地图。
+
+**写测试的约定**：
+
+- 断言：`tCheck` `tInt` `tStr` `tNum`，说明以用例 ID 开头（`"F05 第一次战败 → 复活询问"`），覆盖率报告靠它统计用例清单；最后调用 `tDone "组名"`。
+- 隔离随机：`tQuiet`（清空地图、不再出兵）和 `tCalm`（保留地图、不再出兵），避免随机出现的敌人和子弹影响结果；随机结果测不变量或比例范围。
+- 异步流程：`tWaitState(状态, 秒)` 等状态变化，不要写死很长的 `wait`。
+- 已知问题：`tXfail "说明", 条件, "问题"`：没修好时不算失败，修好后报 XPASS 提醒改成 `tCheck`。
+- 测试文件里可以写 `// timeout: 秒数`（这一组的超时）和 `// touch: true`（打开触屏模式，和打手机包的改法相同）。
+- 只往舞台追加代码、不给精灵加字段（方法表上限，见第 9.1 节）。
+
+**覆盖率**：`--coverage` 给副本的每个 func 和事件处理插一句 `tCov`（只加舞台变量），统计哪些被执行到，和 `tests/coverage-baseline.json` 比较：原来覆盖到的现在没覆盖到、或者新加的代码没有测试执行，就失败。v4.0 时：`main.spx` 函数 99%、全部函数 96%、事件处理 98%（子弹相撞抵消的处理受已知问题影响、时有时无，不计入）、消息 100%。
+
+**测试发现的问题**：子弹迎面相撞经常不抵消（C17，已知问题，见测试方案第九节）。
 
 ## 11. 开发流程与分工
 
@@ -297,22 +326,30 @@ v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`�
 
 | PR | 内容 |
 |---|---|
-| — | v4.0 规划：测试与质量总览、测试方案（文档） |
+| #24、#25 | v4.0 规划、测试方案（文档） |
+| #26、#27→#29、#28→#30、#31~#33 | 引擎内测试框架和启动测试、地图与格子、构建工具测试、一键运行（#27、#28 目标分支选错，用 #29、#30 补合并） |
+| #34 | 本地检查 `pr_check.sh`（Actions 不可用后改为本地），`test.yml` 只保留手动触发 |
+| #35~#37 | 对局规则：子弹地形、出兵、得分、玩家、敌人、画风语言 |
+| #38、#39 | 流程状态机：主页、复活、结算、自制地图试玩、路演演示 |
+| #40、#41 | 地图编辑器（含和 `check.py` 的一致性）、双人合作 |
+| #42、#43 | 覆盖率统计；跟进 v3.0.2：暂停菜单、子弹相撞（已知问题）、路演规则、触屏模式 |
+| #44~#47 | 网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板 |
 
 ### 分工
 
-表中的 `dn-mbp14-qn` 是本地 git 用户名，对应 GitHub 账号 [danielfeng](https://github.com/danielfeng)；`zhangxunling` 是另一位成员。
+团队两人：**danielfeng**（本地 git 用户名 `dn-mbp14-qn`，GitHub [danielfeng](https://github.com/danielfeng)）和 **zhangxunling**（GitHub zhangxunling）。**测试与覆盖率由 zhangxunling 负责，其余全部由 danielfeng 负责。**
 
 | 模块 | 负责人 | 内容 |
 |---|---|---|
-| 产品与玩法设计 | dn-mbp14-qn | 2026 版玩法、商业化方案、路演叙事 |
-| 游戏逻辑（`main.spx` 及各精灵） | dn-mbp14-qn | 规则、流程状态机、复活与结算、地形、路演演示模式 |
-| 美术与界面管线（`tools/assets`） | dn-mbp14-qn | 生成器、现代画风、HUD 与弹窗、文字转路径 |
-| 商业化（广告位） | dn-mbp14-qn | 广告位设计与实现、正式接入方案 |
-| 测试、演示视频与文档 | dn-mbp14-qn | 实机截图验证、演示视频、架构文档 |
-| v4.0 测试与质量 | zhangxunling | 测试方案、引擎内测试框架、各模块测试用例、覆盖率、CI 测试 |
-| v3.0 关卡、双人合作、地图编辑器 | dn-mbp14-qn | 8 张地图与关卡检查工具、2P 坦克、编辑器与实时检查 |
-| v3.0 跨平台打包与发布 | dn-mbp14-qn | 打包脚本、网页版外壳、手机触屏模式、GitHub Actions 发布与冒烟测试 |
-| v4 测试计划与测试套件 | zhangxunling | v4 测试计划和按模块拆分的测试（编辑器、流程、子弹、敌人、玩家、得分、出兵、工具等），在 `v4.0`、`test/v4-*`、`docs/v4-*` 分支上，尚未合入 main |
+| 产品与玩法设计 | danielfeng | 2026 版玩法、商业化方案、路演叙事 |
+| 游戏逻辑（`main.spx` 及各精灵） | danielfeng | 规则、流程状态机、复活与结算、地形、路演演示模式 |
+| 美术与界面管线（`tools/assets`） | danielfeng | 生成器、现代画风、HUD 与弹窗、文字转路径 |
+| 商业化（广告位） | danielfeng | 广告位设计与实现、正式接入方案 |
+| v3.0 关卡、双人合作、地图编辑器 | danielfeng | 8 张地图与关卡检查工具、2P 坦克、编辑器与实时检查、暂停菜单 |
+| v3.0 跨平台打包与发布 | danielfeng | 打包脚本、网页版外壳、手机触屏模式、发布流程 |
+| 演示视频与文档 | danielfeng | 实机截图、演示视频、README、架构文档、更新记录、v4.0 发布文档 |
+| 测试与覆盖率（v4.0） | zhangxunling | 测试方案、引擎内测试框架、全部测试用例（规则、流程、编辑器、双人、构建工具、网页外壳、XBuilder 兼容、安装包启动）、覆盖率统计和基线、本地检查 `pr_check.sh`、PR 模板 |
 
-开发全程使用 AI 编程助手（Claude Code）结对完成：人负责方向、取舍和验收，AI 负责实现和验证，每一步都通过 PR 留下记录。团队成员加入后，请在这张表里补充各自负责的模块。
+测试与覆盖率的 PR 里，#24~#43 由 zhangxunling 的账号提交；#44~#47（网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板）由 danielfeng 的账号代为提交，内容同属测试与覆盖率。测试发现的游戏问题（例如子弹相撞）由 danielfeng 确认和修复。
+
+开发全程使用 AI 编程助手（Claude Code）结对完成：人负责方向、取舍和验收，AI 负责实现和验证，每一步都通过 PR 留下记录。

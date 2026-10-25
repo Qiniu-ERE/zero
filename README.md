@@ -9,6 +9,8 @@
 [![Language XGo](https://img.shields.io/badge/language-XGo-0a7bbb)](https://xgo.dev)
 [![Engine spx](https://img.shields.io/badge/engine-spx_4.0-555)](https://github.com/goplus/spx)
 [![Battle City 1985](https://img.shields.io/badge/remake_of-Battle_City_1985-red)](#素材与版权说明)
+[![Tests](https://img.shields.io/badge/tests-450_passing-brightgreen)](docs/v4/TEST_PLAN.md)
+[![Coverage](https://img.shields.io/badge/coverage-96%25_functions_·_98%25_handlers-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
 
 > 🏆 **第五届 1024 HACKATHON 参赛项目** · 这是一个 Builder 的时代 —— AI 放大执行，我们撬动价值
 
@@ -128,6 +130,21 @@ spx run .
 
 ![8 个关卡](docs/v3/stages/stages.png)
 
+## v4.0 做了什么
+
+v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有自动化测试，合入前在本地一条命令跑完，覆盖率只升不降。
+
+| 方向 | 内容 |
+|---|---|
+| 引擎内测试 | `spx run -headless` 运行工程副本里的测试脚本，直接调用游戏函数检查结果，不改游戏代码。21 组、410 多个断言：地图、子弹、出兵、得分、玩家、敌人、流程状态机、编辑器、双人合作、暂停菜单、触屏模式 |
+| 工具和外壳 | 关卡检查、文案表、美术生成器（生成文件是否过期）、网页外壳的虚拟按键和布局；248 张地图上游戏和 `check.py` 的地图检查结论完全相同 |
+| 兼容和打包 | 用 XBuilder 线上的 spx v3.3.0 编译检查（#18 那类问题合入前就能发现）；打出安装包后运行，确认能启动、开一局 |
+| 覆盖率 | 函数 96%、`main.spx` 函数 99%、事件处理 98%（子弹相撞抵消的处理受已知问题影响、时有时无，不计入）、消息 100%；保存基线，覆盖率退步时检查失败 |
+| 流程 | `tools/test/pr_check.sh` 本地检查（不依赖 GitHub Actions），报告贴在 PR 里；PR 模板 |
+| 发现的问题 | 子弹迎面相撞经常不抵消（已记录为已知问题，修复另行进行） |
+
+演示视频：[一条命令跑完全部自动化测试](docs/demo/tankbattle-v4-tests.mp4)（真实运行 5 分 16 秒，7 倍速播放）。详见 [v4.0 规划](docs/v4/PLAN.md)、[测试方案](docs/v4/TEST_PLAN.md) 和 [更新记录](CHANGELOG.md#v400)。
+
 ## v3.0 做了什么
 
 | 方向 | 内容 | 文档 |
@@ -162,7 +179,7 @@ spx run .
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、状态机、解释器限制、分工 |
 | [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x |
 | [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
-| [v4.0 规划](docs/v4/PLAN.md) | 测试与质量：自动化测试、覆盖率、PR 自动测试，[测试方案](docs/v4/TEST_PLAN.md) |
+| [v4.0 规划](docs/v4/PLAN.md) | 测试与质量：自动化测试、覆盖率、本地检查，[测试方案](docs/v4/TEST_PLAN.md)（测试分层、用例清单、覆盖率、测试发现的问题） |
 | [跨平台](docs/v3/CROSS_PLATFORM.md) | 打包方法、实测截图、限制 |
 | [微信小游戏](docs/v3/WECHAT_MINIGAME.md) | 可行性评估 |
 | [v2.0 设计方案](docs/v2/DESIGN.md) | 玩法、画风、商业化设计和效果图 |
@@ -186,7 +203,14 @@ tools/
 ├── levels/check.py       # 关卡地图检查
 ├── export/               # 各平台打包、网页版外壳、安装说明
 ├── dev/                  # 截图、录制演示视频
+├── test/                 # 测试工具：run_all.sh、run_spx.sh、pr_check.sh、覆盖率、XBuilder 兼容、安装包启动测试
 └── package_xbp.sh        # 打包 TankBattle.xbp
+tests/                    # v4.0 的自动化测试
+├── spx/                  # 引擎内测试（每个文件一组）
+├── tools/                # 构建工具测试（Python）
+├── web/                  # 网页外壳测试（Node.js）
+├── data/                 # 测试数据（248 张编辑器地图）
+└── coverage-baseline.json  # 覆盖率基线
 docs/
 ├── ARCHITECTURE.md       # 架构文档
 ├── v2/                   # v2.0 设计方案、截图
@@ -209,8 +233,13 @@ python3 tools/levels/check.py
 cd TankBattle && spx run .
 ./tools/package_xbp.sh
 
-# 跑引擎内自动化测试（无界面运行，见 docs/v4/TEST_PLAN.md）
-tools/test/run_spx.sh
+# 自动化测试（见 docs/v4/TEST_PLAN.md；需要 spx，美术生成器的测试需要 pip install -r tools/assets/requirements.txt）
+tools/test/run_all.sh               # 全部：构建工具 + 网页外壳 + 引擎内测试（约 6 分钟）
+tools/test/run_spx.sh tests/spx/flow_revive.spx   # 只跑一组引擎内测试
+tools/test/pr_check.sh --coverage   # PR 合入前：和 check.yml 相同的检查 + 全部测试 + 覆盖率，生成报告贴到 PR 里
+tools/test/xbuilder_check.sh        # 用 XBuilder 线上的 spx v3.3.0 编译检查
+tools/test/package_boot.sh          # 打出桌面安装包并运行启动测试
+tools/test/update_baseline.sh       # 覆盖率提高后更新基线
 
 # 打安装包（第一次先运行 setup_spx.sh）
 tools/export/setup_spx.sh web
