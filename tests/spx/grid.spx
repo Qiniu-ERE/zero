@@ -1,0 +1,100 @@
+// 地图与格子（G01~G08），见 docs/v4/TEST_PLAN.md 第 3.2 节
+onStart => {
+	wait 3
+
+	// G01 每关 13 行 × 13 列，只用约定的字符
+	keep := stage
+	for n := 1; n <= lastStage; n++ {
+		stage = n
+		m := levelMap()
+		ok := len(m) == rows
+		for _, line := range m {
+			if len(line) != cols || strings.Trim(line, ".BSWGE") != "" {
+				ok = false
+			}
+		}
+		tCheck "G01 第 "+strconv.Itoa(n)+" 关 13×13", ok
+	}
+	stage = keep
+
+	// G02 坐标换算互为逆运算，战场外返回 -1
+	ok := true
+	for r := 0; r < rows; r++ {
+		for c := 0; c < cols; c++ {
+			if cellIndex(cellX(c), cellY(r)) != r*cols+c {
+				ok = false
+			}
+		}
+	}
+	tCheck "G02 cellIndex(cellX, cellY) 还原格子编号", ok
+	tInt "G02 战场左边外", cellIndex(cellX(0)-24, cellY(0)), -1
+	tInt "G02 战场右边外", cellIndex(cellX(cols-1)+24, cellY(0)), -1
+	tInt "G02 战场上边外", cellIndex(cellX(0), cellY(0)+24), -1
+	tInt "G02 战场下边外", cellIndex(cellX(0), cellY(rows-1)-24), -1
+
+	// G03 buildMap 之后 grid 和 levelMap 一致
+	code := map[byte]int{'.': 0, 'B': 1, 'S': 2, 'W': 4, 'G': 5, 'E': 9}
+	for n := 1; n <= lastStage; n++ {
+		playStage n
+		wait 0.3
+		m := levelMap()
+		same := true
+		for i := 0; i < rows*cols; i++ {
+			if grid[i] != code[m[i/cols][i%cols]] {
+				same = false
+			}
+		}
+		tCheck "G03 第 "+strconv.Itoa(n)+" 关 grid 和地图一致", same
+		tInt "G03 第 "+strconv.Itoa(n)+" 关基地位置", baseIdx, 12*cols+6
+	}
+	goHome
+	wait 0.3
+
+	// G04 哪些格子挡坦克
+	tCheck "G04 空地不挡", !blocksTank(0)
+	tCheck "G04 草丛不挡", !blocksTank(5)
+	for _, v := range []int{1, 2, 3, 4, 9, -1} {
+		tCheck "G04 格子 "+strconv.Itoa(v)+" 挡坦克", blocksTank(v)
+	}
+
+	// G05 出界算挡住
+	tCheck "G05 左边界外", tankBlocked(cellX(0)-12, cellY(6))
+	tCheck "G05 下边界外", tankBlocked(cellX(6), cellY(rows-1)-12)
+
+	// G06 关卡配置和 README 的关卡表一致：重型 %、快速 %、出兵间隔、场上上限
+	want := [][]float64{
+		{20, 30, 2.0, 4}, {20, 30, 2.0, 4}, {10, 60, 1.8, 4}, {50, 10, 2.2, 4},
+		{30, 30, 1.8, 4}, {10, 70, 1.2, 5}, {30, 50, 1.5, 5}, {45, 45, 1.3, 5},
+	}
+	for n := 1; n <= lastStage; n++ {
+		stage = n
+		h, f, gap, most := stageTune()
+		w := want[n-1]
+		s := "G06 第 " + strconv.Itoa(n) + " 关"
+		tInt s+" 重型占比", h, int(w[0])
+		tInt s+" 快速占比", f, int(w[1])
+		tNum s+" 出兵间隔", gap, w[2]
+		tInt s+" 场上上限", most, int(w[3])
+	}
+
+	// G07 开场提示的文案 key
+	stage = 1
+	tStr "G07 第 1 关", stageTip(), "msg.start"
+	stage = 5
+	tStr "G07 第 5 关", stageTip(), "msg.stage5"
+	stage = customStage
+	tStr "G07 自制地图", stageTip(), "msg.ed.play"
+	stage = keep
+
+	// G08 对齐和方向
+	tNum "G08 snapX 对齐到半格", snapX(cellX(3)+5), cellX(3)
+	tNum "G08 snapY 对齐到半格", snapY(cellY(3)-7), cellY(3)-12
+	tNum "G08 上 dx", dirDX(0), 0
+	tNum "G08 上 dy", dirDY(0), 1
+	tNum "G08 右 dx", dirDX(90), 1
+	tNum "G08 下 dy", dirDY(180), -1
+	tNum "G08 左 dx", dirDX(-90), -1
+	tNum "G08 左 dy", dirDY(-90), 0
+
+	tDone "grid"
+}
