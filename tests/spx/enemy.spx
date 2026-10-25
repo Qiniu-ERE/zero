@@ -1,0 +1,33 @@
+// 敌人挨打（C15）：普通 / 快速 1 发、重型 3 发，分数 100 / 200 / 400
+// 见 docs/v4/TEST_PLAN.md 第 3.3 节；tQuiet / tAt 在 tools/test/prelude.spx
+//
+// 敌人放在四面都是水的格子里：坦克过不了水，原地不动；子弹能飞过水面打中它。
+onStart => {
+	wait 3
+
+	// 敌人放在 (6, 6)，四面是水；子弹从左边 (6, 3) 往右打
+	shots := []int{1, 1, 3}
+	points := []int{100, 200, 400}
+	names := []string{"普通", "快速", "重型"}
+	for k := 0; k < 3; k++ {
+		tQuiet
+		for _, w := range []int{tAt(5, 6), tAt(7, 6), tAt(6, 5), tAt(6, 7)} {
+			grid[w] = 4
+		}
+		score, killed = 0, 0
+		Enemy.spawn cellX(6), cellY(6), k
+		enemiesAlive = 1
+		wait 0.3
+		for s := 1; s <= shots[k]; s++ {
+			PBullet.fire cellX(3), cellY(6), 90, 1
+			wait 0.6
+			if s < shots[k] {
+				tInt "C15 "+names[k]+"坦克第 "+strconv.Itoa(s)+" 发后还活着", killed, 0
+			}
+		}
+		tInt "C15 "+names[k]+"坦克 "+strconv.Itoa(shots[k])+" 发被消灭", killed, 1
+		tInt "C15 "+names[k]+"坦克的分数", score, points[k]
+	}
+
+	tDone "enemy"
+}

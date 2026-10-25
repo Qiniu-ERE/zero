@@ -1,0 +1,21 @@
+// 画风和语言（C16）：切换后的造型后缀和语言代码，切两次回到原样
+// 见 docs/v4/TEST_PLAN.md 第 3.3 节；tQuiet / tAt 在 tools/test/prelude.spx
+onStart => {
+	wait 3
+
+	goHome
+	wait 0.3
+	t0, l0 := theme, lang
+	switchTheme
+	tStr "C16 切换画风后的造型后缀", look("brick"), map[bool]string{true: "brick_m", false: "brick"}[theme == 1]
+	tCheck "C16 画风变了", theme != t0
+	switchTheme
+	tInt "C16 切两次回到原样", theme, t0
+	switchLang
+	tCheck "C16 语言变了", lang != l0
+	tStr "C16 语言代码", langCode(), map[bool]string{true: "en", false: "zh"}[lang == 1]
+	switchLang
+	tInt "C16 切两次回到原样", lang, l0
+
+	tDone "theme"
+}
