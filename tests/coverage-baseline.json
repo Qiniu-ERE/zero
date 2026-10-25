@@ -7,7 +7,6 @@
   "Boom.spx:onMsg \"clear\"",
   "EBullet.spx:fire",
   "EBullet.spx:onCloned",
-  "EBullet.spx:onMsg \"clash\"",
   "EBullet.spx:onMsg \"clear\"",
   "EBullet.spx:vanish",
   "Enemy.spx:applyLook",
@@ -85,6 +84,7 @@
   "main.spx:breakBrick",
   "main.spx:buildHud",
   "main.spx:buildMap",
+  "main.spx:bulletClash",
   "main.spx:bulletDir",
   "main.spx:bulletHit",
   "main.spx:cellAt",
@@ -251,6 +251,7 @@
   "main.spx:breakBrick",
   "main.spx:buildHud",
   "main.spx:buildMap",
+  "main.spx:bulletClash",
   "main.spx:bulletDir",
   "main.spx:bulletHit",
   "main.spx:cellAt",
@@ -324,10 +325,6 @@
   "main.spx:waitState",
   "main.spx:watchAd"
  ],
- "unstable": [
-  "EBullet.spx:onMsg \"clash\""
- ],
- "unstable_why": {
-  "EBullet.spx:onMsg \"clash\"": "子弹迎面相撞经常不抵消（C17 已知问题），抵消没发生时这个处理不会执行"
- }
+ "unstable": [],
+ "unstable_why": {}
 }
