@@ -1,0 +1,42 @@
+// 玩家坦克（C12~C14）：同时只能 1 发子弹、出生保护、中弹扣命和重生、生命用完
+// 见 docs/v4/TEST_PLAN.md 第 3.3 节；tQuiet / tAt 在 tools/test/prelude.spx
+onStart => {
+	wait 3
+
+	tQuiet
+	pbCount = 1
+	Player.shoot
+	tInt "C12 场上已有 1 发：不能再开火", pbCount, 1
+	pbCount = 0
+	Player.shoot
+	tInt "C12 场上没有子弹：可以开火", pbCount, 1
+	wait 1.5 // 子弹飞出战场后消失
+	tInt "C12 子弹消失后计数归零", pbCount, 0
+
+	tQuiet
+	// 出生保护 3 秒；tQuiet 开局后等了 0.5 秒多，所以这里剩 2 ~ 3 秒
+	tCheck "C13 出生时有保护（剩 "+strconv.FormatFloat(Player.shield, 'f', 2, 64)+" 秒）", Player.shield > 2 && Player.shield <= 3
+	n0 := lives
+	hitWho = 1
+	broadcast "playerHit"
+	wait 0.2
+	tInt "C13 保护期内中弹不扣命", lives, n0
+	Player.shield = 0
+	broadcast "playerHit"
+	wait 0.2
+	tInt "C13 保护期过后中弹扣 1 条命", lives, n0-1
+	tCheck "C13 中弹后坦克被击毁", Player.dead
+	wait 2.5
+	tCheck "C13 1.5 秒后重生", !Player.dead
+	tCheck "C13 重生后又有保护", Player.shield > 1
+
+	tQuiet
+	lives = 1
+	Player.shield = 0
+	hitWho = 1
+	broadcast "playerHit"
+	wait 0.3
+	tInt "C14 生命用完 → 复活询问", state, stRevive
+
+	tDone "player"
+}
