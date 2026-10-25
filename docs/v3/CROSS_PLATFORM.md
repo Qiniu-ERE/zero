@@ -262,6 +262,29 @@ tools/export/release_local.sh        # 把 dist/ 里的包发布成 GitHub Relea
 
 **本机发布（v3.0.2）**：组织的 Actions 额度用完后，v3.0.2 改成在一台 Apple 芯片 Mac 上打包：macOS、网页版、Android 直接打；Linux 在 OrbStack 的 x86_64 Ubuntu 虚拟机里打（Rosetta 转译），并用 Xvfb + 软件 Vulkan 启动截图验证。Windows 和 iOS 本机打不了（`buildlauncher` 只能打本机平台；iOS 需要 Xcode），`release_local.sh` 会把说明里这两行改成指向上一个版本（v3.0.1）的下载链接。Android 导出时如果本机以前运行过 Godot，编辑器设置里的 Java SDK 路径可能是空的，`build.sh android` 会用 `JAVA_HOME` / `ANDROID_HOME` 补上。
 
+**本地打包（v4.0 起的标准做法，不用 GitHub Actions）**：推送标签不再触发 Actions（`release.yml`、`check.yml` 都改成只能手动运行），打包、检查、发布都在本机做：
+
+```sh
+tools/export/setup_spx.sh android            # 第一次：spx、xgo、运行时、安卓模板（只打桌面和网页可以不加 android）
+tools/export/linux_vm.sh setup               # 第一次：OrbStack 的 x86_64 Ubuntu 虚拟机（约 3.7 GB），以后可以 linux_vm.sh delete 释放
+tools/export/build_local.sh                  # 打本机能打的全部平台，每个包都检查，结果写在 dist/BUILD_LOCAL.md
+git tag v4.1.0 && git push origin v4.1.0     # 在 main 上打标签
+tools/export/release_local.sh                # 发布 GitHub Release；空着的平台指向上一个版本的下载
+```
+
+`build_local.sh` 在一台 Apple 芯片 Mac 上（2026-10-25 实测，v4.0.0）：
+
+| 平台 | 结果 | 怎么打、怎么检查 |
+|---|---|---|
+| macOS | ✅ 29 MB | 本机 `buildlauncher`；`tools/test/package_boot.sh` 运行安装包里的程序做启动测试（9 个断言） |
+| 网页版 | ✅ 22 MB | 本机 `exportweb` + 外壳；检查包里有游戏、外壳和 PWA 文件 |
+| Android | ✅ 29 MB | 本机 `exportapk`；JDK 17 没装时用 `nix shell nixpkgs#jdk17` 临时提供（不装进系统）；`apksigner` 验证签名。本机没有模拟器，启动要在真机上手工检查 |
+| Linux x64 | ✅ 39 MB | OrbStack 的 x86_64 Ubuntu 虚拟机（Rosetta 转译）里 `buildlauncher`，再在虚拟机里用 Xvfb + 软件 Vulkan 跑启动测试 |
+| Windows | ⏸ 空着 | `buildlauncher` 只能打本机平台，需要 Windows 环境。VMware Fusion 已装，但 Windows 虚拟机至少要 30 GB 磁盘，本机剩余不够。以后有空间时装 Windows 11（ARM 版能转译运行 x64 的 Go 工具链）或者用一台 Windows 电脑运行同样的 `build.sh desktop` |
+| iOS | ⏸ 空着 | 需要 Xcode（十几 GB），本机只有命令行工具 |
+
+踩过的坑：后台运行或者特殊语言环境下，macOS 的 `sed` 读到 `CHANGELOG.md` 里的中文会报 `illegal byte sequence`（`env.sh` 读版本号改成 `LC_ALL=C`）；bash 里变量后面紧跟中文（如 `$VM（`）会被当成变量名的一部分，要写成 `${VM}（`；开着 `pipefail` 时 `unzip -l | grep -q` 会因为 grep 提前退出而误判失败。
+
 ### 7.2 关键做法
 
 | 问题 | 做法 |
