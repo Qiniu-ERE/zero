@@ -1,0 +1,205 @@
+// 地图编辑器（E01~E06、E08~E15），见 docs/v4/TEST_PLAN.md 第 3.5 节
+// edCheck() 和 tools/levels/check.py 的一致性（E07）在 editor_parity.spx
+onStart => {
+	wait 3
+
+	at := func(r, c int) int { return r*cols + c }
+	blank := func() string {
+		edBlank()
+		return string(ed)
+	}
+	empty := blank()
+
+	openEditor
+	wait 0.5
+	tInt "E00 进入编辑器", state, stEdit
+
+	// E01 锁定格改不了
+	locked := []int{0, 6, 12, at(12, 4), at(12, 8), at(12, 6), at(11, 5), at(11, 6), at(11, 7), at(12, 5), at(12, 7)}
+	edBlank()
+	edRebuild()
+	for _, i := range locked {
+		before := ed[i]
+		tCheck "E01 锁定格 "+strconv.Itoa(i)+" 不能画", !edPaint(i, 'S') && ed[i] == before
+	}
+	n := 0
+	for i := 0; i < rows*cols; i++ {
+		if edLocked(i) {
+			n++
+		}
+	}
+	tInt "E01 一共 11 个锁定格", n, 11
+	tStr "E01 空白地图：基地和护墙", string(ed[at(11, 5):at(11, 8)])+string(ed[at(12, 4):at(12, 9)]), "BBB.BEB."
+	tCheck "E01 画到战场外返回 false", !edPaint(-1, 'S')
+
+	// E02 画普通格子
+	i := at(5, 5)
+	tCheck "E02 画钢墙", edPaint(i, 'S')
+	tCheck "E02 ed 更新", ed[i] == 'S'
+	tInt "E02 grid 更新", grid[i], 2
+	tCheck "E02 画一样的字符返回 false", !edPaint(i, 'S')
+	edPaint i, 'W'
+	tInt "E02 水面", grid[i], 4
+	edPaint i, 'G'
+	tInt "E02 草丛", grid[i], 5
+	edPaint i, '.'
+	tInt "E02 擦掉", grid[i], 0
+
+	// E03 出生点被围死
+	edBlank()
+	ed[at(0, 1)] = 'S'
+	ed[at(1, 0)] = 'S'
+	edCheck()
+	tInt "E03 左上出生点被围 → 问题 1", edProblem, 1
+	tInt "E03 标记左上出生点", edMark, 0
+
+	// E04 玩家到不了出生点。编辑器里画不出来（锁定的护墙把玩家和基地连在一起，敌人到得了基地，玩家就到得了出生点），
+	// 这里直接改 ed 绕过锁定格，测 edCheck 本身
+	edBlank()
+	for _, k := range []int{at(11, 4), at(12, 3), at(12, 5)} {
+		ed[k] = 'S'
+	}
+	edCheck()
+	tInt "E04 1P 被围 → 问题 2", edProblem, 2
+	tInt "E04 标记 1P 出生点", edMark, at(12, 4)
+
+	// E05 砖墙算能通过，钢墙和水面不算
+	for _, ch := range []byte{'B', 'G', 'S', 'W'} {
+		edBlank()
+		for c := 0; c < cols; c++ {
+			ed[at(1, c)] = ch
+		}
+		edCheck()
+		want := 0
+		if ch == 'S' || ch == 'W' {
+			want = 1
+		}
+		tInt "E05 第 1 行整行 "+string(ch), edProblem, want
+	}
+
+	// E06 不会从一行末尾绕到下一行开头：把右上角出生点 (0, 12) 围起来，它的下一个编号 13 是 (1, 0)
+	edBlank()
+	ed[at(0, 11)] = 'S'
+	ed[at(1, 12)] = 'S'
+	edCheck()
+	tInt "E06 右上出生点被围 → 问题 1", edProblem, 1
+	tInt "E06 标记右上出生点", edMark, 12
+
+	// E08 随机起点：50 张都左右对称、通过检查、锁定格不变
+	sym, okAll, lockOK := true, true, true
+	for k := 0; k < 50; k++ {
+		edRandom()
+		for r := 0; r < rows; r++ {
+			for c := 0; c < cols; c++ {
+				if ed[at(r, c)] != ed[at(r, cols-1-c)] {
+					sym = false
+				}
+			}
+		}
+		edCheck()
+		if edProblem != 0 {
+			okAll = false
+		}
+		for _, j := range locked {
+			if ed[j] != edLockedChar(j) {
+				lockOK = false
+			}
+		}
+	}
+	tCheck "E08 随机地图左右对称", sym
+	tCheck "E08 随机地图都通过检查", okAll
+	tCheck "E08 随机地图的锁定格不变", lockOK
+
+	// E09 对称开关（对称绘制本身在 editLoop 里跟着鼠标走，测不到，见 TEST_PLAN 第六节）
+	m0 := edMirror
+	edCommand "mirror"
+	tCheck "E09 对称开关切换", edMirror != m0
+	edCommand "mirror"
+	tCheck "E09 再按一次切回来", edMirror == m0
+
+	// E10 从关卡复制：依次是第 1~8 关，再按回到第 1 关；stage 不变
+	edCopy = 0
+	for k := 1; k <= lastStage+1; k++ {
+		edCommand "copy"
+		want := k
+		if k > lastStage {
+			want = 1
+		}
+		keep := stage
+		stage = want
+		m := levelMap()
+		stage = keep
+		same := true
+		for r := 0; r < rows; r++ {
+			for c := 0; c < cols; c++ {
+				j := at(r, c)
+				w := m[r][c]
+				if edLocked(j) {
+					w = edLockedChar(j)
+				}
+				if ed[j] != w {
+					same = false
+				}
+			}
+		}
+		tCheck "E10 第 "+strconv.Itoa(k)+" 次复制 = 第 "+strconv.Itoa(want)+" 关", same
+	}
+	tInt "E10 复制后 stage 还是自制地图", stage, customStage
+
+	// E11 清空
+	edCommand "clear"
+	tStr "E11 清空后只剩锁定格", string(ed), empty
+
+	// E12 edRows / edLoadRows
+	edRandom()
+	saved := string(ed)
+	rowsNow := edRows()
+	tInt "E12 edRows 13 行", len(rowsNow), rows
+	edBlank()
+	tCheck "E12 edLoadRows 成功", edLoadRows(rowsNow)
+	tStr "E12 读回同一张地图", string(ed), saved
+	bad := map[string][]string{}
+	bad["只有 12 行"] = rowsNow[:12]
+	r5 := append([]string{}, rowsNow...)
+	r5[5] = r5[5][:12]
+	bad["一行只有 12 个字符"] = r5
+	rx := append([]string{}, rowsNow...)
+	rx[3] = "X" + rx[3][1:]
+	bad["不认识的字符"] = rx
+	re := append([]string{}, rowsNow...)
+	re[3] = "E" + re[3][1:]
+	bad["基地画在别处"] = re
+	for name, m := range bad {
+		tCheck "E12 "+name+" → false", !edLoadRows(m)
+		tStr "E12 "+name+"：地图不变", string(ed), saved
+	}
+
+	// E13 保存 / 读取（run_spx.sh 把配置目录指向临时目录，不碰玩家的存档）
+	tCheck "E13 存档在临时目录里", strings.HasPrefix(edFile(), os.Getenv("HOME"))
+	edSave()
+	edCommand "clear"
+	tCheck "E13 读取成功", edLoad()
+	tStr "E13 读回保存的地图", string(ed), saved
+
+	// E14 地图不合格时不能试玩
+	edBlank()
+	ed[at(0, 1)] = 'S'
+	ed[at(1, 0)] = 'S'
+	edRebuild()
+	playCustom false
+	wait 0.3
+	tInt "E14 不合格：留在编辑器", state, stEdit
+	tStr "E14 提示地图有问题", toastKey, "msg.ed.bad"
+
+	// E15 不在编辑器里时 edCommand 什么都不做
+	edCommand "back"
+	wait 0.3
+	tInt "E15 back → 主页", state, stHome
+	before := string(ed)
+	edCommand "clear"
+	edCommand "rand"
+	tStr "E15 主页上 clear / rand 不改地图", string(ed), before
+	tInt "E15 还在主页", state, stHome
+
+	tDone "editor"
+}
