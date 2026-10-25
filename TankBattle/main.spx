@@ -533,7 +533,7 @@ func edRandom() {
 	dOdd := []int{45, 50, 55, 70, 25}
 	dEven := []int{25, 20, 35, 30, 5}
 	for try := 0; try < 80; try++ {
-		t := rand(0, 4) // 河流、钢铁、草丛、砖城、开阔五种风格
+		t := int(rand(0, 4)) // 河流、钢铁、草丛、砖城、开阔五种风格
 		edBlank()
 		for r := 1; r <= 12; r++ {
 			for c := 0; c <= 6; c++ {
@@ -542,8 +542,8 @@ func edRandom() {
 					d = dOdd[t]
 				}
 				ch := byte('.')
-				if rand(1, 100) <= d {
-					n := rand(1, 100)
+				if int(rand(1, 100)) <= d {
+					n := int(rand(1, 100))
 					if n <= wb[t] {
 						ch = 'B'
 					} else if n <= wb[t]+ws[t] {
@@ -1055,7 +1055,7 @@ func autopilotBlocked() {
 	if apTimer > 0 {
 		return
 	}
-	n := rand(1, 4)
+	n := int(rand(1, 4))
 	if n == 1 {
 		apDir = 0
 	} else if n == 2 {
@@ -1109,7 +1109,7 @@ func spawnEnemy() {
 	heavy, fast, _, _ := stageTune()
 	c := (spawned % 3) * 6
 	kind := 0 // 0 普通坦克，1 快速坦克，2 重型坦克
-	n := rand(1, 100)
+	n := int(rand(1, 100))
 	if n <= heavy {
 		kind = 2
 	} else if n <= heavy+fast {
