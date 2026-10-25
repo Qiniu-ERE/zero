@@ -79,6 +79,8 @@ build_desktop() {
       exit 1
     fi
   fi
+  # 先删掉同名的旧包：7z a / zip 遇到已有的压缩包会往里追加，旧包里的文件会留在新包里
+  rm -f "$DIST_DIR/$name.zip" "$DIST_DIR/$name.tar.gz"
   case "$plat" in
     macos-*)
       # 包成 .app，双击就能打开
