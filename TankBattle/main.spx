@@ -86,6 +86,7 @@ const (
 	stResult = 4 // 结算
 	stEdit   = 5 // 自己做地图
 	stPause  = 6 // 对局暂停（Esc 或顶栏的暂停按钮）
+	stLevels = 7 // 选择关卡（v5：鼠标、触屏也能选关）
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
@@ -1131,7 +1132,13 @@ func newGame(n int, two bool) {
 	playStage n
 }
 
-// 从主页进入第 n 关（得分从 0 开始）
+// 打开选关画面（主页的“选择关卡”卡片）
+func openLevels() {
+	state = stLevels
+	setScreen "levels"
+}
+
+// 从主页或选关画面进入第 n 关（得分从 0 开始）
 func playStage(n int) {
 	stage = n
 	stageScore = 0
@@ -1176,6 +1183,8 @@ func escKey() {
 		pauseGame
 	} else if state == stPause {
 		resumeGame
+	} else if state == stLevels {
+		goHome
 	}
 }
 
@@ -1511,10 +1520,10 @@ onKey KeyS, => {
 	edCommand "save"
 }
 
-// 主页按 1~8 直接进入对应关卡
+// 主页和选关画面按 1~8 直接进入对应关卡
 onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 	n := int(key) - int(Key0)
-	if state == stHome {
+	if state == stHome || state == stLevels {
 		newGame n, false
 	} else if state == stEdit && n <= 5 {
 		edTool = n // 编辑器：选工具

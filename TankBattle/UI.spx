@@ -27,7 +27,7 @@ const (
 	kLang  = 6 // 中 | EN 语言按钮
 	kToast  = 7  // 提示条
 	kAd     = 8  // 广告位：对局中的原生广告卡（key "card"）或主页横幅（key "banner"）
-	kScreen = 9  // 全屏 / 弹窗画面：主页、复活、模拟广告、结算（造型名在舞台的 screen 里）
+	kScreen = 9  // 全屏 / 弹窗画面：主页、选关、复活、模拟广告、结算（造型名在舞台的 screen 里）
 	kCoin   = 10 // 结算弹窗里金币数的一个字符位（金色，左对齐）
 	kLife2  = 11 // 2P 的生命图标（只在双人时显示）
 
@@ -109,6 +109,26 @@ func hit(name string, x, y float64) bool {
 		return x >= -224 && x <= -54 && y >= -2 && y <= 36
 	case "home.maker":
 		return x >= -224 && x <= -54 && y >= -46 && y <= -8
+	case "home.levels":
+		return x >= -224 && x <= -54 && y >= -90 && y <= -52
+	case "lv.1":
+		return x >= -224 && x <= -120 && y >= 16 && y <= 100
+	case "lv.2":
+		return x >= -112 && x <= -8 && y >= 16 && y <= 100
+	case "lv.3":
+		return x >= 0 && x <= 104 && y >= 16 && y <= 100
+	case "lv.4":
+		return x >= 112 && x <= 216 && y >= 16 && y <= 100
+	case "lv.5":
+		return x >= -224 && x <= -120 && y >= -76 && y <= 8
+	case "lv.6":
+		return x >= -112 && x <= -8 && y >= -76 && y <= 8
+	case "lv.7":
+		return x >= 0 && x <= 104 && y >= -76 && y <= 8
+	case "lv.8":
+		return x >= 112 && x <= 216 && y >= -76 && y <= 8
+	case "lv.back":
+		return x >= -224 && x <= -114 && y >= -122 && y <= -96
 	case "pause.resume":
 		return x >= -162 && x <= 18 && y >= -8 && y <= 22
 	case "pause.restart":
@@ -426,6 +446,18 @@ func clickScreen() {
 			newGame 1, true
 		} else if hit("home.maker", x, y) {
 			openEditor
+		} else if hit("home.levels", x, y) {
+			openLevels
+		}
+	case stLevels:
+		for n := 1; n <= lastStage; n++ {
+			if hit("lv."+strconv.Itoa(n), x, y) {
+				newGame n, false
+				return
+			}
+		}
+		if hit("lv.back", x, y) {
+			goHome
 		}
 	case stPause:
 		if hit("pause.resume", x, y) {

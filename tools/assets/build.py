@@ -459,7 +459,8 @@ def banner(lang):
 
 
 # 主页上的其他模式：(文案 key, 按键)。v5 去掉了“每日挑战 · 即将推出”（需要服务器和排行榜，不会做）
-HOME_MODES = [("m.coop", "C"), ("m.maker", "E")]
+# 选择关卡（v5）放在原来每日挑战的位置；按键提示是“1-8”（主页直接按数字键进关）
+HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.levels", "1-8")]
 
 
 def home(lang):
@@ -488,12 +489,9 @@ def home(lang):
         s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
         s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
         s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
-    # 路演演示模式提示
+    # 路演演示模式提示（选关的“1-8”已经在选择关卡卡片上）
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
-    x = 16 + cw + 5 + width(tr("home.demo", lang), 7) + 14
-    c, cw = chip(x, 290, "1-8")
-    s.append(c + text(x + cw + 5, 297.4, tr("home.pick", lang), 7, "#7f8ba3"))
     # 展示台和坦克
     s.append('<ellipse cx="330" cy="236" rx="92" ry="20" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')
     # 展示台上的 1P、2P 两辆坦克（各自的渐变 id 不同，避免冲突）
@@ -501,6 +499,39 @@ def home(lang):
         defs, body = tank_body(*colors)
         defs, body = defs.replace('id="sh"', f'id="sh{tag}"'), body.replace("url(#sh)", f"url(#sh{tag})")
         s.append(f'<defs>{defs}</defs><g transform="translate({tx} 192) rotate({rot}) scale(3.4) translate(-12 -12)">{body}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+LV_W, LV_H, LV_GAP = 104, 84, 8  # 选关画面的关卡卡片
+
+
+def levels(lang):
+    """选择关卡（v5）：8 张关卡卡片（4 x 2）和返回按钮，鼠标、触屏、键盘（1~8、Esc）都能用"""
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>',
+         '<circle cx="380" cy="300" r="140" fill="#3ee8ff" fill-opacity="0.04"/>']
+    s.append(text(16, 46, tr("lv.title", lang), 22, "#ffffff", True))
+    s.append(text(16, 60, tr("lv.sub", lang), 7.5, "#7f8ba3", True))
+    for n in range(1, 9):
+        x = 16 + (n - 1) % 4 * (LV_W + LV_GAP)
+        y = 80 + (n - 1) // 4 * (LV_H + LV_GAP)
+        final = n == 8
+        col = "#ffd23a" if final else "#3ee8ff"
+        button(f"lv.{n}", x, y, LV_W, LV_H)
+        s.append(f'<rect x="{x+0.4}" y="{y+0.4}" width="{LV_W-0.8}" height="{LV_H-0.8}" rx="10" fill="{col}" fill-opacity="0.08" stroke="{col}" stroke-opacity="0.7" stroke-width="0.8"/>')
+        s.append(text(x + 12, y + 36, str(n), 26, "url(#gold)" if final else "#ffffff", True))
+        name = tr(f"stage.{n}", lang).split(" · ", 1)[1]
+        if width(name, 9.5, True) > LV_W - 20:
+            sys.exit(f"选关画面的关卡名太长：{name}")
+        s.append(text(x + 12, y + 64, name, 9.5, "#ffe9a8" if final else "#ffffff", True))
+        c, cw = chip(0, 0, str(n), dark=True)
+        s.append(f'<g transform="translate({x+LV_W-10-cw:.2f},{y+10})">{c}</g>')
+    # 返回主页
+    bx, by, bw, bh = 16, 276, 110, 26
+    button("lv.back", bx, by, bw, bh)
+    s.append(f'<rect x="{bx+0.3}" y="{by+0.3}" width="{bw-0.6}" height="{bh-0.6}" rx="{bh/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>')
+    s.append(text(bx + 14, by + 16.5, tr("lv.back", lang), 8.5, "#c8d2e3", True))
+    c, cw = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({bx+bw-10-cw:.2f},{by+8})">{c}</g>')
     return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 
@@ -773,6 +804,7 @@ def screen_costumes():
         out.append((f"card_{lang}", *native_card(lang)))
         out.append((f"banner_{lang}", *banner(lang)))
         out.append((f"home_{lang}", *home(lang), 2))
+        out.append((f"levels_{lang}", *levels(lang), 2))
         out.append((f"pause_{lang}", *pause_screen(lang), 2))
         out.append((f"pause_edit_{lang}", *pause_screen(lang, True), 2))
         out.append((f"editor_{lang}", *editor(lang), 2))
