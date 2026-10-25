@@ -313,7 +313,7 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 - 命令：`tools/test/run_all.sh --coverage`（构建工具测试也计入用例清单），或者 `tools/test/run_spx.sh --coverage`。报告写到临时目录的 `coverage.md`，终端里打印目标达成情况。插桩工具是 `tools/test/spx_coverage.py`：`tCov` 是插到副本 `main.spx` 里的舞台函数，用舞台变量记住打印过的名字，同一个名字只打印一次 `COV <文件>:<名字>`（热点函数每帧都会调用）。
 - 按键和点击（16 个 `onKey`、1 个 `onKey [Key1…Key8]`、1 个 `onClick`）在无界面测试里触发不了，单独列一栏，不计入事件处理覆盖率。
 - 已知时有时无的（`spx_coverage.py` 里的 `KNOWN_UNSTABLE`）：基线里记为不稳定，消息覆盖率不计入，报告里单独列出。v4.0 时只有子弹相撞抵消的 `EBullet.spx:onMsg "clash"`（C17 已知问题）；v4.0.1 修复后这个处理去掉了，现在没有不稳定的项。
-- README 的徽章（v5 第一批之后：tests 579 passing：507 个引擎内断言 + 66 个构建工具测试 + 6 个网页外壳测试；coverage 还是 v4.0.1 的 96% functions · 100% handlers）用的是稳定的数字，更新基线时一起更新。v4.0.1 时是 456 passing（416 + 34 + 6），v4.0 时是 450 passing、98% handlers。
+- README 的徽章（v5.0.1：tests 587 passing：515 个引擎内断言 + 66 个构建工具测试 + 6 个网页外壳测试；coverage 还是 v4.0.1 的 96% functions · 100% handlers）用的是稳定的数字，更新基线时一起更新。v4.0.1 时是 456 passing（416 + 34 + 6），v4.0 时是 450 passing、98% handlers。
 
 **第一次实测（2026-10-25，基于 v3.0.2 的 main）**：
 
