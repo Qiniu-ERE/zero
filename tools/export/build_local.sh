@@ -5,6 +5,8 @@
 #   产物放在 dist/（DIST_DIR），版本号默认取 CHANGELOG.md 的第一节（APP_VERSION 可以指定）。
 #   打完以后：git tag vX.Y.Z && git push origin vX.Y.Z，再运行 tools/export/release_local.sh 发布；
 #   空着的平台，release_local.sh 会在说明里改成指向上一个版本的下载链接。
+#   打包前先删掉 dist/ 里这次要打的平台的同版本旧包；结果表 dist/BUILD_LOCAL.md 记下完整的提交号和工作区是否干净，
+#   release_local.sh 发布前核对它等于标签的提交、表里没有 ❌。只打一部分平台时，同一个提交上次打的其余平台的结果会保留。
 #
 # 各平台怎么打（在一台 Apple 芯片 Mac 上，见 docs/v3/CROSS_PLATFORM.md「本机打包」）：
 #   macos    本机 buildlauncher → .app，再用 tools/test/package_boot.sh 运行安装包里的程序做启动测试
@@ -22,11 +24,38 @@ NDK=${ANDROID_NDK_ROOT:-$SDK/ndk/23.2.8568313}
 LOGS=$(mktemp -d "${TMPDIR:-/tmp}/tankbattle-build-local.XXXXXX")
 # Android / iOS 的版本号编在 spx 里：和 APP_VERSION 不一致时让 build.sh 自动重新运行 setup_spx.sh（见 build.sh 的 check_template_version）
 export SPX_REPATCH=${SPX_REPATCH:-1}
+# 记下打包用的提交和工作区是否干净（写进 dist/BUILD_LOCAL.md，release_local.sh 发布前核对）
+COMMIT=$(git -C "$ROOT" rev-parse HEAD)
+DIRTY=0
+[ -z "$(git -C "$ROOT" status --porcelain)" ] || DIRTY=1
+META="version=$APP_VERSION commit=$COMMIT dirty=$DIRTY"
 rows=""
 row() { rows="${rows}| $1 | $2 | $3 | $4 |
 "; printf '%s  %-8s %s %s\n' "$2" "$1" "$3" "$4"; }
-art() { ls "$DIST_DIR"/"$APP_NAME-$APP_VERSION-"*"$1"* 2>/dev/null | head -1; }
+pattern() {  # 平台 → dist/ 里它的安装包的文件名（通配符只放在平台名后面：4.0.1-* 会匹配到 4.0.1-rc.1-* 的包）
+	case "$1" in
+	macos) echo "$APP_NAME-$APP_VERSION-macos-*" ;;
+	linux) echo "$APP_NAME-$APP_VERSION-linux-*" ;;
+	ios) echo "$APP_NAME-$APP_VERSION-ios-*" ;;
+	web) echo "$APP_NAME-$APP_VERSION-web.zip" ;;
+	android) echo "$APP_NAME-$APP_VERSION-android.apk" ;;
+	esac
+}
+art() { local pat; pat=$(pattern "$1"); [ -n "$pat" ] && ls "$DIST_DIR"/$pat 2>/dev/null | head -1; }
 size() { [ -n "$1" ] && du -h "$1" | cut -f1; }
+
+# 先删掉这次要打的平台的同版本旧包：某个平台这次打失败或打不了时，旧包不能被当成这次的结果发出去。
+# Windows 本机打不了，dist/ 里的 Windows 包是别处拷来的，不删（release_local.sh 会提醒它不在 BUILD_LOCAL.md 里）
+for p in "$@"; do
+	pat=$(pattern "$p")
+	[ -n "$pat" ] || continue
+	for old in "$DIST_DIR"/$pat; do
+		[ -e "$old" ] || continue
+		echo "删掉旧包：$(basename "$old")"
+		rm -f "$old"
+	done
+done
+rm -f "$DIST_DIR/SHA256SUMS.txt"   # release_local.sh 会重新生成
 
 for p in "$@"; do
 	log "$p"
@@ -64,11 +93,13 @@ for p in "$@"; do
 			if command -v nix >/dev/null; then java_cmd=(nix shell nixpkgs#jdk17 -c)
 			else row android ⏸ — "没有 JDK 17（设置 JAVA_HOME，或者装 nix）"; continue; fi
 		fi
-		if "${java_cmd[@]}" bash -c '
+		# 有 JAVA_HOME 时 java_cmd 是空数组：macOS 自带的 bash 3.2 在 set -u 下展开空数组 "${a[@]}" 会报 unbound variable，
+		# 所以写成 ${a[@]+"${a[@]}"}（数组为空时什么都不展开）
+		if ${java_cmd[@]+"${java_cmd[@]}"} bash -c '
 			[ -n "${JAVA_HOME:-}" ] || export JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")
 			export ANDROID_HOME="'"$SDK"'" ANDROID_NDK_ROOT="'"$NDK"'"
-			"'"$EXPORT_DIR"'/build.sh" android && f=$(ls "'"$DIST_DIR"'"/*-'"$APP_VERSION"'-android.apk) &&
-			"$ANDROID_HOME"/build-tools/*/apksigner verify "$f"' > "$log_file" 2>&1 && f=$(art android) && [ -n "$f" ]; then
+			"'"$EXPORT_DIR"'/build.sh" android && f="'"$DIST_DIR/$APP_NAME-$APP_VERSION"'-android.apk" && [ -f "$f" ] &&
+			"$(ls -d "$ANDROID_HOME"/build-tools/*/ | tail -1)apksigner" verify "$f"' > "$log_file" 2>&1 && f=$(art android) && [ -n "$f" ]; then
 			# 再核对 APK 里的版本号（v4.0.1 的 APK 写的是 4.0.0：版本号在 spx 模板里，见 build.sh 的 check_template_version）
 			want="$APP_VERSION $(python3 "$EXPORT_DIR/patch_spx.py" --version-info "$APP_VERSION" | cut -d' ' -f2)"
 			aapt=$(ls "$SDK"/build-tools/*/aapt 2>/dev/null | tail -1)
@@ -117,15 +148,27 @@ for p in "$@"; do
 done
 
 summary="$DIST_DIR/BUILD_LOCAL.md"
+# 只打了一部分平台、而上次的结果是同一个版本和提交时，保留上次其余平台的结果（release_local.sh 按这张表核对）
+kept=""
+if [ -f "$summary" ] && grep -qxF "<!-- build_local $META -->" "$summary"; then
+	while IFS= read -r line; do
+		plat=$(echo "$line" | cut -d'|' -f2 | tr -d ' ')
+		case " $* " in *" $plat "*) ;; *) kept="${kept}${line}
+" ;; esac
+	done < <(grep -E '^\| [a-z]+ \| ' "$summary")
+fi
 {
 	echo "### 本地打包结果（tools/export/build_local.sh）"
 	echo
-	echo "- 版本：${APP_VERSION}，提交：\`$(git -C "$ROOT" rev-parse --short HEAD)\`，$(date '+%Y-%m-%d %H:%M')，$(uname -s) $(uname -m)"
+	echo "- 版本：${APP_VERSION}，提交：\`${COMMIT:0:10}\`$([ "$DIRTY" = 0 ] || echo '（⚠️ 工作区有未提交的改动）')，$(date '+%Y-%m-%d %H:%M')，$(uname -s) $(uname -m)"
 	echo
 	echo "| 平台 | 结果 | 安装包 | 说明 |"
 	echo "|---|---|---|---|"
+	printf '%s' "$kept"
 	printf '%s' "$rows"
 	echo
+	# release_local.sh 读这一行，核对安装包是不是从要发布的标签打的
+	echo "<!-- build_local $META -->"
 	echo "✅ 打好并检查通过 · ❌ 失败 · ⏸ 本机暂时打不了（发布说明会指向上一个版本的下载）"
 } > "$summary"
 echo
