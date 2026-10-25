@@ -45,7 +45,7 @@ TEST DONE fails 0
 
 - 自动化测试：构建工具（Python）、游戏逻辑（引擎内）、网页外壳（JavaScript）。
 - 覆盖率统计和报告。
-- PR 自动测试；发布前的多平台启动测试。
+- 每个 PR 合入前在本地跑检查（`tools/test/pr_check.sh`），报告贴在 PR 里；发布前本机打包跑启动测试。**不依赖 GitHub Actions**（组织的 Actions 额度有限，2026-10-25 起任务启动不了）。
 - 测试中发现的 bug：每个 bug 一个修复 PR，附上能复现它的测试。
 
 **不做**：
@@ -63,19 +63,19 @@ TEST DONE fails 0
 | **P0** | docs: v4.0 规划 | 本文和 [TEST_PLAN.md](TEST_PLAN.md) | 0.5 天 |
 | | test: 引擎内测试框架 | `tools/test/run_spx.sh`、输出协议、超时、启动测试和第一组地图 / 格子用例 | 1 天 |
 | | test: 构建工具测试 | `check.py`、`strings.py`、`textpath.py` 的单元测试；生成文件是否过期的检查 | 0.5 天 |
-| | ci: PR 自动测试 | `.github/workflows/test.yml`，PR 里显示通过 / 失败和覆盖率 | 0.5 天 |
+| | ci: PR 检查 | 先做了 `.github/workflows/test.yml`（云端跑通过一次）；Actions 不可用后改成本地的 `tools/test/pr_check.sh`，`test.yml` 只保留手动触发 | 0.5 天 |
 | **P1** | test: 对局规则 | 子弹、地形、敌人出兵、得分、生命 | 1 天 |
 | | test: 流程状态机 | 状态机全部 16 条边、复活、广告奖励、金币翻倍、下一关 / 重打 / 全部通关 | 1 天 |
 | | test: 地图编辑器 | 绘制、锁定格、对称、随机起点、复制关卡、保存 / 读取；`edCheck()` 和 `check.py` 的一致性 | 1 天 |
 | | test: 双人合作 | 2P 出生、各自中弹、各自重生、失败条件、复活加命 | 0.5 天 |
 | | test: 覆盖率插桩 | `tools/test/coverage.py`：函数 / 事件处理覆盖率，生成报告 | 0.5 天 |
 | **P2** | test: 网页外壳 | `play.js` 的虚拟按键和多点触控逻辑，用 `node --test` | 0.5 天 |
-| | ci: 发布前多平台启动测试 | Windows / macOS / Linux 都跑启动测试，替换现在“只截图”的冒烟测试 | 0.5 天 |
+| | test: 安装包启动测试 | 本机打包（macOS）后跑启动测试 B03；Windows / Linux 在 Actions 恢复前手工启动一次 | 0.5 天 |
 | | fix: 测试发现的问题 | 每个 bug 一个 PR，先提交失败的测试再修复 | 视情况 |
-| | ci: 覆盖率基线与 PR 模板 | `tests/coverage-baseline.json`、覆盖率下降时 CI 失败、`.github/pull_request_template.md`（见 [TEST_PLAN.md 第八节](TEST_PLAN.md#八以后的版本怎么保持测试覆盖)） | 0.5 天 |
+| | ci: 覆盖率基线与 PR 模板 | `tests/coverage-baseline.json`、覆盖率下降时 `pr_check.sh --coverage` 失败、`.github/pull_request_template.md`（见 [TEST_PLAN.md 第八节](TEST_PLAN.md#八以后的版本怎么保持测试覆盖)） | 0.5 天 |
 | | release: v4.0.0 | 更新 README、架构文档、演示视频，打标签发布 | 0.5 天 |
 
-合计约 8.5 天。P0 完成后，后面每个 PR 都会被 CI 自动测试。v4.0 之后的版本怎么继续保持覆盖，见 [TEST_PLAN.md 第八节](TEST_PLAN.md#八以后的版本怎么保持测试覆盖)。
+合计约 8.5 天。P0 完成后，后面每个 PR 合入前都附上本地检查报告。v4.0 之后的版本怎么继续保持覆盖，见 [TEST_PLAN.md 第八节](TEST_PLAN.md#八以后的版本怎么保持测试覆盖)。
 
 ## 五、交付清单
 

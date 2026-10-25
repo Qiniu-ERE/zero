@@ -1,0 +1,92 @@
+# 自动化测试（见 docs/v4/TEST_PLAN.md 第五节）
+#
+# 只能手动运行（Actions 页面 → Test → Run workflow）：组织的 Actions 额度有限（2026-10-25 起因为额度 / 付款问题
+# 任务启动不了），v4 的测试改为在本地运行：合入前用 tools/test/pr_check.sh 检查，把报告贴到 PR 里。
+# 额度恢复、想在云端再跑一次时，手动触发这个工作流。
+#
+# 打包和多平台冒烟测试在 release.yml。
+name: Test
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.26.5'   # 和 release.yml、spx 的 runtime.lock.json 一致
+  XGO_VERSION: 'v1.7.5'
+  PYTHONUTF8: '1'
+
+jobs:
+  tools:
+    name: 构建工具测试
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tools/assets/requirements.txt
+      - run: pip install -r tools/assets/requirements.txt
+      - name: 字体缓存
+        uses: actions/cache@v4
+        with:
+          path: tools/assets/.cache
+          key: font-${{ hashFiles('tools/assets/textpath.py') }}
+      - name: 测试
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests/tools -v 2>&1 | tee tools.log
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### 构建工具测试"
+            echo '```'
+            tail -5 tools.log 2>/dev/null || echo "没有输出"
+            grep -E '^(FAIL|ERROR):' tools.log 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  spx:
+    name: 引擎内测试
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux 依赖
+        run: sudo apt-get update -q && sudo apt-get install -y -q gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev libasound2-dev libopenal-dev
+      - uses: goplus/setup-xgo@v1
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          xgo-version: ${{ env.XGO_VERSION }}
+      - name: spx 缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build/cache/spx
+            ~/go/bin
+          key: spx-${{ runner.os }}-${{ hashFiles('tools/export/env.sh', 'tools/export/setup_spx.sh', 'tools/export/patch_spx.py') }}
+      - name: 安装 spx
+        run: tools/export/setup_spx.sh
+      - name: 测试
+        run: |
+          set -o pipefail
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          TMPDIR="$RUNNER_TEMP" tools/test/run_spx.sh 2>&1 | tee spx.log
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### 引擎内测试"
+            echo '```'
+            cat spx.log 2>/dev/null || echo "没有输出"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: spx-test-logs
+          path: ${{ runner.temp }}/tankbattle-test/*/run.log

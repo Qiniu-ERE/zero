@@ -11,7 +11,7 @@
 | **L3 游戏流程** | 状态机的每条边、复活、激励视频奖励、结算、下一关、双人合作 | 引擎内测试，按真实时间等待异步流程 | 每组 10~30 秒 | 每个 PR |
 | **L4 网页外壳** | `tools/export/web/play.js`：虚拟按键映射、多点触控、双人按钮 | `node --test`（Node 自带） | 几秒 | 每个 PR |
 | **L1.5 XBuilder 兼容** | 游戏代码在 XBuilder 线上的 spx v3.3.0 下也能编译通过（[PR #18](https://github.com/Qiniu-ERE/zero/pull/18) 的问题：`rand(int, int)` 在 v3.3.0 返回 `float64`，在 4.0 返回 `int`） | 用 spx v3.3.0 的源码和对应版本的 xgo 做类型检查（和 PR #18 的验证方法相同） | 约 1 分钟 | 每个改了 `TankBattle/` 的 PR |
-| **L5 平台启动** | 打包后的程序在 Windows / macOS / Linux 能启动、进入主页、开一局 | 打包产物 + 启动测试 | 每平台几分钟 | 打标签发布、`[ci smoke]` |
+| **L5 平台启动** | 打包后的程序能启动、进入主页、开一局 | 本机打包 + 启动测试（本机只有 macOS，Windows / Linux 手工） | 几分钟 | 发布前 |
 | **手工** | 按键手感、画面、声音、手机触屏 | 发布前检查表（第七节） | — | 发布前 |
 
 原则：**能在 L1 / L2 测的不放到 L3**（越往下越慢、越容易因为时间不稳定而偶发失败）；L5 只回答“能不能启动”，不重复测规则。
@@ -237,23 +237,23 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 | **Python 行覆盖率** | `python3 -m coverage`（只在 CI 里装） | `check.py`、`strings.py`、`textpath.py` ≥ 85% |
 
 - 插桩只改副本，和测试脚本一样不进仓库；插入的是 `println`，不加变量，不影响方法表。
-- 报告输出成 Markdown：每个文件的函数覆盖率、没覆盖到的函数列表、规则对照表。CI 把它贴到 PR 的检查结果里。
+- 报告输出成 Markdown：每个文件的函数覆盖率、没覆盖到的函数列表、规则对照表。`pr_check.sh --coverage` 把它附在本地检查报告里。
 - 达不到目标的部分要在报告里写原因（例如 `onKey` 只能手工测、`sfx` 在 headless 下没有意义），不为了数字写没有断言的测试。
 
-## 五、持续集成
+## 五、在本地检查（不用 GitHub Actions）
 
-新增 `.github/workflows/test.yml`，和发布用的 `release.yml` 分开：
+v4 的测试都在本地跑，**不依赖 GitHub Actions**：引擎内测试用 `spx run -headless` 直接解释执行游戏，不需要先编译或打包。2026-10-25 起组织的 Actions 因为额度 / 付款问题任务启动不了，所以 PR 的检查也改在本地做。
 
-| 触发 | 任务 | 平台 |
+| 什么时候 | 命令 | 内容 |
 |---|---|---|
-| 每个 PR、推送到 `v4.0` | L1 + L4（不需要 spx） | ubuntu |
-| 每个 PR、推送到 `v4.0` | L2 + L3 + 覆盖率报告 | ubuntu（先确认 `-headless` 不需要 Xvfb；需要的话沿用 smoke 任务的 Xvfb 设置） |
-| 打 `v*` 标签、提交信息带 `[ci smoke]` | L5：用打包产物跑 `boot.spx` | Windows / macOS / Linux |
+| 每个 PR 合入前 | `tools/test/pr_check.sh` | 和 `.github/workflows/check.yml` 相同的三项检查（关卡地图、生成的素材、`.xbp`）+ `run_all.sh` 的全部测试；生成 Markdown 报告，贴到 PR 里 |
+| 需要覆盖率时 | `tools/test/pr_check.sh --coverage` | 同上，再加覆盖率报告 |
+| 发布前 | 本机打包（`tools/export/build.sh desktop`）后跑启动测试（B03） | 本机是 macOS，只能测 macOS 包；Windows / Linux 包在 Actions 恢复前只能手工在对应系统上启动一次 |
 
-- spx 环境用 `tools/export/setup_spx.sh` 准备，按 spx 的固定提交缓存，避免每次都从头编译。
-- 仓库是私有的，Actions 分钟数有限：PR 只跑 ubuntu；三平台只在发布和手动触发时跑。
-- L5 会替换现在的“启动后等 40 秒截一张图”：截图保留（方便人看），但通过 / 失败由 `boot.spx` 的输出决定。
-- PR 合入前要求测试通过（在仓库设置里把 `test` 设为必需的检查，由仓库管理员操作）。
+- `pr_check.sh` 的第二项在临时副本里运行 `build.py` 再比较，不会改动工作区；第三项把 `.xbp` 解压后和 `TankBattle/` 比较。
+- 报告里写明提交号、分支、工作区是否干净、spx / Python 版本，评审时能看出是在哪个提交上跑的。
+- `.github/workflows/test.yml` 保留，但只能手动触发：Actions 额度恢复后，想在云端（Linux）再确认一次时用。2026-10-25 在云端跑过一次（没有缓存）：构建工具测试 1.5 分钟，引擎内测试 3.3 分钟，Linux 上 `-headless` 不需要 Xvfb。
+- 仓库自带的 `check.yml` 仍然会在每个 PR 上触发；Actions 不可用时它会显示失败（任务没启动），以本地报告为准。
 
 ## 六、已知限制
 
@@ -300,13 +300,13 @@ PR 模板（`.github/pull_request_template.md`）里有一项“新增 / 修改�
 ### 8.2 覆盖率只能升不能降
 
 - 仓库里保存一份覆盖率基线 `tests/coverage-baseline.json`（每个文件的函数覆盖率、覆盖到的函数列表）。
-- CI 跑完测试后和基线比较：**有原来覆盖到的函数变成没覆盖到，或者新加的函数没有被任何测试执行，检查就失败**。
+- 覆盖率检查（`pr_check.sh --coverage`）和基线比较：**有原来覆盖到的函数变成没覆盖到，或者新加的函数没有被任何测试执行，检查就失败**。
 - 覆盖率提高了，在同一个 PR 里更新基线文件；需要降低的（例如删掉了一个功能），在 PR 描述里说明原因。
 - 状态机、消息、规则三张对照表也一样：状态图加了边、加了新消息、README 加了新规则，都要有对应的用例。
 
 ### 8.3 分支和合并
 
-- `test` 检查设为 `main` 和以后每个集成分支的**必需检查**：测试不通过的 PR 不能合入。
+- **合入前必须附上本地检查报告**（`tools/test/pr_check.sh`），报告里所有项都是 ✅。Actions 恢复后，也可以把云端测试设为 `main` 的必需检查。
 - 新版本开集成分支（例如 `v5.0`）时直接从 `main` 拉，测试跟着一起过去；集成分支同步 `main` 时测试也一起同步。
 - 换 spx 版本（本地 4.x 升级，或者 XBuilder 线上升级）时，先单独开一个 PR 只换版本、跑全部测试，确认没有行为变化再做别的改动。
 
