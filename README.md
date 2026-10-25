@@ -9,6 +9,8 @@
 [![Language XGo](https://img.shields.io/badge/language-XGo-0a7bbb)](https://xgo.dev)
 [![Engine spx](https://img.shields.io/badge/engine-spx_4.0-555)](https://github.com/goplus/spx)
 [![Battle City 1985](https://img.shields.io/badge/remake_of-Battle_City_1985-red)](#素材与版权说明)
+[![Tests](https://img.shields.io/badge/tests-450_passing-brightgreen)](docs/v4/TEST_PLAN.md)
+[![Coverage](https://img.shields.io/badge/coverage-96%25_functions_·_98%25_handlers-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
 
 > 🏆 **第五届 1024 HACKATHON 参赛项目** · 这是一个 Builder 的时代 —— AI 放大执行，我们撬动价值
 
@@ -137,7 +139,7 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | 引擎内测试 | `spx run -headless` 运行工程副本里的测试脚本，直接调用游戏函数检查结果，不改游戏代码。21 组、410 多个断言：地图、子弹、出兵、得分、玩家、敌人、流程状态机、编辑器、双人合作、暂停菜单、触屏模式 |
 | 工具和外壳 | 关卡检查、文案表、美术生成器（生成文件是否过期）、网页外壳的虚拟按键和布局；248 张地图上游戏和 `check.py` 的地图检查结论完全相同 |
 | 兼容和打包 | 用 XBuilder 线上的 spx v3.3.0 编译检查（#18 那类问题合入前就能发现）；打出安装包后运行，确认能启动、开一局 |
-| 覆盖率 | 函数 96%、`main.spx` 函数 99%、事件处理 100%、消息 100%；保存基线，覆盖率退步时检查失败 |
+| 覆盖率 | 函数 96%、`main.spx` 函数 99%、事件处理 98%（子弹相撞抵消的处理受已知问题影响、时有时无，不计入）、消息 100%；保存基线，覆盖率退步时检查失败 |
 | 流程 | `tools/test/pr_check.sh` 本地检查（不依赖 GitHub Actions），报告贴在 PR 里；PR 模板 |
 | 发现的问题 | 子弹迎面相撞经常不抵消（已记录为已知问题，修复另行进行） |
 

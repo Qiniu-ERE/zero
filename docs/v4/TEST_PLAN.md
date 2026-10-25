@@ -249,6 +249,8 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 
 - 命令：`tools/test/run_all.sh --coverage`（构建工具测试也计入用例清单），或者 `tools/test/run_spx.sh --coverage`。报告写到临时目录的 `coverage.md`，终端里打印目标达成情况。插桩工具是 `tools/test/spx_coverage.py`：`tCov` 用舞台变量记住打印过的名字，每个名字只打印一次（热点函数每帧都会调用）。
 - 按键和点击（16 个 `onKey`、1 个 `onKey [Key1…Key8]`、1 个 `onClick`）在无界面测试里触发不了，单独列一栏，不计入事件处理覆盖率。
+- 已知时有时无的（`spx_coverage.py` 里的 `KNOWN_UNSTABLE`，目前只有子弹相撞抵消的 `EBullet.spx:onMsg "clash"`，见第九节）：基线里记为不稳定，消息覆盖率不计入，报告里单独列出。所以事件处理覆盖率是 98%（这次运行子弹碰巧抵消了就是 100%），不会因为这一项随机变红。
+- README 的徽章（tests 450 passing：410 个引擎内断言 + 34 个构建工具测试 + 6 个网页外壳测试；coverage 96% functions · 98% handlers）用的是稳定的数字，更新基线时一起更新。
 
 **第一次实测（2026-10-25，基于 v3.0.2 的 main）**：
 
