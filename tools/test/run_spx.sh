@@ -3,6 +3,7 @@
 #
 # 用法：tools/test/run_spx.sh                      # 跑 tests/spx/ 下的全部测试
 #       TEST_TIMEOUT=90 tools/test/run_spx.sh       # 每组默认超时（秒），默认 60
+#       tools/test/run_spx.sh --coverage           # 同时统计覆盖率，报告写到 $WORK/coverage.md（见 spx_coverage.py）
 #       tools/test/run_spx.sh tests/spx/grid.spx   # 只跑一组
 #
 # 做法（详见 docs/v4/TEST_PLAN.md 第二节）：每组测试复制一份工程，把 prelude.spx 的断言函数插到
@@ -15,6 +16,8 @@ set -e
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 TIMEOUT=${TEST_TIMEOUT:-60}
 WORK=${TMPDIR:-/tmp}/tankbattle-test
+COVERAGE=""
+if [ "${1:-}" = --coverage ]; then COVERAGE=1; shift; fi
 [ $# -gt 0 ] || set -- "$ROOT"/tests/spx/*.spx
 
 rm -rf "$WORK" && mkdir -p "$WORK"
@@ -35,6 +38,7 @@ for suite in "$@"; do
 	mkdir -p "$dir/home"
 	cp -R "$ROOT/TankBattle" "$dir/"
 	main="$dir/TankBattle/main.spx"
+	[ -z "$COVERAGE" ] || python3 "$ROOT/tools/test/spx_coverage.py" instrument "$dir/TankBattle"
 	awk -v prelude="$ROOT/tools/test/prelude.spx" '
 		!done && /^func / { while ((getline line < prelude) > 0) print line; done = 1 }
 		{ print }
@@ -71,13 +75,18 @@ for suite in "$@"; do
 	if [ -z "${why}" ]; then
 		echo "ok    ${name}  pass=${pass}  (${secs}s)"
 	else
-		echo "FAIL  ${name}  pass=${pass} fail=${fail}  ${why}  (日志：${log})"
+		echo "FAIL  ${name}  pass=${pass} fail=${fail}  ${why}  (${secs}s，日志：${log})"
 		grep -a -E '^TEST FAIL|panic|cannot alloc method|failed to build|error' "${log}" | head -20 | sed 's/^/      /'
 		failed="${failed} ${name}"
 	fi
 done
 
 echo "---- 断言：通过 ${total_pass}，失败 ${total_fail}"
+if [ -n "$COVERAGE" ]; then
+	python3 "$ROOT/tools/test/spx_coverage.py" report ${UNITTEST_LOG:+--unittest-log "$UNITTEST_LOG"} "$WORK"/*/run.log > "$WORK/coverage.md"
+	echo "---- 覆盖率报告：$WORK/coverage.md"
+	sed -n '/^## 目标/,/^## 没覆盖/p' "$WORK/coverage.md" | grep '^|'
+fi
 if [ -n "${failed}" ]; then
 	echo "失败的测试组：${failed}"
 	exit 1
