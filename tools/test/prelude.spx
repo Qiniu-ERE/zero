@@ -1,0 +1,91 @@
+// ---- 测试用的断言函数（tools/test/run_spx.sh 把这段插到工程副本 main.spx 的第一个 func 前面）----
+// 输出协议见 docs/v4/TEST_PLAN.md 第 2.3 节：TEST PASS / TEST FAIL / TEST DONE
+
+// 断言 ok 为 true；id 是用例 ID 加说明，例如 "G01 第 3 关 13 行"
+func tCheck(id string, ok bool) {
+	if ok {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id)
+	}
+}
+
+// 断言两个整数相等
+func tInt(id string, got, want int) {
+	if got == want {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id, "got="+strconv.Itoa(got), "want="+strconv.Itoa(want))
+	}
+}
+
+// 断言两个字符串相等
+func tStr(id string, got, want string) {
+	if got == want {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id, "got="+got, "want="+want)
+	}
+}
+
+// 断言两个小数相差不到 0.001
+func tNum(id string, got, want float64) {
+	if math.Abs(got-want) < 0.001 {
+		println("TEST PASS", id)
+	} else {
+		println("TEST FAIL", id, "got="+strconv.FormatFloat(got, 'f', 3, 64), "want="+strconv.FormatFloat(want, 'f', 3, 64))
+	}
+}
+
+// 已知问题：期望 ok 为 true，但现在还没修好。没通过输出 TEST XFAIL（不算失败，汇总里列出来）；
+// 通过了输出 TEST XPASS（算失败：问题已经修好，把 tXfail 改成 tCheck）
+func tXfail(id string, ok bool, issue string) {
+	if ok {
+		println("TEST XPASS", id, "（已知问题已修好："+issue+"，请把 tXfail 改成 tCheck）")
+	} else {
+		println("TEST XFAIL", id, "（已知问题："+issue+"）")
+	}
+}
+
+// 第 r 行第 c 列的格子编号
+func tAt(r, c int) int {
+	return r*cols + c
+}
+
+// 让当前这一局“安静”下来：清掉所有克隆（敌人、子弹），并且不再出兵（spawned = totalEnemy）。
+// 地图和玩家坦克保留。用于测流程：不会有随机的敌人打到基地或玩家。返回时战场在运行
+func tCalm() {
+	gameOver = true
+	broadcastAndWait "clear"
+	spawned = totalEnemy
+	enemiesAlive = 0
+	gameOver = false
+}
+
+// “安静的战场”：开第 1 关，tCalm，再把地图清空。返回时战场在运行（gameOver = false）
+func tQuiet() {
+	playStage 1
+	wait 0.5
+	tCalm
+	for i := range grid {
+		grid[i] = 0
+	}
+}
+
+// 等到 state 变成 st，最多等 secs 秒；返回是否等到了
+func tWaitState(st int, secs float64) bool {
+	for t := 0.0; t < secs; t += 0.1 {
+		if state == st {
+			return true
+		}
+		wait 0.1
+	}
+	return state == st
+}
+
+// 这一组跑完了：输出 TEST DONE 并退出（run_spx.sh 没看到 TEST DONE 就判失败）
+func tDone(suite string) {
+	println("TEST DONE", suite)
+	exit
+}
+

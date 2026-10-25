@@ -1,0 +1,56 @@
+// 流程：路演演示模式（F22），见 docs/v4/TEST_PLAN.md 第 3.4 节
+// 演示脚本：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → 回主页，约 1 分钟
+// timeout: 150
+onStart => {
+	wait 3
+
+	// 先在编辑器里留一张玩家自己的地图：演示会用编辑器，结束后要还原（v3.0.2）
+	openEditor
+	wait 0.5
+	edRandom()
+	edRebuild()
+	mine := string(ed)
+	loaded := edLoaded
+	goHome
+	wait 0.3
+
+	t0, l0 := theme, lang
+	broadcast "demoFlow" // 主页按 P
+	wait 0.5
+	tCheck "F22 演示开始：自动驾驶", autopilot
+	tInt "F22 演示开始：对局中", state, stPlay
+
+	seen := map[int]bool{}
+	themeChanged, langChanged := false, false
+	finished := false
+	for t := 0.0; t < 120; t += 0.25 {
+		seen[state] = true
+		if theme != t0 {
+			themeChanged = true
+		}
+		if lang != l0 {
+			langChanged = true
+		}
+		if state == stHome && !autopilot {
+			finished = true
+			break
+		}
+		wait 0.25
+	}
+	tCheck "F22 演示中切换过画风", themeChanged
+	tCheck "F22 演示中切换过语言", langChanged
+	tCheck "F22 演示经过了复活询问", seen[stRevive]
+	tCheck "F22 演示经过了播放广告", seen[stAd]
+	tCheck "F22 演示经过了结算", seen[stResult]
+	tCheck "F22 演示结束回到主页", finished
+	tCheck "F22 结束后关闭自动驾驶", !autopilot
+	tInt "F22 画风恢复", theme, t0
+	tInt "F22 语言恢复", lang, l0
+
+	tStr "F22 演示结束后还原玩家的地图", string(ed), mine
+	tCheck "F22 演示不改 edLoaded", edLoaded == loaded
+	tCheck "F22 演示经过了编辑器", seen[stEdit]
+	tCheck "F22 演示经过了暂停菜单", seen[stPause]
+
+	tDone "flow_demo"
+}

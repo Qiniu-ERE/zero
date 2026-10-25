@@ -1,0 +1,50 @@
+// 流程：主页出发的边（F01~F04）和回到主页（F16），见 docs/v4/TEST_PLAN.md 第 3.4 节
+onStart => {
+	wait 3
+
+	tInt "F01 开始时在主页", state, stHome
+	confirm // Enter / J
+	wait 0.5
+	tInt "F01 主页 Enter → 对局", state, stPlay
+	tInt "F01 从第 1 关开始", stage, 1
+	tCheck "F01 单人", !coop
+	tStr "F21 对局中没有弹窗画面", screen, ""
+
+	goHome
+	wait 0.3
+	tInt "F16 回到主页", state, stHome
+	tStr "F16 主页画面", screen, "home"
+	tCheck "F16 战场冻结", gameOver
+
+	score = 999
+	playStage 5
+	wait 0.5
+	tInt "F02 选关 → 对局", state, stPlay
+	tInt "F02 第 5 关", stage, 5
+	tInt "F02 进关得分从 0 开始", stageScore, 0
+	tInt "F02 得分从 0 开始", score, 0
+
+	goHome
+	wait 0.3
+	newGame 1, true
+	wait 0.5
+	tInt "F03 双人合作 → 对局", state, stPlay
+	tCheck "F03 双人", coop
+	tCheck "F03 2P 出现了", p2Exists
+
+	goHome
+	wait 0.3
+	tCheck "F16 回主页时去掉 2P", !p2Exists
+
+	openEditor
+	wait 0.5
+	tInt "F04 主页 → 编辑器", state, stEdit
+	tStr "F04 编辑器画面", screen, "editor"
+	tInt "F04 自制地图的关卡编号", stage, customStage
+
+	goHome
+	wait 0.3
+	tInt "F16 编辑器 Esc → 主页", state, stHome
+
+	tDone "flow_home"
+}

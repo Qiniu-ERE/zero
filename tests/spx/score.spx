@@ -1,0 +1,38 @@
+// 得分（C10、C11）：加分、计数、最高分、第 20 辆胜利
+// 见 docs/v4/TEST_PLAN.md 第 3.3 节；tQuiet / tAt 在 tools/test/prelude.spx
+onStart => {
+	wait 3
+
+	tQuiet
+	gameOver = true
+	score, killed, best = 0, 0, 0
+	enemiesAlive = 1
+	enemyKilled 100
+	tInt "C10 加分", score, 100
+	tInt "C10 killed + 1", killed, 1
+	tInt "C10 enemiesAlive - 1", enemiesAlive, 0
+	tInt "C10 敌军剩余", enemiesLeft, totalEnemy-1
+	tInt "C10 刷新最高分", best, 100
+	best = 99999
+	enemyKilled 200
+	tInt "C11 最高分不会变低", best, 99999
+	killed = totalEnemy - 1
+	enemyKilled 100
+	tInt "C10 第 20 辆 → 结算", state, stResult
+	tCheck "C10 第 20 辆 → 胜利", won
+
+	// C19 路演演示（自动驾驶）的得分不算最高分（v3.0.2）
+	tQuiet
+	gameOver = true
+	best, score, killed = 500, 0, 0
+	enemiesAlive = 2
+	autopilot = true
+	enemyKilled 1000
+	tInt "C19 演示时照样加分", score, 1000
+	tInt "C19 演示时不刷新最高分", best, 500
+	autopilot = false
+	enemyKilled 100
+	tInt "C19 不是演示时刷新最高分", best, 1100
+
+	tDone "score"
+}

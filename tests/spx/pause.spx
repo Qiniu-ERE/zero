@@ -1,0 +1,89 @@
+// 暂停菜单（F25~F29，v3.0.2 新增），见 docs/v4/TEST_PLAN.md 第 3.4 节
+// 按键（Esc 暂停 / 继续、R 重新开始、P 退出）测不到，这里调用按键背后的函数
+onStart => {
+	wait 3
+
+	// F25 暂停 / 继续
+	playStage 1
+	wait 0.5
+	tCalm
+	pauseGame
+	tInt "F25 暂停", state, stPause
+	tCheck "F25 暂停时战场冻结", gameOver
+	tStr "F25 暂停画面", screen, "pause"
+	resumeGame
+	tInt "F25 继续", state, stPlay
+	tCheck "F25 继续后战场恢复", !gameOver
+	tStr "F25 继续后关掉画面", screen, ""
+	pauseGame
+	confirm // Enter / J 也是继续
+	tInt "F25 暂停时按确认键 = 继续", state, stPlay
+
+	// F29 暂停时一切停下：出生保护不会倒计时
+	playStage 1
+	wait 0.3
+	tCalm
+	pauseGame
+	s0 := Player.shield
+	wait 1
+	tNum "F29 暂停 1 秒，出生保护不变", Player.shield, s0
+	resumeGame
+	wait 0.5
+	tCheck "F29 继续后出生保护接着倒计时", Player.shield < s0
+
+	// F26 重新开始本关（R）：得分回到进关时，生命回满
+	stageScore = 300
+	score = 900
+	lives = 1
+	pauseGame
+	startGame
+	wait 0.5
+	tInt "F26 重新开始 → 对局", state, stPlay
+	tInt "F26 得分回到进关时", score, 300
+	tInt "F26 生命回满", lives, 3
+
+	// F27 退出（P）：关卡 → 主页
+	tCalm
+	pauseGame
+	quitFromPause
+	wait 0.3
+	tInt "F27 关卡里退出 → 主页", state, stHome
+
+	// F27 自制地图试玩时退出 → 回到编辑器
+	openEditor
+	wait 0.5
+	edBlank()
+	edRebuild()
+	playCustom false
+	wait 0.5
+	tCalm
+	pauseGame
+	tStr "F27 自制地图的暂停画面", screen, "pause_edit"
+	quitFromPause
+	wait 0.3
+	tInt "F27 试玩时退出 → 编辑器", state, stEdit
+
+	// F28 不能暂停的时候
+	goHome
+	wait 0.3
+	pauseGame
+	tInt "F28 主页上不能暂停", state, stHome
+	playStage 1
+	wait 0.5
+	tCalm
+	gameOver = true // 开局或复活还没准备好
+	pauseGame
+	tInt "F28 战场还没准备好时不能暂停", state, stPlay
+	gameOver = false
+	autopilot = true
+	pauseGame
+	tInt "F28 路演演示（自动驾驶）时不能暂停", state, stPlay
+	autopilot = false
+	baseDestroyed
+	pauseGame
+	tInt "F28 复活询问时不能暂停", state, stRevive
+
+	goHome
+	wait 0.3
+	tDone "pause"
+}

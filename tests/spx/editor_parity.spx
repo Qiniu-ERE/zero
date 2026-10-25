@@ -1,0 +1,47 @@
+// E07：游戏里的 edCheck() 和 tools/levels/check.py 的结论一致
+// 地图和 check.py 的结论在 tests/data/editor_maps.txt（tools/test/gen_editor_maps.py 生成）；
+// tests/tools/test_editor_maps.py 检查文件里的结论确实是 check.py 给出的
+onStart => {
+	wait 3
+
+	b, err := os.ReadFile(os.Getenv("TB_ROOT") + "/tests/data/editor_maps.txt")
+	tCheck "E07 读到地图文件", err == nil
+	blocks := strings.Split(strings.TrimSpace(string(b)), "\n\n")
+	tCheck "E07 地图数量 > 200（实际 "+strconv.Itoa(len(blocks))+"）", len(blocks) > 200
+
+	openEditor
+	wait 0.5
+	same, okN, badN, p2 := 0, 0, 0, 0
+	for k, block := range blocks {
+		lines := strings.Split(block, "\n")
+		edBlank()
+		if !edLoadRows(lines[:rows]) {
+			tCheck "E07 第 "+strconv.Itoa(k)+" 张地图能读入", false
+			continue
+		}
+		edCheck()
+		if edProblem == 2 {
+			p2++
+		}
+		got := "ok"
+		if edProblem != 0 {
+			got = "bad"
+		}
+		if got == lines[rows] {
+			same++
+		} else {
+			tStr "E07 第 "+strconv.Itoa(k)+" 张地图的结论", got, lines[rows]
+		}
+		if got == "ok" {
+			okN++
+		} else {
+			badN++
+		}
+	}
+	tInt "E07 全部一致（合格 "+strconv.Itoa(okN)+"，不合格 "+strconv.Itoa(badN)+"）", same, len(blocks)
+	// 参考信息：锁定的护墙把玩家和基地连在一起，所以编辑器画得出的地图不会出现问题 2（见 editor.spx 的 E04）
+	println("INFO E07 出现问题 2 的地图：", p2)
+	goHome
+	wait 0.3
+	tDone "editor_parity"
+}
