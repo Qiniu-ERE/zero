@@ -330,5 +330,84 @@ class PinnedVersions(unittest.TestCase):
                 self.assertRegex(self.env_value(name), r"^[0-9a-f]{64}$")
 
 
+@need_bash
+class BuildArgs(unittest.TestCase):
+    """build.sh 的参数（只测解析和检查，不真的打包）、--store / --demo 改常量、spx 源码补丁的校验和"""
+
+    def build(self, *args, **env_extra):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        env = dict(os.environ, BUILD_DIR=os.path.join(d, "work"), DIST_DIR=os.path.join(d, "dist"),
+                   CACHE_DIR=os.path.join(d, "cache"), TMPDIR=d)
+        env.update(env_extra)
+        return subprocess.run([BASH, os.path.join(EXPORT, "build.sh"), *args], capture_output=True, text=True, env=env)
+
+    def test_bad_arguments(self):
+        for args, words in [((), "用法"), (("desktop", "web"), "只能打一个平台"), (("desktop", "--bogus"), "不认识的选项"),
+                            (("phone",), "未知平台")]:
+            with self.subTest(args=args):
+                out = self.build(*args)
+                self.assertNotEqual(out.returncode, 0)
+                self.assertIn(words, out.stderr)
+
+    def flags(self, main_spx, store, demo):
+        """把 build.sh 里的 enable_flag / build_flags 拿出来，对一份临时的 main.spx 运行"""
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        with open(os.path.join(d, "main.spx"), "w", encoding="utf-8") as f:
+            f.write(main_spx)
+        script = (
+            'eval "$(awk \'/^enable_flag\\(\\) \\{/,/^\\}/\' "$1")"\n'
+            'eval "$(awk \'/^build_flags\\(\\) \\{/,/^\\}/\' "$1")"\n'
+            'set -euo pipefail; G="$2"; STORE_BUILD="$3"; DEMO_BUILD="$4"; build_flags\n')
+        out = subprocess.run([BASH, "-c", script, "-", os.path.join(EXPORT, "build.sh"), d, store, demo],
+                             capture_output=True, text=True)
+        with open(os.path.join(d, "main.spx"), encoding="utf-8") as f:
+            return out, f.read()
+
+    def test_store_flag(self):
+        src = "const (\n\ttouchUI    = false\n\tstoreBuild = false // 商店版\n\tdemoBuild  = false\n)\n\nfunc f() {\n\tif storeBuild == false {\n\t}\n}\n"
+        out, main = self.flags(src, "1", "0")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn("\tstoreBuild = true // 商店版\n", main)
+        self.assertIn("\tdemoBuild  = false\n", main)
+        self.assertIn("if storeBuild == false", main)     # 只改常量定义
+        out, main = self.flags(src, "1", "1")
+        self.assertIn("\tdemoBuild  = true\n", main)
+
+    def test_store_flag_missing_fails_demo_only_warns(self):
+        src = "const (\n\ttouchUI = false\n)\n"
+        out, _ = self.flags(src, "1", "0")
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("storeBuild", out.stderr)
+        out, main = self.flags(src, "0", "1")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn("demoBuild", out.stderr)
+        self.assertEqual(main, src)
+
+    def test_patches_digest(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        shutil.copytree(EXPORT, os.path.join(d, "tools", "export"), ignore=shutil.ignore_patterns("web", "*.png"))
+        patches = os.path.join(d, "tools", "export", "patches")
+        spx = os.path.join(d, "spx")
+        os.makedirs(os.path.join(spx, ".bin"))
+        run = lambda: subprocess.run(  # noqa: E731
+            [BASH, "-c", 'source "$1/tools/export/env.sh" 2>/dev/null; patches_digest; check_spx_patches && echo OK',
+             "-", d], capture_output=True, text=True, env=dict(os.environ, SPX_DIR=spx, TMPDIR=d))
+        out = run()
+        self.assertEqual(out.stdout.split(), ["none", "OK"])   # 没有补丁、也没有记录：一致
+        with open(os.path.join(patches, "0001-x.patch"), "w") as f:
+            f.write("--- a/x\n+++ b/x\n")
+        out = run()
+        digest = out.stdout.split()[0]
+        self.assertRegex(digest, r"^[0-9a-f]{64}$")
+        self.assertNotIn("OK", out.stdout)                    # 补丁加了、spx 没重装
+        self.assertIn("setup_spx.sh", out.stderr)
+        with open(os.path.join(spx, ".bin", "tankbattle-patches.txt"), "w") as f:
+            f.write(digest + "\n")
+        self.assertEqual(run().stdout.split(), [digest, "OK"])
+
+
 if __name__ == "__main__":
     unittest.main()

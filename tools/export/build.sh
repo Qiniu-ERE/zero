@@ -1,7 +1,7 @@
 #!/bin/bash
 # 打包坦克大战。先运行 setup_spx.sh 准备好 spx。
 #
-# 用法：tools/export/build.sh <desktop|web|android|ios>
+# 用法：tools/export/build.sh <desktop|web|android|ios> [--store] [--demo]
 #   desktop  当前系统的单文件程序（macOS 打成 .app，Windows 是 .exe，Linux 是可执行文件）
 #   web      网页版 / PWA（iPhone、安卓、电脑浏览器都能玩，需要放到 HTTPS 静态服务器上）
 #   android  APK（需要 ANDROID_NDK_ROOT、JDK 17、Android SDK；用调试证书签名，可以直接安装。
@@ -9,13 +9,41 @@
 #   ios      不签名的 IPA（需要 Xcode；用 AltStore / Sideloadly 等工具以自己的 Apple ID 签名后安装）
 #   android 和 ios 打包前核对 spx 模板里的版本号（setup_spx.sh 写进去的）和 APP_VERSION 一致；
 #   不一致时报错，设置 SPX_REPATCH=1 则自动重新运行 setup_spx.sh（build_local.sh 默认这样做）
+#   --store  商店版：把游戏副本 main.spx 里的常量 storeBuild = false 改成 true（没有这个常量就报错）
+#   --demo   试玩版：把 demoBuild = false 改成 true（游戏里还没有这个常量时只提醒，照常打包）
+#            两个选项可以一起用；环境变量 STORE_BUILD / DEMO_BUILD（1 或 0）会传给后面的命令。
+#            只改 .build/work 里的副本，仓库里的游戏和 TankBattle.xbp 永远是路演版（docs/v5/TECH.md 第二节）
 #
-# 产物放在 dist/，文件名带版本号和平台，例如 TankBattle-3.0.0-macos-arm64.zip
+# 产物放在 dist/，文件名带版本号和平台，例如 TankBattle-3.0.0-macos-arm64.zip；
+# 商店版 / 试玩版放在 dist/store/、dist/demo/、dist/store-demo/，不和路演版的包混在一起（release_local.sh 只发 dist/ 下面的）
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 check_go_version
 
-target="${1:?用法：build.sh <desktop|web|android|ios>}"
+usage="用法：build.sh <desktop|web|android|ios> [--store] [--demo]"
+target=""
+STORE_BUILD=0
+DEMO_BUILD=0
+for a in "$@"; do
+  case "$a" in
+    --store) STORE_BUILD=1 ;;
+    --demo) DEMO_BUILD=1 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -*) echo "不认识的选项：${a}。${usage}" >&2; exit 1 ;;
+    *)
+      [ -z "$target" ] || { echo "只能打一个平台（已经有 ${target}，又给了 ${a}）。${usage}" >&2; exit 1; }
+      target="$a"
+      ;;
+  esac
+done
+[ -n "$target" ] || { echo "$usage" >&2; exit 1; }
+check_spx_patches || exit 1
+export STORE_BUILD DEMO_BUILD
+variant=""
+[ "$STORE_BUILD" = 0 ] || variant="store"
+[ "$DEMO_BUILD" = 0 ] || variant="${variant:+$variant-}demo"
+[ -z "$variant" ] || DIST_DIR="$DIST_DIR/$variant"
+
 G="$BUILD_DIR/$APP_NAME"
 mkdir -p "$DIST_DIR"
 DIST_DIR="$(cd "$DIST_DIR" && pwd)"
@@ -39,6 +67,31 @@ require github.com/goplus/spx/v4 v4.0.0 //xgo:class
 replace github.com/goplus/spx/v4 => $spx_path
 EOF
   cp "$SPX_DIR/go.sum" "$G/go.sum"
+  build_flags
+}
+
+# 把副本 main.spx 里的布尔常量 “名字 = false” 改成 true（和 touch_mode 一样只改副本）。
+# 返回 0：改好了；返回 2：main.spx 里没有这个常量（游戏还没加）
+enable_flag() {
+  local name="$1" main="$G/main.spx"
+  local off="^([[:space:]]*${name}[[:space:]]*=[[:space:]]*)false" on="^[[:space:]]*${name}[[:space:]]*=[[:space:]]*true"
+  if grep -qE "$off" "$main"; then
+    sed -E -i.bak "s/${off}/\\1true/" "$main" && rm -f "$main.bak"
+  elif ! grep -qE "$on" "$main"; then
+    return 2
+  fi
+  grep -qE "$on" "$main" || { echo "没能把 main.spx 里的 $name 改成 true" >&2; exit 1; }
+  echo "已打开 ${name}（只改了 ${main}）"
+}
+
+build_flags() {
+  if [ "$STORE_BUILD" = 1 ]; then
+    enable_flag storeBuild || { echo "要打商店版（--store），但 main.spx 里没有常量 storeBuild = false" >&2; exit 1; }
+  fi
+  if [ "$DEMO_BUILD" = 1 ] && ! enable_flag demoBuild; then
+    # 试玩版的常量由游戏那边后加：还没有的时候照常打包，只提醒（打出来的就是完整版）
+    echo "⚠️  要打试玩版（--demo），但 main.spx 里还没有常量 demoBuild = false：这次打出来的是完整版" >&2
+  fi
 }
 
 os_arch() {
