@@ -5,8 +5,8 @@ onStart => {
 
 	// C17 子弹迎面相撞，互相抵消（README 的玩法规则）。
 	// 横着、竖着各 5 次，每次把出发点挪一点（相遇的时机不同）；没有抵消的话，玩家子弹要 0.9 秒以上才飞出战场。
-	// 已知问题：两颗子弹相对速度 440 像素 / 秒，每次判定之间移动的距离比子弹直径（约 5 像素）还大，
-	// 大多数时候会互相穿过去（2026-10-25 实测 20 次只抵消 3 次）。修好以后把 tXfail 改成 tCheck
+	// 原来用引擎的 touching 判断，子弹的碰撞区域几乎只是一个点，10 次只有 1~2 次能抵消（v4.0 的已知问题）；
+	// v4.0.1 改成按距离判断（main.spx 的 bulletClash）
 	cancelled := 0
 	for k := 0; k < 10; k++ {
 		tQuiet
@@ -28,7 +28,33 @@ onStart => {
 		}
 		wait 0.6
 	}
-	tXfail "C17 迎面相撞 10 次都抵消（实际 "+strconv.Itoa(cancelled)+" 次）", cancelled == 10, "子弹相撞经常穿过去"
+	tInt "C17 迎面相撞 10 次都抵消", cancelled, 10
+	tInt "C17 敌人子弹也消失了", len(ebPos), 0
+
+	// C17 两颗子弹不完全在一条线上：坦克按半格（12 像素）对齐，子弹可能错开几个像素。
+	// 错开 3 像素（画面上重叠）要抵消；错开 12 像素（画面上完全分开）不能抵消
+	for _, c := range [][]float64{{3, 1}, {12, 0}} {
+		tQuiet
+		PBullet.fire cellX(2), cellY(6), 90, 1
+		EBullet.fire cellX(10), cellY(6)+c[0], -90
+		wait 0.6
+		got := 0.0
+		if pbCount == 0 {
+			got = 1
+		}
+		what := map[bool]string{true: "抵消", false: "不抵消"}[c[1] == 1]
+		tNum "C17 错开 "+strconv.Itoa(int(c[0]))+" 像素："+what, got, c[1]
+		wait 1
+	}
+
+	// C17 相邻两行的子弹擦肩而过（相距 1 格 24 像素），不能抵消
+	tQuiet
+	PBullet.fire cellX(2), cellY(6), 90, 1
+	EBullet.fire cellX(10), cellY(7), -90
+	wait 0.6
+	tInt "C17 相邻两行擦肩而过：玩家子弹还在", pbCount, 1
+	tInt "C17 相邻两行擦肩而过：敌人子弹还在", len(ebPos), 1
+	wait 1
 
 	// 对照：没有敌人子弹时，0.6 秒时玩家子弹还在飞（说明上面“0.7 秒内消失”确实是被抵消的）
 	tQuiet
