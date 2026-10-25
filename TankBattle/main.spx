@@ -60,7 +60,7 @@ var (
 	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
 	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
 	revived      bool   // 本关是否已经复活过（每关只能复活一次）
-	reviveStage  int    // 在哪一关复活过（0 表示没有）：暂停里“重新开始本关”、输了重打本关都不会清零
+	reviveStage  int    // 在哪一关复活过（0 表示没有）：暂停里“重新开始本关”不会清零，防止无限复活
 	baseSafe     float64 // 复活后基地还有几秒打不掉（对局冻结时不倒计时）
 	coins        int    // 本局获得的金币
 	doubled      bool   // 金币是否已经通过看视频翻倍
@@ -1116,9 +1116,7 @@ func again() {
 		stage = 1
 		stageScore = 0
 	}
-	if won {
-		reviveStage = 0 // 新的一关可以再复活一次；输了重打本关不行
-	}
+	reviveStage = 0 // 结算后的下一关、重打本关都可以再复活一次（只有暂停里的“重新开始本关”不清零）
 	startGame
 }
 

@@ -886,7 +886,7 @@ def stage_index():
     p = os.path.join(ASSETS, "index.json")
     with open(p, encoding="utf-8") as f:
         cfg = json.load(f)
-    cfg["run"] = {**cfg.get("run", {}), "title": "坦克大战 2026"}
+    cfg["run"] = {**cfg.get("run", {}), "title": "坦克大战 2026 · Brickline Tanks"}
     with open(p, "w", encoding="utf-8") as f:
         f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
 
