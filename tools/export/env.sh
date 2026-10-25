@@ -51,6 +51,32 @@ sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi
 }
 
+patches_digest() {  # tools/export/patches/*.patch 的文件名和内容的校验和（没有补丁时是 none）
+  local p found=""
+  for p in "$EXPORT_DIR"/patches/*.patch; do
+    [ -f "$p" ] || continue
+    found=1
+    basename "$p"
+    cat "$p"
+  done > "${TMPDIR:-/tmp}/tankbattle-patches.$$"
+  if [ -n "$found" ]; then
+    sha256_of "${TMPDIR:-/tmp}/tankbattle-patches.$$"
+  else
+    echo none
+  fi
+  rm -f "${TMPDIR:-/tmp}/tankbattle-patches.$$"
+}
+
+check_spx_patches() {  # 装好的 spx 打过的源码补丁和现在的 patches/ 一致（没有记录时当成没打过补丁）
+  local want got
+  want="$(patches_digest)"
+  got="$(cat "$SPX_DIR/.bin/tankbattle-patches.txt" 2>/dev/null || echo none)"
+  [ "$want" = "$got" ] && return 0
+  echo "tools/export/patches/ 里的 spx 源码补丁和装好的 spx 不一致（补丁改过，或者 spx 是在加补丁之前装的）：" >&2
+  echo "先重新运行 tools/export/setup_spx.sh" >&2
+  return 1
+}
+
 verify_sha256() {  # 文件 期望的 sha256：不一致时打印两个值并返回 1
   local got; got="$(sha256_of "$1")"
   [ "$got" = "$2" ] && return 0

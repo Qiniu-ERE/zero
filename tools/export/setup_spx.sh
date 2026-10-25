@@ -15,11 +15,25 @@ if [ ! -d "$SPX_DIR/.git" ]; then
   git init -q "$SPX_DIR"
   git -C "$SPX_DIR" remote add origin "$SPX_REPO"
 fi
-if [ "$(git -C "$SPX_DIR" rev-parse HEAD 2>/dev/null || true)" != "$SPX_COMMIT" ] || [ -n "$(git -C "$SPX_DIR" status --porcelain)" ]; then
+if [ "$(git -C "$SPX_DIR" rev-parse HEAD 2>/dev/null || true)" != "$SPX_COMMIT" ]; then
   git -C "$SPX_DIR" fetch -q --depth 1 origin "$SPX_COMMIT"
-  git -C "$SPX_DIR" checkout -q -f "$SPX_COMMIT"
-  git -C "$SPX_DIR" clean -q -fdx -e .bin
 fi
+# 每次都先恢复成干净的源码（上次的模板补丁和源码补丁都去掉），再按顺序重新打补丁
+git -C "$SPX_DIR" checkout -q -f "$SPX_COMMIT"
+git -C "$SPX_DIR" clean -q -fdx -e .bin
+
+# 源码补丁：tools/export/patches/*.patch 按文件名顺序 git apply（例如给 spx 加手柄支持，见 patches/README.md）。
+# 补丁内容的校验和写进 .bin/tankbattle-patches.txt，build.sh 打包前核对，补丁改了而 spx 没重装时会报错
+shopt -s nullglob
+patches=("$EXPORT_DIR"/patches/*.patch)
+shopt -u nullglob
+for p in ${patches[@]+"${patches[@]}"}; do
+  log "spx 源码补丁：$(basename "$p")"
+  git -C "$SPX_DIR" apply --whitespace=nowarn "$p" || {
+    echo "补丁 $(basename "$p") 打不上：spx 提交（SPX_COMMIT）变了的话，要按新源码重新生成补丁" >&2
+    exit 1
+  }
+done
 
 log "给 spx 模板打补丁（包名、版本、图标、iOS 不签名）"
 python3 "$EXPORT_DIR/patch_spx.py" "$SPX_DIR" "$APP_ID" "$APP_TITLE" "$APP_VERSION"
@@ -40,6 +54,7 @@ BUILDCTL="$SPX_DIR/.bin/buildctl$(go env GOEXE)"
 
 log "安装 spx 和运行时（buildctl setup host --published-runtime）"
 (cd "$SPX_DIR" && "$BUILDCTL" setup host --published-runtime)
+patches_digest > "$SPX_DIR/.bin/tankbattle-patches.txt"   # 装好的 spx 打过哪些源码补丁（build.sh 核对）
 
 for target in "$@"; do
   case "$target" in
