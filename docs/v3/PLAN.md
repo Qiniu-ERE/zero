@@ -59,12 +59,12 @@ v2.0 把 1985 年的《坦克大战》在 XBuilder 上重做成了 2026 年的�
 
 | 平台 | 安装包 | 验证 |
 |---|---|---|
-| Windows / macOS / Linux | `spx buildlauncher` 单文件程序（macOS 包成 `.app`） | CI 上启动并截图 |
+| Windows / macOS / Linux | `spx buildlauncher` 单文件程序（macOS 包成 `.app`） | v3.0.0 时在 CI 上启动并截图；v3.0.2 起本机启动测试（Linux 在虚拟机里） |
 | 网页版（iPhone / 安卓 / 浏览器） | `spx exportweb` + 外壳页面（PWA、触屏虚拟按键） | 本机模拟 iPhone 测试 |
 | Android | APK（调试证书签名，触屏模式） | 检查了包内容，**还没在真机上运行** |
 | iOS | 不签名的 IPA（触屏模式） | 检查了包内容，**还没在真机上运行** |
 
-推送 `v*` 标签后，GitHub Actions 自动打出全部安装包并创建 Release。详见 [CROSS_PLATFORM.md](CROSS_PLATFORM.md) 第七节。
+v3.0.0、v3.0.1 是推送 `v*` 标签后由 GitHub Actions 自动打包并创建 Release 的。组织的 Actions 额度用完后，**v3.0.2 起改为本机打包**（现在用 `tools/export/build_local.sh` + `release_local.sh`），Actions 只能手动触发。详见 [CROSS_PLATFORM.md](CROSS_PLATFORM.md) 第七节。
 
 ---
 
@@ -72,7 +72,7 @@ v2.0 把 1985 年的《坦克大战》在 XBuilder 上重做成了 2026 年的�
 
 | 阶段 | 关卡 | 自己做地图 | 双人合作 | 跨平台 |
 |---|---|---|---|---|
-| **P0（v3.0.0 已完成）** | ✅ 8 关、选关、下一关、检查工具 | ✅ 编辑器、实时检查、随机起点、复制关卡、试玩、PC 保存 | ✅ 2P 坦克、按键、规则、HUD、主页入口 | ✅ 六个平台的安装包、Web 外壳 + PWA、手机 App 触屏模式、自动发布 |
+| **P0（v3.0.0 已完成）** | ✅ 8 关、选关、下一关、检查工具 | ✅ 编辑器、实时检查、随机起点、复制关卡、试玩、PC 保存 | ✅ 2P 坦克、按键、规则、HUD、主页入口 | ✅ 六个平台的安装包、Web 外壳 + PWA、手机 App 触屏模式、自动发布（当时用 GitHub Actions；v3.0.2 起本机打包） |
 | **v3.0.1（已发布）** | 修复砖墙一发就碎 | 试玩时可暂停并返回编辑 | 双人时也能暂停退出 | 修复 XBuilder（spx v3.3.0）里编译不过；网页版加“暂停”按钮 |
 | **P1** | 试玩后调整各关敌军配置 | Web 外壳里用 localStorage 保存、分享链接；手机上的放大光标 | 结算时显示各自击毁数；手柄映射说明 | Android / iOS 真机验证；网页版托管（七牛云 Kodo） |
 | **P2** | 「每日挑战」 | — | — | 微信小游戏（[评估](WECHAT_MINIGAME.md)）；Intel Mac、ARM 平台；代码签名 |

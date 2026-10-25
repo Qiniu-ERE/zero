@@ -283,7 +283,7 @@ v4 的测试都在本地跑，**不依赖 GitHub Actions**：引擎内测试用 
 - `pr_check.sh` 的第二项在临时副本里运行 `build.py` 再比较，不会改动工作区；第三项把 `.xbp` 解压后和 `TankBattle/` 比较。
 - 报告里写明提交号、分支、工作区是否干净、spx / Python 版本，评审时能看出是在哪个提交上跑的。
 - `.github/workflows/test.yml` 保留，但只能手动触发：Actions 额度恢复后，想在云端（Linux）再确认一次时用。2026-10-25 在云端跑过一次（没有缓存）：构建工具测试 1.5 分钟，引擎内测试 3.3 分钟，Linux 上 `-headless` 不需要 Xvfb。
-- 仓库自带的 `check.yml` 仍然会在每个 PR 上触发；Actions 不可用时它会显示失败（任务没启动），以本地报告为准。
+- `check.yml` 原来会在每个 PR 上自动触发，Actions 不可用时显示失败（任务没启动）；[#51](https://github.com/Qiniu-ERE/zero/pull/51) 起它和 `release.yml` 一样只能手动触发，以本地报告为准。
 
 ## 六、已知限制
 

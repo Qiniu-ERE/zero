@@ -113,7 +113,7 @@ flowchart LR
 | `export/setup_spx.sh` | 准备打包环境：固定提交的 spx 源码、`patch_spx.py` 改模板（包名、版本、图标、iOS 不签名）、xgo、`buildctl setup` |
 | `export/build.sh` | `desktop`（buildlauncher 单文件，macOS 包成 .app）、`web`（exportweb + 外壳页面）、`android`（APK，触屏模式）、`ios`（不签名 IPA，触屏模式） |
 | `export/web/` | 网页版外壳：自动启动、4:3 铺满、多点触控虚拟按键、PWA |
-| `.github/workflows/release.yml` | 推送 `v*` 标签时打全部平台并创建 GitHub Release |
+| `.github/workflows/release.yml` | 在云端打全部平台并创建 GitHub Release（v3.0.0、v3.0.1 用它发布）。2026-10-25 起只能手动触发，推送标签不再触发；现在用下面的 `build_local.sh` + `release_local.sh` 本机打包发布 |
 | `export/build_local.sh` | 本地打本机能打的全部平台（macOS、网页版、Android、Linux），每个包都检查（启动测试、PWA 文件、APK 签名），打不了的平台空着并写明原因，结果写在 `dist/BUILD_LOCAL.md` |
 | `export/linux_vm.sh` | 在 OrbStack 的 x86_64 Ubuntu 虚拟机里打 Linux 包并做启动测试（`setup` / `build` / `delete`） |
 | `export/release_local.sh` | 把本机 `dist/` 里的包发布成 Release；缺的平台在说明里指向上一个版本 |
@@ -249,7 +249,7 @@ stateDiagram-v2
 - **自动截图**：`tools/dev/shot.sh <工程副本> <输出前缀> <秒数…>`。在**工程副本**的 `main.spx` 末尾追加一段 `onStart` 测试脚本（例如 `startGame`、`baseDestroyed`、`watchAd rewardRevive`），就能不靠键盘把各个画面跑一遍。只截游戏窗口，不会截到桌面上的其他内容。PR 里的截图都是这样得到的。
 - **注意**：测试脚本只放在副本里，不要提交；脚本开头至少 `wait 3`，让游戏先完成初始化。
 - **关卡地图**：`python3 tools/levels/check.py` 检查 8 张地图（编辑器里的实时检查是同一套规则）。
-- **安装包**：`tools/export/build.sh` 本地打包；`tools/test/package_boot.sh` 打出桌面包后运行里面的程序做启动测试（B03）。CI（`.github/workflows/release.yml`）里的冒烟测试在 Actions 可用时运行。
+- **安装包**：`tools/export/build.sh` 本地打包；`tools/test/package_boot.sh` 打出桌面包后运行里面的程序做启动测试（B03）。`.github/workflows/release.yml` 里的云端冒烟测试只能手动触发，要等 Actions 额度恢复才能用。
 
 - **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v3-demo.mp4` 和 `tankbattle-v3.gif`）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
 - **测试演示视频**：`tools/dev/record_tests.sh` 真实运行一次 `tools/test/run_all.sh`，记下每行输出的时间，用 ffmpeg 画成终端画面（加速播放，画面上标明实际用时和倍速），输出 `docs/demo/tankbattle-v4-tests.mp4`。只改画面时用 `--from` 读取上次保存的输出记录，不用重跑测试。
