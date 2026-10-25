@@ -4,8 +4,9 @@
 D=$(cd "$(dirname "$0")" && pwd)
 [ -x "$D/winid" ] || swiftc -O "$D/winid.swift" -o "$D/winid"
 DIR="$1"; OUT="$2"; shift 2
+SPX=$(command -v spx) || { echo "找不到 spx（先运行 tools/export/setup_spx.sh，或者把 \$(go env GOPATH)/bin 加进 PATH）" >&2; exit 1; }
 cd "$DIR" || exit 1
-~/go/bin/spx run . > "$OUT.log" 2>&1 &
+"$SPX" run . > "$OUT.log" 2>&1 &
 PID=$!
 n=0; prev=0
 for t in "$@"; do
@@ -13,9 +14,10 @@ for t in "$@"; do
   WID=$("$D/winid" gdspxrt)
   if [ -n "$WID" ]; then screencapture -x -o -l "$WID" "$OUT-$n.png"; else echo "no game window at ${t}s"; fi
 done
+# 只结束这次启动的游戏：spx 的子进程（引擎 gdspxrt）和 spx 自己，不碰机器上别的游戏进程（例如另一个 clone 在跑的测试）
+pkill -P $PID 2>/dev/null
 kill $PID 2>/dev/null
-sleep 1
-for p in $(pgrep -f "gdspxrt4.0.0"); do kill $p 2>/dev/null; done
+wait $PID 2>/dev/null
 for f in "$OUT"-*.png; do
   case "$f" in *-c.png) continue;; esac
   [ -f "$f" ] || continue

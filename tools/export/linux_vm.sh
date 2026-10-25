@@ -2,7 +2,7 @@
 # 在 macOS 上用 OrbStack 的 x86_64 Ubuntu 虚拟机打 Linux 包并做启动测试（Rosetta 转译）。
 #
 # 用法：tools/export/linux_vm.sh setup     第一次：建虚拟机、装依赖和 Go、准备 spx（可以重复运行，已有的会跳过）
-#       tools/export/linux_vm.sh build     打 Linux x64 包，放到 $DIST_DIR（默认 dist/），并在虚拟机里跑启动测试（B03）
+#       tools/export/linux_vm.sh build     打 Linux x64 包，放到 ${DIST_DIR}（默认 dist/），并在虚拟机里跑启动测试（B03）
 #       tools/export/linux_vm.sh delete    删掉虚拟机，释放磁盘
 #
 # 虚拟机里能直接访问 macOS 的文件（OrbStack 把 /Users 挂在同一个路径），所以用的就是这个仓库。

@@ -5,6 +5,7 @@
 #       TEST_TIMEOUT=90 tools/test/run_spx.sh       # 每组默认超时（秒），默认 60
 #       tools/test/run_spx.sh --coverage           # 同时统计覆盖率，报告写到 $WORK/coverage.md（见 spx_coverage.py）
 #       tools/test/run_spx.sh tests/spx/grid.spx   # 只跑一组
+#       TEST_WORK=目录 tools/test/run_spx.sh        # 工作目录（会先清空），默认 $TMPDIR/tankbattle-test-<仓库路径的校验和>
 #
 # 做法（详见 docs/v4/TEST_PLAN.md 第二节）：每组测试复制一份工程，把 prelude.spx 的断言函数插到
 # 副本 main.spx 的第一个 func 前面（类文件里 func 必须写在事件处理之前），把测试脚本追加到末尾，
@@ -15,7 +16,9 @@
 set -e
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 TIMEOUT=${TEST_TIMEOUT:-60}
-WORK=${TMPDIR:-/tmp}/tankbattle-test
+# 工作目录每次先清空。目录名带上仓库路径的校验和：同一台机器上两个 clone 同时跑测试不会互相删（TEST_WORK 可以指定）
+REPO_ID=$(printf '%s' "$ROOT" | cksum | cut -d' ' -f1)
+WORK=${TEST_WORK:-${TMPDIR:-/tmp}/tankbattle-test-$REPO_ID}
 COVERAGE=""
 if [ "${1:-}" = --coverage ]; then COVERAGE=1; shift; fi
 [ $# -gt 0 ] || set -- "$ROOT"/tests/spx/*.spx
