@@ -1,0 +1,53 @@
+// 子弹相撞、正对一块砖（C17、C18），见 docs/v4/TEST_PLAN.md 第 3.3 节
+// timeout: 90
+onStart => {
+	wait 3
+
+	// C17 子弹迎面相撞，互相抵消（README 的玩法规则）。
+	// 横着、竖着各 5 次，每次把出发点挪一点（相遇的时机不同）；没有抵消的话，玩家子弹要 0.9 秒以上才飞出战场。
+	// 已知问题：两颗子弹相对速度 440 像素 / 秒，每次判定之间移动的距离比子弹直径（约 5 像素）还大，
+	// 大多数时候会互相穿过去（2026-10-25 实测 20 次只抵消 3 次）。修好以后把 tXfail 改成 tCheck
+	cancelled := 0
+	for k := 0; k < 10; k++ {
+		tQuiet
+		off := float64(k%5) * 2.4
+		if k < 5 {
+			PBullet.fire cellX(2)+off, cellY(6), 90, 1
+			EBullet.fire cellX(10), cellY(6), -90
+		} else {
+			PBullet.fire cellX(6), cellY(10)-off, 0, 1
+			EBullet.fire cellX(6), cellY(2), 180
+		}
+		t := 0.0
+		for t < 1.2 && pbCount > 0 {
+			waitNextFrame
+			t += deltaTime
+		}
+		if t < 0.7 {
+			cancelled++
+		}
+		wait 0.6
+	}
+	tXfail "C17 迎面相撞 10 次都抵消（实际 "+strconv.Itoa(cancelled)+" 次）", cancelled == 10, "子弹相撞经常穿过去"
+
+	// 对照：没有敌人子弹时，0.6 秒时玩家子弹还在飞（说明上面“0.7 秒内消失”确实是被抵消的）
+	tQuiet
+	PBullet.fire cellX(2), cellY(6), 90, 1
+	wait 0.6
+	tInt "C17 对照：没有相撞时子弹还在", pbCount, 1
+	wait 1
+
+	// C18 正对一块砖（两个检测点在同一格）只打裂，不会一发打碎（v3.0.2 修复）
+	tQuiet
+	gameOver = true
+	i := tAt(5, 5)
+	grid[i] = 1
+	tCheck "C18 打中了", bulletHit(cellX(5), cellY(5)-12, 0, true)
+	tInt "C18 正对一块砖：裂开", grid[i], 3
+	bulletHit cellX(5), cellY(5)-12, 0, true
+	tInt "C18 第二发：碎掉", grid[i], 0
+
+	goHome
+	wait 0.3
+	tDone "clash"
+}
