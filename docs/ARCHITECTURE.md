@@ -114,7 +114,9 @@ flowchart LR
 | `export/build.sh` | `desktop`（buildlauncher 单文件，macOS 包成 .app）、`web`（exportweb + 外壳页面）、`android`（APK，触屏模式）、`ios`（不签名 IPA，触屏模式） |
 | `export/web/` | 网页版外壳：自动启动、4:3 铺满、多点触控虚拟按键、PWA |
 | `.github/workflows/release.yml` | 推送 `v*` 标签时打全部平台并创建 GitHub Release |
-| `export/release_local.sh` | Actions 用不了时，把本机 `dist/` 里的包发布成 Release；缺的平台在说明里指向上一个版本 |
+| `export/build_local.sh` | 本地打本机能打的全部平台（macOS、网页版、Android、Linux），每个包都检查（启动测试、PWA 文件、APK 签名），打不了的平台空着并写明原因，结果写在 `dist/BUILD_LOCAL.md` |
+| `export/linux_vm.sh` | 在 OrbStack 的 x86_64 Ubuntu 虚拟机里打 Linux 包并做启动测试（`setup` / `build` / `delete`） |
+| `export/release_local.sh` | 把本机 `dist/` 里的包发布成 Release；缺的平台在说明里指向上一个版本 |
 | `dev/shot.sh` | 本地运行游戏，只截取游戏窗口（不截整个屏幕），自动裁出 4:3 画面 |
 | `dev/record_demo.sh` | 录制路演演示视频（见[第 10 节](#10-测试与演示视频)） |
 | `docs/v2/mockups/gen.py` | 生成设计效果图 |
@@ -286,7 +288,7 @@ stateDiagram-v2
 - `main` 是发布分支，不直接推送；每个功能一个分支、一个 Pull Request。
 - 标签：`v0` 是导入的基础版本（2026-10-23 的首次提交 `0955dd3`，初版坦克大战），之后的提交都是在它之上新增的；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2` 是发布版本，每个版本改了什么见 [CHANGELOG](../CHANGELOG.md)。
 - v2.0：功能分支合入集成分支 `v2.0`，最后由 `v2.0` 合入 `main`。v3.0：功能 PR 依次叠在前一个 PR 上（#10 → #9 → #12 → #13 → #14 → #15），按顺序合入 `main`。
-- 发布：在 `main` 上推送 `v*` 标签，GitHub Actions 打出全部安装包并创建 Release（带 `-rc` 的版本是预发布）；Actions 用不了时本机打包，再运行 `tools/export/release_local.sh`（v3.0.2 就是这样发布的）。
+- 发布：先在 `CHANGELOG.md` 写好这个版本；本机运行 `tools/export/build_local.sh` 打包并检查，在 `main` 上打 `v*` 标签并推送，再运行 `tools/export/release_local.sh` 创建 Release（本机打不了的平台指向上一个版本）。GitHub Actions 的工作流都只保留手动触发（组织额度用完，2026-10-25 起不再自动运行）。
 - PR 描述写清楚：改了什么、为什么、怎么验证的（附实机截图）。
 - 改了文案或美术代码，要重新运行 `build.py` 并把生成的文件一起提交；发布前运行 `package_xbp.sh` 更新 `.xbp`。
 
