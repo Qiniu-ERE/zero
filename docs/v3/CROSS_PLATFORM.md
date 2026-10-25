@@ -256,7 +256,11 @@ spx 已经有 `exportminigame`，七牛和微信生态结合也合适，但需�
 tools/export/setup_spx.sh web        # 第一次：spx 源码、模板补丁、xgo、运行时（可加 android / ios）
 tools/export/build.sh desktop        # 当前系统的单文件程序
 tools/export/build.sh web            # 网页版
+tools/export/build.sh android        # APK：需要 JDK 17、Android SDK、NDK r23c（ANDROID_NDK_ROOT）
+tools/export/release_local.sh        # 把 dist/ 里的包发布成 GitHub Release（标签要先推送）
 ```
+
+**本机发布（v3.0.2）**：组织的 Actions 额度用完后，v3.0.2 改成在一台 Apple 芯片 Mac 上打包：macOS、网页版、Android 直接打；Linux 在 OrbStack 的 x86_64 Ubuntu 虚拟机里打（Rosetta 转译），并用 Xvfb + 软件 Vulkan 启动截图验证。Windows 和 iOS 本机打不了（`buildlauncher` 只能打本机平台；iOS 需要 Xcode），`release_local.sh` 会把说明里这两行改成指向上一个版本（v3.0.1）的下载链接。Android 导出时如果本机以前运行过 Godot，编辑器设置里的 Java SDK 路径可能是空的，`build.sh android` 会用 `JAVA_HOME` / `ANDROID_HOME` 补上。
 
 ### 7.2 关键做法
 

@@ -163,6 +163,15 @@ build_android() {
         -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
     fi
   fi
+  # Godot 只在第一次生成编辑器设置时从 JAVA_HOME / ANDROID_HOME 取默认值；
+  # 本机以前跑过 Godot 的话，设置里留着空路径，导出会报“需要有效的 Java SDK 路径”，这里补上
+  for es in "$HOME/Library/Application Support/Godot/editor_settings-4.4.tres" \
+            "${XDG_DATA_HOME:-$HOME/.local/share}/godot/editor_settings-4.4.tres"; do
+    [ -f "$es" ] || continue
+    [ -n "${JAVA_HOME:-}" ] && sed -i.bak "s|^export/android/java_sdk_path = \"\"|export/android/java_sdk_path = \"$JAVA_HOME\"|" "$es"
+    [ -n "${ANDROID_HOME:-}" ] && sed -i.bak "s|^export/android/android_sdk_path = \"\"|export/android/android_sdk_path = \"$ANDROID_HOME\"|" "$es"
+    rm -f "$es.bak"
+  done
   touch_mode
   log "spx exportapk"
   (cd "$G" && spx exportapk)

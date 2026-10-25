@@ -39,7 +39,7 @@ v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 *
 | Android | `android.apk` | 直接安装 |
 | iPhone / iPad | `ios-unsigned.ipa` | 用 Sideloadly / AltStore 签名安装 |
 
-安装包由 GitHub Actions 自动打包，详见[跨平台文档](docs/v3/CROSS_PLATFORM.md#七实现结果)。
+安装包用 GitHub Actions 或本机脚本打包，详见[跨平台文档](docs/v3/CROSS_PLATFORM.md#七实现结果)。v3.0.2 是本机打包的，没有 Windows 和 iOS 包，这两个平台请用 [v3.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.1)。
 
 ## 快速开始
 
@@ -211,8 +211,10 @@ cd TankBattle && spx run .
 tools/export/setup_spx.sh web
 tools/export/build.sh desktop   # 或 web / android / ios
 
-# 发布：先在 CHANGELOG.md 写好这个版本，再推送标签
+# 发布：先在 CHANGELOG.md 写好这个版本，再推送标签（Actions 打全部平台）
 git tag v3.0.2 && git push origin v3.0.2
+# Actions 用不了时：本机打好包后用 dist/ 发布
+tools/export/release_local.sh
 
 # 重新录制演示视频（需要 ffmpeg）
 ./tools/dev/record_demo.sh
