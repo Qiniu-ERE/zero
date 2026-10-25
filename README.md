@@ -39,22 +39,6 @@
 
 > 以上都是 v5.0 的实机截图（2026-10-25）。右侧面板和主页底部的广告是**模拟广告位**，只在路演版里展示；以后的商店版不放广告（见 [v5.0 盈利方案](docs/v5/MONETIZATION.md)）。
 
-## 比赛交付对照
-
-按第五届 1024 HACKATHON 的作品提交要求逐条对照（2026-10-26 09:00 截止开发）：
-
-| 要求 | 在哪里 | 状态 |
-|---|---|---|
-| 源代码 | 游戏 [`TankBattle/`](TankBattle)、工具 [`tools/`](tools)、测试 [`tests/`](tests)；XBuilder 项目包 [`TankBattle.xbp`](TankBattle.xbp) | ✅ |
-| 如何运行 | 本文 [快速开始](#快速开始)（XBuilder 零安装 / 本地 spx）、[下载安装](#下载安装)（macOS、Linux、网页版、Android 安装包）、[开发](#开发)（测试和打包） | ✅ |
-| 架构设计文档（模块规格、分工） | [架构文档](docs/ARCHITECTURE.md)：第 3 节模块规格、第 4 节消息表、第 5 节状态机、第 11 节开发流程与分工 | ✅ |
-| demo 视频 | [v5.0 演示视频](docs/demo/tankbattle-v5-demo.mp4)（89 秒，真实引擎录制）；[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4)；以前的版本 [v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4) | ✅ |
-| 演示环境 | 云端：在 [XBuilder](https://x.qiniu.com) 导入 `.xbp` 直接运行；本地：`spx run` 或 [Releases](https://github.com/Qiniu-ERE/zero/releases/latest) 里的安装包 | ✅ |
-| 基于 Pull Request 提交每一次变更 | v2.0 起 main 上的每个改动都是 PR 合并进来的（共 79 个合并的 PR）。**例外**：v0 之后、2026-10-23 上午的 5 个提交（v1.0.0：音效、中文字体、砖墙两下、画风切换、README）是直接推到 main 的，当时还没开始按 PR 流程，如实记在[更新记录](CHANGELOG.md#v100) | ✅（v1 例外已说明） |
-| 保留过程痕迹 | 2026-10-23 ~ 10-25 共约 300 次提交、每个版本都有标签和更新记录，没有最后一天一次性提交 | ✅ |
-| 多人代码提交记录 | danielfeng 和 zhangxunling 两个账号；测试与覆盖率（v4.0）由 zhangxunling 提交，见[架构文档的分工](docs/ARCHITECTURE.md#分工) | ✅ |
-| codebase 与 v0 标签 | 导入的初版坦克大战打了 [`v0`](https://github.com/Qiniu-ERE/zero/tree/v0)（`0955dd3`），之后的提交都是团队新增的 | ✅ |
-
 ## 下载安装
 
 到 [Releases](https://github.com/Qiniu-ERE/zero/releases/latest) 下载，文件名是 `TankBattle-版本号-平台`，每个包里都有 `README.txt` 安装说明。
@@ -180,7 +164,6 @@ v5.0 回答一个问题：**这个游戏怎么真正赚到钱**。先只做文�
 | 盈利 | PC **买断 $4.99** + 免费试玩版，**不放广告**；手机先付费下载，以后改“免费 + 一次性解锁” | [MONETIZATION](docs/v5/MONETIZATION.md) |
 | 推广 | 发售前目标 **5000 个愿望单**：2026-11 开 Steam 商店页，2027-02 参加本地合作游戏节和新品节，3~4 月发售 | [MARKETING](docs/v5/MARKETING.md) |
 | 盈利周期 | 基准情景第一年约 **¥5.3 万**，投入约 ¥1.1 万，**2027-04 底第一笔 Steam 打款到账时回本**（保守 ¥1.9 万，乐观 ¥16.8 万；都是推测） | [CASHFLOW](docs/v5/CASHFLOW.md) |
-| 路演 | 一句话故事、8 页幻灯片、3 分钟讲稿、评委问答 | [PITCH](docs/v5/PITCH.md) |
 | 商店页 | 中英文案、素材规格、预告片脚本；英文名定为 **Brickline Tanks** | [STORE](docs/v5/STORE.md) |
 | 全面审查 | 游戏 23 项、打包与工具 18 项、文档 15 项，第一批已经修完 | [REVIEW](docs/v5/REVIEW.md) |
 
@@ -228,20 +211,20 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 
 改版前（2026-10-23 的初版）是这样的：[初版玩法动图](docs/tankbattle.gif)。
 
-广告位目前是**游戏内的模拟广告位**（画面上标明了“模拟广告位”），用「七牛云 · 广告位招商」的文案展示。设计原则见[设计方案](docs/v2/DESIGN.md#四广告干净不打扰)，正式接入方案见[架构文档](docs/ARCHITECTURE.md#8-广告)。
+广告位目前是**游戏内的模拟广告位**（画面上标明了“模拟广告位”），用「七牛云 · 广告位招商」的文案展示。设计原则见 [v2.0 规划](docs/v2/DESIGN.md#四广告干净不打扰)，正式接入方案见[架构文档](docs/ARCHITECTURE.md#8-广告)。
 
 ## 文档
 
 | 文档 | 内容 |
 |---|---|
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、状态机、解释器限制、分工 |
-| [v5.0 商业化规划](docs/v5/PLAN.md) | 平台、体验、盈利、推广、盈利周期、路演故事、商店页、全面审查清单 |
+| [v5.0 规划](docs/v5/PLAN.md) | 平台、体验、盈利、推广、盈利周期、商店页、全面审查清单 |
 | [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x → v4.0.x → v5.0.0 |
 | [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
 | [v4.0 规划](docs/v4/PLAN.md) | 测试与质量：自动化测试、覆盖率、本地检查，[测试方案](docs/v4/TEST_PLAN.md)（测试分层、用例清单、覆盖率、测试发现的问题） |
 | [跨平台](docs/v3/CROSS_PLATFORM.md) | 打包方法、实测截图、限制 |
 | [微信小游戏](docs/v3/WECHAT_MINIGAME.md) | 可行性评估 |
-| [v2.0 设计方案](docs/v2/DESIGN.md) | 玩法、画风、商业化设计和效果图 |
+| [v2.0 规划](docs/v2/DESIGN.md) | 玩法、画风、商业化设计和效果图 |
 | [演示视频](docs/demo/tankbattle-v5-demo.mp4) | v5.0 完整流程（以前的版本：[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)）；v4.0：[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4) |
 
 ## 项目结构
@@ -272,10 +255,10 @@ tests/                    # v4.0 的自动化测试
 └── coverage-baseline.json  # 覆盖率基线
 docs/
 ├── ARCHITECTURE.md       # 架构文档
-├── v2/                   # v2.0 设计方案、截图
+├── v2/                   # v2.0 规划、截图
 ├── v3/                   # v3.0 规划和各方向的文档、截图
 ├── v4/                   # v4.0 规划：PLAN.md 总览、TEST_PLAN.md 测试方案
-├── v5/                   # v5.0 商业化规划和截图（screens/）
+├── v5/                   # v5.0 规划和截图（screens/）
 └── demo/                 # 演示视频和动图
 ```
 
