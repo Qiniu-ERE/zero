@@ -20,6 +20,7 @@ v2.0 做出了现代画风和 4 个**模拟**广告位，v3.0 做出了 8 个关
 | **7. 路演故事** | 一句话故事、8 页幻灯片大纲、3 分钟讲稿、评委问答 | 📝 已写 | [PITCH.md](PITCH.md) |
 | **8. 游戏内容调整** | 去掉“每日挑战”；确认自己的子弹能打掉自己的老鹰并补测试 | 📝 已定 | 本文第三节 |
 | **9. 全面审查清单** | 对整个项目的审查：游戏 23 项（双人时一方命中会让另一方的子弹消失、复活不清场、选关只能用键盘、难度曲线……）、打包发布与测试工具 18 项（APK 版本号是旧的、签名证书每版都变……）、文档与仓库 15 项；全部列入 v5 | 📝 已排期 | [REVIEW.md](REVIEW.md) |
+| **10. 商店页材料** | Steam / Microsoft Store 的基本信息、标签、中英文案、图片素材规格、截图清单、30 秒预告片脚本、注册后的步骤 | 📝 已写 | [STORE.md](STORE.md) |
 
 ---
 
@@ -47,7 +48,7 @@ v2.0 做出了现代画风和 4 个**模拟**广告位，v3.0 做出了 8 个关
 |---|---|---|
 | **手柄** | **完全不支持**。spx 没有给游戏脚本提供手柄接口（源码里只有网页版引擎的 JS 库里有手柄代码），游戏只认键盘、鼠标、单指触屏 | Steam Deck 认证、Xbox 都要求手柄能玩全部内容，按键提示要显示手柄图标 |
 | **模拟广告** | 主页横幅（“七牛云 · 本广告位招商中”）、右侧原生广告卡、复活和金币 ×2 的模拟激励视频 | **付费游戏里不能有假广告**。商店版全部去掉：复活改成每局一次免费复活（或金币复活），金币 ×2 去掉 |
-| **名字** | 英文标题就是 `BATTLE CITY`（`strings.py`），这是原作（Namco 1985）的名字 | 商店页、开发者账号里的应用名、商标都绑定名字，**上架前必须改名**（见 [PLATFORMS.md 第七节](PLATFORMS.md#七知识产权上架前必须处理)） |
+| **名字** | 英文标题就是 `BATTLE CITY`（`strings.py`），这是原作（Namco 1985）的名字 | **已定（2026-10-25）**：中文保留“坦克大战 2026”，英文改为 **Brickline Tanks**（查过没有同名游戏；“Tank Battle 2026”在 itch.io 上已有人用）。见 [PLATFORMS.md 第七节](PLATFORMS.md#七知识产权上架前必须处理)、[STORE.md](STORE.md) |
 | **存档** | 只有 PC 版能存一张自制地图；金币、最高分不保存 | 至少保存最高分、通关进度、设置、金币和外观 |
 | **桌面包** | Windows / macOS / Linux 单文件程序；第一次运行把引擎解压到用户缓存目录 | Steam 直接用；Windows 包可能被杀毒软件误报（自解压），要观察 |
 | **Android** | 调试证书签名的 APK，Godot 4.4.1 模板，目标 API 34，NDK r23c 编译的 Go 库 | AAB、正式签名、目标 API 36、16 KB 页对齐 |
@@ -109,7 +110,7 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 **做**：
 
-- 文档：本文、[REVIEW.md](REVIEW.md)、[PLATFORMS.md](PLATFORMS.md)、[EXPERIENCE.md](EXPERIENCE.md)、[MONETIZATION.md](MONETIZATION.md)、[MARKETING.md](MARKETING.md)、[CASHFLOW.md](CASHFLOW.md)、[PITCH.md](PITCH.md)、[TECH.md](TECH.md)（本 PR）。
+- 文档：本文、[REVIEW.md](REVIEW.md)、[PLATFORMS.md](PLATFORMS.md)、[EXPERIENCE.md](EXPERIENCE.md)、[MONETIZATION.md](MONETIZATION.md)、[MARKETING.md](MARKETING.md)、[CASHFLOW.md](CASHFLOW.md)、[PITCH.md](PITCH.md)、[STORE.md](STORE.md)、[TECH.md](TECH.md)（本 PR）。
 - 游戏内容：去掉每日挑战；老鹰友伤的回归测试。
 - 商店版：改名、去掉模拟广告、存档、手柄。
 - 上架 Steam（含试玩版），同时提交 Microsoft Store（PC）。
@@ -136,11 +137,11 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 | 阶段 | PR | 内容 | 前提 | 估计 |
 |---|---|---|---|---|
-| **P0 文档** | docs: v5.0 规划 | 本文和八份详细文档 | — | 0.5 天 |
+| **P0 文档** | docs: v5.0 规划 | 本文和九份详细文档 | — | 0.5 天 |
 | **P1 先修** | fix / build / docs: 审查清单第一批 | [REVIEW.md 第四节](REVIEW.md#四排期)：A1~A3、A12 等游戏问题，B1~B5 等打包发布问题，C1~C9 等文档问题；修完发一个修复版 | — | 3 天 |
 | **P1 内容与商店版** | chore: 去掉每日挑战 | 第三节 3.1 | — | 0.5 天 |
 | | test: 老鹰友伤 | 第三节 3.2 的四条回归测试 | — | 0.5 天 |
-| | chore: 改名 | 新的中英文名字、图标、标题画面；README 保留“复刻自 Battle City”的来历说明，商店页不提原作 | 定好名字 | 0.5 天 |
+| | chore: 改名 | 英文标题改为 Brickline Tanks（中文不变）；README 保留“复刻自 Battle City”的来历说明，商店页不提原作 | — | 0.5 天 |
 | | feat: 商店版构建 | `build.sh` 加 `--store` 选项（和 `touchUI` 一样由导出脚本改常量）：去掉横幅、原生广告卡、模拟激励视频；免费复活每局一次 | — | 1 天 |
 | | feat: 存档 | 最高分、通关进度（解锁到第几关）、设置、金币、外观；桌面版存到 `os.UserConfigDir()` | — | 1 天 |
 | | spike: 手柄 | 给 spx 打补丁（`patch_spx.py`），把手柄输入转成游戏已经认识的按键：左摇杆 / 十字键 → 方向，A → 开火 / 确认，Start → 暂停；两只手柄分别对应 1P、2P | — | 1~2 天 |
