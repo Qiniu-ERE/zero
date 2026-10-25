@@ -237,7 +237,7 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 | **Python 行覆盖率** | `python3 -m coverage`（只在 CI 里装） | `check.py`、`strings.py`、`textpath.py` ≥ 85% |
 
 - 插桩只改副本，和测试脚本一样不进仓库；插入的是 `println`，不加变量，不影响方法表。
-- 报告输出成 Markdown：每个文件的函数覆盖率、没覆盖到的函数列表、规则对照表。CI 把它贴到 PR 的检查结果里。
+- 报告输出成 Markdown：每个文件的函数覆盖率、没覆盖到的函数列表、规则对照表。`pr_check.sh --coverage` 把它附在本地检查报告里。
 - 达不到目标的部分要在报告里写原因（例如 `onKey` 只能手工测、`sfx` 在 headless 下没有意义），不为了数字写没有断言的测试。
 
 ## 五、在本地检查（不用 GitHub Actions）
