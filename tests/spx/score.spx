@@ -21,5 +21,18 @@ onStart => {
 	tInt "C10 第 20 辆 → 结算", state, stResult
 	tCheck "C10 第 20 辆 → 胜利", won
 
+	// C19 路演演示（自动驾驶）的得分不算最高分（v3.0.2）
+	tQuiet
+	gameOver = true
+	best, score, killed = 500, 0, 0
+	enemiesAlive = 2
+	autopilot = true
+	enemyKilled 1000
+	tInt "C19 演示时照样加分", score, 1000
+	tInt "C19 演示时不刷新最高分", best, 500
+	autopilot = false
+	enemyKilled 100
+	tInt "C19 不是演示时刷新最高分", best, 1100
+
 	tDone "score"
 }

@@ -144,6 +144,7 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | C16 | `switchTheme` / `switchLang` 切换后 `look()` / `langCode()` 的后缀正确，切两次回到原样 |
 | C17 | 子弹迎面相撞互相抵消（横着、竖着各 5 次）。**已知问题**，见第九节，用 `tXfail` 标记 |
 | C18 | 正对一块砖（两个检测点在同一格）只打裂，不会一发打碎（v3.0.2 修复） |
+| C19 | 路演演示（自动驾驶）的得分不算最高分（v3.0.2） |
 
 ### 3.4 流程状态机（L3）
 
@@ -172,7 +173,7 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | F19 | `gameOver` 时战场冻结：`defeat` / `baseDestroyed` 重复调用没有副作用 |
 | F20 | 播放广告时再次 `watchAd` 被忽略 |
 | F21 | 每个状态下 `setScreen` 的画面名正确（`home`、`revive_*`、`adplay_*`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`） |
-| F22 | 路演演示模式：`demoFlow` 跑完会发出 `demoDone`，期间 `autopilot` 为 true，结束后回到主页 |
+| F22 | 路演演示模式：`demoFlow` 跑完会发出 `demoDone`，期间 `autopilot` 为 true，结束后回到主页；v3.0.2 起还经过编辑器和暂停菜单，结束后还原玩家在编辑器里的地图 |
 | F23 | 复活询问的弹窗出现之前（战败后 2.2 秒内）按确认键不算数（J / Enter 也是开火键，防止连按开火误点广告） |
 | F24 | 结算画面出现后 0.6 秒内按确认键不算数，之后才能看视频翻倍 |
 | F25 | 暂停菜单（v3.0.2）：`pauseGame` → `stPause`、战场冻结、`pause` 画面；`resumeGame` / 确认键继续 |

@@ -4,6 +4,16 @@
 onStart => {
 	wait 3
 
+	// 先在编辑器里留一张玩家自己的地图：演示会用编辑器，结束后要还原（v3.0.2）
+	openEditor
+	wait 0.5
+	edRandom()
+	edRebuild()
+	mine := string(ed)
+	loaded := edLoaded
+	goHome
+	wait 0.3
+
 	t0, l0 := theme, lang
 	broadcast "demoFlow" // 主页按 P
 	wait 0.5
@@ -36,6 +46,11 @@ onStart => {
 	tCheck "F22 结束后关闭自动驾驶", !autopilot
 	tInt "F22 画风恢复", theme, t0
 	tInt "F22 语言恢复", lang, l0
+
+	tStr "F22 演示结束后还原玩家的地图", string(ed), mine
+	tCheck "F22 演示不改 edLoaded", edLoaded == loaded
+	tCheck "F22 演示经过了编辑器", seen[stEdit]
+	tCheck "F22 演示经过了暂停菜单", seen[stPause]
 
 	tDone "flow_demo"
 }
