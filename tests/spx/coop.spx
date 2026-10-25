@@ -68,7 +68,8 @@ onStart => {
 	wait 0.2
 	tInt "P04 两人都没命 → 复活询问", state, stRevive
 
-	// P05 复活：两人各加 1 条命，2P 重新出生
+	// P05 复活：两人各加 1 条命，2P 重新出生（等复活弹窗出现后再按确认，见 flow_revive 的 F23）
+	wait 2.6
 	confirm
 	tCheck "P05 广告播完 → 对局", tWaitState(stPlay, 7)
 	tInt "P05 1P 加 1 条命", lives, 1
