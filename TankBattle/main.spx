@@ -317,6 +317,25 @@ func bulletClash(x0, y0, x1, y1, r float64) bool {
 	return false
 }
 
+// 触屏模式：手指按在 (x, y) 时做什么。返回方向键的方向（0 上，90 右，180 下，-90 左，移动并开火）、
+// 1（只开火）或 -1（什么都不做）
+func touchZone(x, y float64) int {
+	dx := x - padX
+	dy := y - padY
+	if dx*dx+dy*dy <= padR*padR {
+		if math.Abs(dx) > math.Abs(dy) {
+			if dx > 0 {
+				return 90
+			}
+			return -90
+		} else if dy > 0 {
+			return 0
+		}
+		return 180
+	}
+	return 1
+}
+
 // (x, y) 离哪辆玩家坦克更近：1 或 2
 func nearestPlayer(x, y float64) int {
 	if p2Exists && math.Abs(x-p2x)+math.Abs(y-p2y) < math.Abs(x-p1x)+math.Abs(y-p1y) {
