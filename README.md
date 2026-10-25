@@ -2,6 +2,8 @@
 
 # 坦克大战 2026 · Brickline Tanks
 
+<h3><i>“Talk is cheap, show me what you build.”</i></h3>
+
 **守住老鹰，打穿砖墙** —— 用 XBuilder 重铸的经典坦克游戏
 
 [![1024 HACKATHON 第五届](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
@@ -10,9 +12,7 @@
 [![测试 579 通过](https://img.shields.io/badge/测试-579_通过-brightgreen)](docs/v4/TEST_PLAN.md)
 [![覆盖率 96%](https://img.shields.io/badge/覆盖率-96%25-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
 
-**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v5-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [更新记录](CHANGELOG.md)
-
-[v5.0 商业化规划](docs/v5/PLAN.md) · [路演故事](docs/v5/PITCH.md) · [架构文档](docs/ARCHITECTURE.md) · [测试方案](docs/v4/TEST_PLAN.md) · [全部文档](#文档)
+**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v5-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
 
 </div>
 
@@ -27,8 +27,6 @@
 | v3.0 | **8 个关卡、双人合作、自己做地图**，打包成六个平台的安装包 |
 | v2.0 | 现代画风、中英文、主页 / 复活 / 结算、不打扰玩家的广告设计 |
 
-*Talk is cheap, show me what you build.*
-
 ![坦克大战 2026 演示](docs/demo/tankbattle-v5.gif)
 
 > 动图：双人合作 → 暂停菜单 → 编辑器里画地图并试玩。截自 v5.0 的[完整演示视频](docs/demo/tankbattle-v5-demo.mp4)（约 1 分半，无声；以前的版本：[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)），由游戏内置的**路演演示模式**（主页按 P）在真实引擎里录制。
@@ -40,6 +38,22 @@
 | ![](docs/v5/screens/editor-zh.png) | ![](docs/v5/screens/home-en.png) | ![](docs/v5/screens/levels-en.png) | ![](docs/v5/screens/classic-zh.png) |
 
 > 以上都是 v5.0 的实机截图（2026-10-25）。右侧面板和主页底部的广告是**模拟广告位**，只在路演版里展示；以后的商店版不放广告（见 [v5.0 盈利方案](docs/v5/MONETIZATION.md)）。
+
+## 比赛交付对照
+
+按第五届 1024 HACKATHON 的作品提交要求逐条对照（2026-10-26 09:00 截止开发）：
+
+| 要求 | 在哪里 | 状态 |
+|---|---|---|
+| 源代码 | 游戏 [`TankBattle/`](TankBattle)、工具 [`tools/`](tools)、测试 [`tests/`](tests)；XBuilder 项目包 [`TankBattle.xbp`](TankBattle.xbp) | ✅ |
+| 如何运行 | 本文 [快速开始](#快速开始)（XBuilder 零安装 / 本地 spx）、[下载安装](#下载安装)（macOS、Linux、网页版、Android 安装包）、[开发](#开发)（测试和打包） | ✅ |
+| 架构设计文档（模块规格、分工） | [架构文档](docs/ARCHITECTURE.md)：第 3 节模块规格、第 4 节消息表、第 5 节状态机、第 11 节开发流程与分工 | ✅ |
+| demo 视频 | [v5.0 演示视频](docs/demo/tankbattle-v5-demo.mp4)（89 秒，真实引擎录制）；[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4)；以前的版本 [v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4) | ✅ |
+| 演示环境 | 云端：在 [XBuilder](https://x.qiniu.com) 导入 `.xbp` 直接运行；本地：`spx run` 或 [Releases](https://github.com/Qiniu-ERE/zero/releases/latest) 里的安装包 | ✅ |
+| 基于 Pull Request 提交每一次变更 | v2.0 起 main 上的每个改动都是 PR 合并进来的（共 79 个合并的 PR）。**例外**：v0 之后、2026-10-23 上午的 5 个提交（v1.0.0：音效、中文字体、砖墙两下、画风切换、README）是直接推到 main 的，当时还没开始按 PR 流程，如实记在[更新记录](CHANGELOG.md#v100) | ✅（v1 例外已说明） |
+| 保留过程痕迹 | 2026-10-23 ~ 10-25 共约 300 次提交、每个版本都有标签和更新记录，没有最后一天一次性提交 | ✅ |
+| 多人代码提交记录 | danielfeng 和 zhangxunling 两个账号；测试与覆盖率（v4.0）由 zhangxunling 提交，见[架构文档的分工](docs/ARCHITECTURE.md#分工) | ✅ |
+| codebase 与 v0 标签 | 导入的初版坦克大战打了 [`v0`](https://github.com/Qiniu-ERE/zero/tree/v0)（`0955dd3`），之后的提交都是团队新增的 | ✅ |
 
 ## 下载安装
 
@@ -318,10 +332,10 @@ tools/export/release_local.sh --append    # 以后给已有的 Release 补包（
 | XBuilder 兼容检查（`xbuilder_check.sh`，T09） | Go 1.25 以上和网络（第一次要下载 spx v3.3.0 和 xgo） | 没有 Go 时跳过；有 Go 但没网络会失败 |
 | 安装包启动测试（`package_boot.sh`） | 先运行一次 `tools/export/setup_spx.sh` | — |
 
-- **版本标签**：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1`、`v5.0.0` 是发布版本。`v4.0.0` 只有标签、没有安装包，安装包见 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1)。
+- **版本标签**：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的；`v1.0.0` 是 v0 之后当天上午的第一批改动（直接提交到 main，见[更新记录](CHANGELOG.md#v100)）；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1`、`v5.0.0` 是发布版本。`v4.0.0` 只有标签、没有安装包，安装包见 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1)。
 - **GitHub 上的红叉**：main 上有几次 Actions 运行显示失败（#22、#23、#50 合入时，还有 v3.0.2、v4.0.0 的标签），都是组织的 Actions 额度用完、任务没启动（3~5 秒就结束），不是代码问题。现在工作流都只能手动触发，检查以 PR 里贴的本地检查报告（`pr_check.sh`）为准。
 - **Android 调试证书**：在仓库外的 `~/.config/tankbattle/debug.keystore`。证书换了，玩家就没法覆盖升级，**请备份**；换电脑打包时拷过去。见[跨平台文档](docs/v3/CROSS_PLATFORM.md#71-发布了哪些包)。
-- **开发规范**：每次改动都通过 Pull Request 合入，详见[架构文档](docs/ARCHITECTURE.md#11-开发流程与分工)。
+- **开发规范**：v2.0 起每次改动都通过 Pull Request 合入（v1.0.0 的 5 个提交是例外），详见[架构文档](docs/ARCHITECTURE.md#11-开发流程与分工)。
 
 ## 代码里的教学要点
 
