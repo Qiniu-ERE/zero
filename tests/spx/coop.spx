@@ -1,0 +1,127 @@
+// 双人合作（P01~P08），见 docs/v4/TEST_PLAN.md 第 3.6 节
+//
+// 2P 是 Player 的克隆，测试脚本拿不到克隆体自己的字段，所以看舞台上的状态：
+// lives2、p2Exists、pbCount2，以及 2P 每帧报告的位置 p2x / p2y（被击毁时报告 9999）。
+// 2P 出生后有 3 秒保护，测试里要等保护结束再打。
+// timeout: 120
+onStart => {
+	wait 3
+
+	alive2 := func() bool { return p2x < 9000 }
+	alive1 := func() bool { return p1x < 9000 }
+
+	// P01 开局：2P 在基地右边出生
+	newGame 1, true
+	wait 0.5
+	tCalm
+	wait 0.1
+	tCheck "P01 2P 出现了", p2Exists
+	tInt "P01 2P 3 条命", lives2, 3
+	tNum "P01 2P 在基地右边（x）", p2x, cellX(8)
+	tNum "P01 2P 在基地右边（y）", p2y, cellY(12)
+	tNum "P01 1P 在基地左边", p1x, cellX(4)
+
+	// P02 敌人子弹打中 2P：只扣 2P 的命
+	wait 3.2 // 等 2P 的出生保护结束
+	Player.shield = 0
+	hitWho = 2
+	broadcast "playerHit"
+	wait 0.2
+	tInt "P02 2P 扣 1 条命", lives2, 2
+	tInt "P02 1P 不受影响", lives, 3
+	tCheck "P02 2P 被击毁", !alive2()
+	tCheck "P02 1P 还活着", alive1()
+
+	// P03 两人先后中弹，都能重生（再次广播 playerHit 会打断正在运行的处理，重生倒计时不能放在消息处理里）
+	wait 2 // 2P 重生
+	tCheck "P03 2P 1.5 秒后重生", alive2()
+	wait 3.2
+	Player.shield = 0
+	hitWho = 1
+	broadcast "playerHit"
+	wait 0.05
+	hitWho = 2
+	broadcast "playerHit"
+	wait 0.2
+	tCheck "P03 1P 被击毁", !alive1()
+	tCheck "P03 2P 被击毁", !alive2()
+	wait 2
+	tCheck "P03 1P 重生了", alive1()
+	tCheck "P03 2P 重生了", alive2()
+	tInt "P03 1P 剩 2 条命", lives, 2
+	tInt "P03 2P 剩 1 条命", lives2, 1
+
+	// P04 只有一人没命：继续；两人都没命：失败
+	wait 3.2
+	hitWho = 2
+	broadcast "playerHit"
+	wait 0.2
+	tInt "P04 2P 没命了", lives2, 0
+	tInt "P04 一人没命：继续对局", state, stPlay
+	tCheck "P04 一人没命：战场没有冻结", !gameOver
+	wait 2
+	tCheck "P04 没命的 2P 不再重生", !alive2()
+	Player.shield = 0
+	lives = 1
+	hitWho = 1
+	broadcast "playerHit"
+	wait 0.2
+	tInt "P04 两人都没命 → 复活询问", state, stRevive
+
+	// P05 复活：两人各加 1 条命，2P 重新出生
+	confirm
+	tCheck "P05 广告播完 → 对局", tWaitState(stPlay, 7)
+	tInt "P05 1P 加 1 条命", lives, 1
+	tInt "P05 2P 加 1 条命", lives2, 1
+	wait 0.2
+	tCheck "P05 2P 重新出生", alive2()
+	tCheck "P05 1P 重新出生", alive1()
+
+	// P04 基地被毁：直接失败（已经复活过 → 结算）
+	tCalm
+	baseDestroyed
+	tInt "P04 基地被毁 → 结算", state, stResult
+
+	// P06 没有友军伤害：1P 的子弹从 2P 身上穿过
+	newGame 1, true
+	wait 0.5
+	tCalm
+	for c := 5; c <= 12; c++ {
+		grid[tAt(12, c)] = 0 // 清出 1P 和 2P 之间的路（基地和护墙）
+	}
+	wait 3.2
+	n2 := lives2
+	PBullet.fire cellX(5), cellY(12), 90, 1
+	wait 1
+	tInt "P06 1P 的子弹打不到 2P", lives2, n2
+	tCheck "P06 2P 还活着", alive2()
+
+	// P07 两人的子弹分别计数
+	tInt "P07 子弹都消失了", pbCount+pbCount2, 0
+	pbCount2 = 1
+	Player.shoot
+	tInt "P07 2P 有子弹时 1P 照样能开火", pbCount, 1
+	pbCount2 = 0
+	wait 1.5
+	PBullet.fire cellX(8), cellY(10), 0, 2
+	tInt "P07 2P 的子弹记在 pbCount2", pbCount2, 1
+	tInt "P07 不占 1P 的计数", pbCount, 0
+	wait 1.5
+	tInt "P07 2P 的子弹消失后计数归零", pbCount2, 0
+
+	// P08 回主页 / 单人开局时去掉 2P
+	goHome
+	wait 0.3
+	tCheck "P08 回主页去掉 2P", !p2Exists
+	newGame 1, true
+	wait 0.5
+	tCheck "P08 再开双人：2P 又出现", p2Exists
+	newGame 1, false
+	wait 0.5
+	tCheck "P08 单人开局去掉 2P", !p2Exists
+	tCheck "P08 单人", !coop
+
+	goHome
+	wait 0.3
+	tDone "coop"
+}
