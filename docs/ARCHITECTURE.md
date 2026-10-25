@@ -108,7 +108,7 @@ flowchart LR
 | `assets/strings.py` | 中英文案表（唯一来源），游戏和效果图共用 |
 | `assets/textpath.py` | 把文字转成 SVG 路径；字体固定到 google/fonts 的某个提交并校验 sha256；缺字直接报错 |
 | `assets/build.py` | 生成：两套背景、现代画风的所有造型、经典画风的水面和草丛、`UI` 精灵的全部造型和 `index.json`、`UI.spx` 里的 `GENERATED widths` / `GENERATED hit` 区块 |
-| `levels/check.py` | 检查 `levelMap()` 里的每一关：13×13、出生点和基地位置、从出生点能到达基地、玩家能到达出生点、基地旁边没有钢墙和水面。规划中的地图编辑器也用这套规则 |
+| `levels/check.py` | 检查 `levelMap()` 里的每一关：13×13、出生点和基地位置、从出生点能到达基地、玩家能到达出生点、基地旁边没有钢墙和水面，1P / 2P 出生点都要能开到敌人出生点。地图编辑器的实时检查（`edCheck`）用同一套规则 |
 | `package_xbp.sh` | 打包 `TankBattle.xbp` |
 | `export/setup_spx.sh` | 准备打包环境：固定提交的 spx 源码、`patch_spx.py` 改模板（包名、版本、图标、iOS 不签名）、xgo、`buildctl setup` |
 | `export/build.sh` | `desktop`（buildlauncher 单文件，macOS 包成 .app）、`web`（exportweb + 外壳页面）、`android`（APK，触屏模式）、`ios`（不签名 IPA，触屏模式） |
@@ -228,6 +228,7 @@ stateDiagram-v2
 
 ### 9.3 其他
 
+- **点击在鼠标按下时就触发**（spx 的 `onLeftButtonDown`）：点按钮进入一个会读 `mousePressed` 的画面（例如地图编辑器）时，下一帧鼠标还按着，要先等松开，否则会误操作。
 - **XBuilder 线上的 spx v3.3.0 和本地 spx 4.0 有差别**：`rand(整数, 整数)` 在 v3.3.0 里返回 `float64`，在 4.0 里返回 `int`。和整数比较时要写成 `int(rand(1, 100))`，否则在 XBuilder 里编译失败（本地 4.0 能跑，所以本地测试发现不了）。
 
 - **同一条消息再次广播时，正在运行（比如正在 `wait`）的处理会被打断重来**。所以不要在消息处理里等待之后再做关键的事（例如重生）：双人合作时一人中弹会再次广播 `playerHit`，另一人还在等待的重生就丢了。现在的做法是把倒计时放进每帧的循环里。
@@ -252,7 +253,7 @@ stateDiagram-v2
 ### 开发流程
 
 - `main` 是发布分支，不直接推送；每个功能一个分支、一个 Pull Request。
-- 标签：`v0` 是导入的基础版本（2026-10-23 的首次提交 `0955dd3`，初版坦克大战），之后的提交都是在它之上新增的；`v2.0.0`、`v3.0.0` 是两次发布。
+- 标签：`v0` 是导入的基础版本（2026-10-23 的首次提交 `0955dd3`，初版坦克大战），之后的提交都是在它之上新增的；`v2.0.0`、`v3.0.0`、`v3.0.1` 是发布版本，每个版本改了什么见 [CHANGELOG](../CHANGELOG.md)。
 - v2.0：功能分支合入集成分支 `v2.0`，最后由 `v2.0` 合入 `main`。v3.0：功能 PR 依次叠在前一个 PR 上（#10 → #9 → #12 → #13 → #14 → #15），按顺序合入 `main`。
 - 发布：在 `main` 上推送 `v*` 标签，GitHub Actions 打出全部安装包并创建 Release（带 `-rc` 的版本是预发布）。
 - PR 描述写清楚：改了什么、为什么、怎么验证的（附实机截图）。
@@ -285,10 +286,11 @@ stateDiagram-v2
 | #19 | 路演演示模式加入 v3.0 内容，录制 v3 演示视频 |
 | #20 | 暂停菜单；修复正对一块砖一发就碎 |
 | #21 | v3.0.1 文档、更新记录、演示视频（含暂停菜单）；发布 v3.0.1 |
+| #22 | README 表格排版；修复审查发现的问题（进编辑器误画、连按开火误点广告、触屏双人、演示改最高分、金币重复计算）；PR 检查流水线、冒烟测试会真正失败 |
 
 ### 分工
 
-表中的 `dn-mbp14-qn` 是本地 git 用户名，对应 GitHub 账号 [danielfeng](https://github.com/danielfeng)。
+表中的 `dn-mbp14-qn` 是本地 git 用户名，对应 GitHub 账号 [danielfeng](https://github.com/danielfeng)；`zhangxunling` 是另一位成员。
 
 | 模块 | 负责人 | 内容 |
 |---|---|---|
@@ -299,5 +301,6 @@ stateDiagram-v2
 | 测试、演示视频与文档 | dn-mbp14-qn | 实机截图验证、演示视频、架构文档 |
 | v3.0 关卡、双人合作、地图编辑器 | dn-mbp14-qn | 8 张地图与关卡检查工具、2P 坦克、编辑器与实时检查 |
 | v3.0 跨平台打包与发布 | dn-mbp14-qn | 打包脚本、网页版外壳、手机触屏模式、GitHub Actions 发布与冒烟测试 |
+| v4 测试计划与测试套件 | zhangxunling | v4 测试计划和按模块拆分的测试（编辑器、流程、子弹、敌人、玩家、得分、出兵、工具等），在 `v4.0`、`test/v4-*`、`docs/v4-*` 分支上，尚未合入 main |
 
 开发全程使用 AI 编程助手（Claude Code）结对完成：人负责方向、取舍和验收，AI 负责实现和验证，每一步都通过 PR 留下记录。团队成员加入后，请在这张表里补充各自负责的模块。
