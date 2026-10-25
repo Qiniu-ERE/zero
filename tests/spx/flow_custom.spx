@@ -1,0 +1,37 @@
+// 流程：自制地图试玩 → 结算 → 回到编辑器（F17），见 docs/v4/TEST_PLAN.md 第 3.4 节
+onStart => {
+	wait 3
+
+	openEditor
+	wait 0.5
+	edBlank()
+	edRebuild()
+	playCustom false
+	wait 0.5
+	tInt "F17 编辑器 → 试玩", state, stPlay
+	tInt "F17 自制地图", stage, customStage
+	tStr "F17 开场提示", stageTip(), "msg.ed.play"
+
+	tCalm
+	killed = totalEnemy - 1
+	enemiesAlive = 1
+	enemyKilled 100
+	tStr "F17 试玩胜利画面", screen, "result_ewin_plain"
+	again
+	wait 0.5
+	tInt "F17 胜利后回到编辑器", state, stEdit
+
+	playCustom false
+	wait 0.5
+	tCalm
+	revived = true
+	baseDestroyed
+	tStr "F17 试玩失败画面", screen, "result_elose_plain"
+	again
+	wait 0.5
+	tInt "F17 失败后回到编辑器", state, stEdit
+
+	goHome
+	wait 0.3
+	tDone "flow_custom"
+}
