@@ -68,7 +68,8 @@ class Problems(unittest.TestCase):
                 self.assertProblem(edit(OK, 0, c, "B"), f"敌人出生点（第 0 行第 {c} 列）")
 
     def test_T02_player_spawn_blocked(self):
-        self.assertProblem(edit(OK, 12, 4, "B"), "玩家出生点")
+        self.assertProblem(edit(OK, 12, 4, "B"), "1P 出生点（第 12 行第 4 列）")
+        self.assertProblem(edit(OK, 12, 8, "B"), "2P 出生点（第 12 行第 8 列）")
 
     def test_T02_enemy_cannot_reach_base(self):
         # 第 1 行整行钢墙：三个出生点都过不来
@@ -87,7 +88,15 @@ class Problems(unittest.TestCase):
     def test_T02_player_cannot_reach_spawn(self):
         # 只把左上角出生点围起来：敌人能从别的出生点到基地，但玩家开不到左上角
         rows = edit(edit(OK, 0, 1, "S"), 1, 0, "S")
-        self.assertProblem(rows, "玩家开不到敌人出生点（第 0 行第 0 列）")
+        self.assertProblem(rows, "1P 开不到敌人出生点（第 0 行第 0 列）")
+        self.assertProblem(rows, "2P 开不到敌人出生点（第 0 行第 0 列）")
+
+    def test_T02_2p_walled_in(self):
+        # 只把 2P 出生点 (12, 8) 围起来：敌人照样能到基地，1P 也没事，只有 2P 出不去
+        rows = edit(edit(edit(OK, 11, 8, "S"), 12, 9, "S"), 12, 7, "S")
+        ps = check.problems(rows)
+        self.assertTrue(any("2P 开不到敌人出生点" in p for p in ps), ps)
+        self.assertFalse(any("1P 开不到" in p for p in ps), ps)
 
     def test_T02_steel_or_water_next_to_base(self):
         for (r, c), ch in [((11, 6), "S"), ((12, 5), "W"), ((12, 7), "S")]:
