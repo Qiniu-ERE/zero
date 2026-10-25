@@ -35,5 +35,15 @@ onStart => {
 	enemyKilled 100
 	tInt "C19 不是演示时刷新最高分", best, 1100
 
+	// C20 生命超过 3 条（复活后可能有 4 条）：显示成“图标 ×N”（v5 REVIEW A15）
+	tStr "C20 3 条命：第 3 个图标亮", lifeLook(3, 2, false), "life_on"
+	tStr "C20 2 条命：第 3 个图标暗", lifeLook(2, 2, false), "life_off"
+	tStr "C20 4 条命：第 1 个是图标", lifeLook(4, 0, false), "life_on"
+	tStr "C20 4 条命：第 2 个是 ×4", lifeLook(4, 1, false), "lifex4"
+	tStr "C20 4 条命：第 3 个不显示", lifeLook(4, 2, false), ""
+	tStr "C20 2P 5 条命：第 1 个是 2P 图标", lifeLook(5, 0, true), "life2_on"
+	tStr "C20 2P 5 条命：第 2 个是 ×5", lifeLook(5, 1, true), "lifex5"
+	tStr "C20 超过 9 条也只显示 ×9", lifeLook(12, 1, false), "lifex9"
+
 	tDone "score"
 }
