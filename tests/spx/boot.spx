@@ -1,0 +1,19 @@
+// 启动测试（B01、B02）：能启动、进入主页、能开一局。也用于打包产物的启动测试
+onStart => {
+	wait 3 // 先让游戏完成初始化
+
+	tInt "B01 启动后在主页", state, stHome
+	tStr "B01 主页画面", screen, "home"
+	tInt "B01 默认现代画风", theme, 1
+
+	playStage 1
+	wait 1
+	tInt "B02 开局后在对局中", state, stPlay
+	tInt "B02 第 1 关", stage, 1
+	tCheck "B02 战场没有冻结", !gameOver
+	tInt "B02 地图已建好", len(grid), rows*cols
+	tInt "B02 3 条命", lives, 3
+	tInt "B02 敌军剩余", enemiesLeft, totalEnemy
+
+	tDone "boot"
+}
