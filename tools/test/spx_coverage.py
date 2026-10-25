@@ -10,9 +10,17 @@
       汇总所有日志里的 COV 行，输出 Markdown 报告：每个文件的函数 / 事件处理覆盖率、没覆盖到的列表、
       消息覆盖、TEST_PLAN 用例清单里每个用例 ID 有没有对应的测试。
 
+  spx_coverage.py report --baseline tests/coverage-baseline.json ...
+      再和基线比较：基线里覆盖到的函数 / 事件处理现在没覆盖到，或者新加的没有被任何测试执行，就失败（退出码 1）。
+
+  spx_coverage.py baseline <输出.json> <第一次运行的目录> <第二次运行的目录> ...
+      用几次完整运行的日志生成基线：每次都覆盖到的才算“覆盖到”；只有部分运行覆盖到的记为“不稳定”，不强制
+      （例如子弹相撞抵消，受已知问题影响时有时无）。由 tools/test/update_baseline.sh 调用。
+
 由 tools/test/run_spx.sh --coverage 调用。
 """
 import glob
+import json
 import os
 import re
 import sys
@@ -92,7 +100,64 @@ def pct(a, b):
     return 100.0 * a / b if b else 100.0
 
 
-def report(logs, unittest_log=None):
+def covered_in(logs):
+    out = set()
+    for p in logs:
+        with open(p, encoding="utf-8", errors="replace") as f:
+            out |= {line[4:].strip() for line in f if line.startswith("COV ")}
+    return out
+
+
+# 已知会时有时无的（不靠抽样判断，直接算不稳定）：原因写在后面
+KNOWN_UNSTABLE = {
+    'EBullet.spx:onMsg "clash"': "子弹迎面相撞经常不抵消（C17 已知问题），抵消没发生时这个处理不会执行",
+}
+
+
+def make_baseline(path, run_dirs):
+    runs = [covered_in(glob.glob(os.path.join(d, "*", "run.log"))) for d in run_dirs]
+    always, sometimes = set.intersection(*runs), set.union(*runs)
+    always -= set(KNOWN_UNSTABLE)
+    sometimes |= set(KNOWN_UNSTABLE)
+    pts = all_points()
+    data = {
+        "说明": "tools/test/update_baseline.sh 生成，不要手改。covered：每次运行都覆盖到；unstable：只有部分运行覆盖到，不强制",
+        "runs": len(runs),
+        "points": sorted(pts),
+        "covered": sorted(n for n in always if n in pts),
+        "unstable": sorted(n for n in sometimes - always if n in pts),
+        "unstable_why": {n: KNOWN_UNSTABLE.get(n, "抽样的几次运行里只有部分覆盖到") for n in sorted(sometimes - always) if n in pts},
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+        f.write("\n")
+    return data
+
+
+def compare(covered, baseline_path):
+    """和基线比较：返回（Markdown 行列表，是否通过）"""
+    with open(baseline_path, encoding="utf-8") as f:
+        base = json.load(f)
+    pts = all_points()
+    lost = [n for n in base["covered"] if n in pts and n not in covered]
+    new = [n for n, k in pts.items() if n not in base["points"] and k != "input" and n not in covered]
+    unstable = [n for n in base.get("unstable", []) if n not in covered]
+    out = ["", "## 和基线比较（tests/coverage-baseline.json）", ""]
+    if not lost and not new:
+        out.append(f"✅ 没有退步：基线覆盖到的 {len(base['covered'])} 个都还覆盖到，新加的函数 / 事件处理都有测试执行。")
+    if lost:
+        out += [f"❌ **原来覆盖到、现在没覆盖到（{len(lost)} 个）**：给它们补测试，或者在 PR 里说明为什么删掉了", ""] + [f"- `{n}`" for n in lost]
+    if new:
+        out += ["", f"❌ **新加的、没有任何测试执行（{len(new)} 个）**：同一个 PR 里加上测试", ""] + [f"- `{n}`" for n in new]
+    if unstable:
+        out += ["", "这次没覆盖到、但基线里标为不稳定的（不算退步）：" + "、".join(f"`{n}`" for n in unstable)]
+    more = [n for n in covered if n in pts and n not in base["covered"] and n not in base.get("unstable", [])]
+    if more:
+        out += ["", f"覆盖率提高了（{len(more)} 个新覆盖到）：运行 `tools/test/update_baseline.sh` 更新基线，一起提交。"]
+    return out, not lost and not new
+
+
+def report(logs, unittest_log=None, baseline=None):
     covered, tested = set(), set()
     for p in logs:
         with open(p, encoding="utf-8", errors="replace") as f:
@@ -147,7 +212,11 @@ def report(logs, unittest_log=None):
     out += [f"- `{m}`" for m in sent if m not in got] or ["（没有）"]
     out += ["", f"## 还没有测试的用例 ID（{len(ids) - len(id_hit)} / {len(ids)}）", ""]
     out += [", ".join(i for i in ids if i not in tested) or "（没有）"]
-    return "\n".join(out) + "\n"
+    ok = True
+    if baseline and os.path.exists(baseline):
+        lines, ok = compare(covered, baseline)
+        out += lines
+    return "\n".join(out) + "\n", ok
 
 
 def main():
@@ -155,10 +224,19 @@ def main():
     if len(args) == 2 and args[0] == "instrument":
         instrument(args[1])
     elif args and args[0] == "report":
-        rest, ulog = args[1:], None
-        if rest[:1] == ["--unittest-log"]:
-            ulog, rest = rest[1], rest[2:]
-        sys.stdout.write(report(rest, ulog))
+        rest, ulog, base = args[1:], None, None
+        while rest[:1] in (["--unittest-log"], ["--baseline"]):
+            if rest[0] == "--unittest-log":
+                ulog = rest[1]
+            else:
+                base = rest[1]
+            rest = rest[2:]
+        text, ok = report(rest, ulog, base)
+        sys.stdout.write(text)
+        sys.exit(0 if ok else 1)
+    elif len(args) >= 3 and args[0] == "baseline":
+        d = make_baseline(args[1], args[2:])
+        print(f"基线：{len(d['covered'])} 个覆盖到，{len(d['unstable'])} 个不稳定（{d['runs']} 次运行）→ {args[1]}")
     else:
         sys.exit(__doc__)
 
