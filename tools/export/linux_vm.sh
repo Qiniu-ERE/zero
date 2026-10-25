@@ -36,7 +36,7 @@ setup)
 	;;
 build)
 	mkdir -p "$DIST_DIR"
-	log "打 Linux x64 包（虚拟机 $VM）"
+	log "打 Linux x64 包（虚拟机 ${VM}）"
 	in_vm "export PATH=/usr/local/go/bin:\$HOME/go/bin:\$PATH CACHE_DIR=\$HOME/tankbattle-cache BUILD_DIR=\$HOME/tankbattle-build DIST_DIR='$DIST_DIR' APP_VERSION='$APP_VERSION' && cd '$ROOT' && tools/export/build.sh desktop"
 	log "启动测试（Xvfb + 软件 Vulkan）"
 	in_vm "export PATH=/usr/local/go/bin:\$HOME/go/bin:\$PATH CACHE_DIR=\$HOME/tankbattle-cache && cd '$ROOT' && xvfb-run -a -s '-screen 0 1280x960x24' tools/test/package_boot.sh"

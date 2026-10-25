@@ -46,7 +46,7 @@ for p in "$@"; do
 		if "$EXPORT_DIR/build.sh" web > "$log_file" 2>&1 && f=$(art web) && [ -n "$f" ]; then
 			missing=""
 			for need in index.html play.js manifest.webmanifest sw.js game.zip runner.html; do
-				unzip -l "$f" | grep -q "/$need\$\| $need\$" || missing="$missing $need"
+				unzip -l "$f" | grep -q -E "(/| )${need}\$" || missing="${missing} ${need}"
 			done
 			if [ -z "$missing" ]; then row web ✅ "$(basename "$f")（$(size "$f")）" "包里有游戏、外壳和 PWA 文件"
 			else row web ❌ "$(basename "$f")" "包里缺少：$missing"; fi
@@ -55,7 +55,7 @@ for p in "$@"; do
 		fi
 		;;
 	android)
-		if [ ! -d "$NDK" ]; then row android ⏸ — "没有 Android NDK r23c（$NDK）"; continue; fi
+		if [ ! -d "$NDK" ]; then row android ⏸ — "没有 Android NDK r23c（${NDK}）"; continue; fi
 		java_cmd=()
 		if [ -z "${JAVA_HOME:-}" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
 			if command -v nix >/dev/null; then java_cmd=(nix shell nixpkgs#jdk17 -c)
