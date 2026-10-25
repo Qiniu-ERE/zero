@@ -69,6 +69,8 @@ func drive(dt float64) {
 
 // 被玩家子弹打中
 func takeHit() {
+	pbHitX = xpos // 只让打中自己的那一发消失（双人时另一个人的子弹不受影响）
+	pbHitY = ypos
 	broadcastAndWait "pbHit"
 	hp--
 	if hp > 0 {

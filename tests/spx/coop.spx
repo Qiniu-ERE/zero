@@ -122,6 +122,23 @@ onStart => {
 	tCheck "P08 单人开局去掉 2P", !p2Exists
 	tCheck "P08 单人", !coop
 
+	// P10 1P 的子弹打中敌人：只有打中的那一发消失，2P 正在飞的子弹不受影响（v5 REVIEW A1）
+	newGame 1, true
+	wait 0.5
+	tCalm
+	for i := range grid {
+		grid[i] = 0
+	}
+	PBullet.fire cellX(10), cellY(12), 0, 2 // 2P 往上打，这一列没有东西
+	Enemy.spawn cellX(4), cellY(9), 0       // 1P 正上方一辆普通坦克（1 发就打掉）
+	PBullet.fire cellX(4), cellY(11), 0, 1
+	wait 0.3
+	tInt "P10 1P 打掉了敌人", killed, 1
+	tInt "P10 1P 的子弹消失了", pbCount, 0
+	tInt "P10 2P 的子弹还在飞", pbCount2, 1
+	wait 1.5
+	tInt "P10 2P 的子弹飞到边界才消失", pbCount2, 0
+
 	goHome
 	wait 0.3
 	tDone "coop"

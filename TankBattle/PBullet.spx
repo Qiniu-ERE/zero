@@ -55,9 +55,10 @@ onCloned => {
 	}
 }
 
-// 打中了敌人坦克（由敌人发出这条消息）
+// 打中了敌人坦克（由敌人发出这条消息，敌人的位置在 pbHitX / pbHitY）。
+// 只有贴着这辆敌人的子弹才消失：坦克 24 像素、子弹 6 像素，碰上时中心相距不超过 15 像素，留一点余量取 20
 onMsg "pbHit", => {
-	if alive {
+	if alive && xpos-pbHitX < 20 && pbHitX-xpos < 20 && ypos-pbHitY < 20 && pbHitY-ypos < 20 {
 		vanish
 	}
 }
