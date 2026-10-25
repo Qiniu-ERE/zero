@@ -209,6 +209,9 @@ python3 tools/levels/check.py
 cd TankBattle && spx run .
 ./tools/package_xbp.sh
 
+# 跑引擎内自动化测试（无界面运行，见 docs/v4/TEST_PLAN.md）
+tools/test/run_spx.sh
+
 # 打安装包（第一次先运行 setup_spx.sh）
 tools/export/setup_spx.sh web
 tools/export/build.sh desktop   # 或 web / android / ios
