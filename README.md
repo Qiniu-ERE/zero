@@ -143,7 +143,7 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | 流程 | `tools/test/pr_check.sh` 本地检查（不依赖 GitHub Actions），报告贴在 PR 里；PR 模板 |
 | 发现的问题 | 子弹迎面相撞经常不抵消（已记录为已知问题，修复另行进行） |
 
-详见 [v4.0 规划](docs/v4/PLAN.md)、[测试方案](docs/v4/TEST_PLAN.md) 和 [更新记录](CHANGELOG.md#v400)。
+演示视频：[一条命令跑完全部自动化测试](docs/demo/tankbattle-v4-tests.mp4)（真实运行 5 分 16 秒，7 倍速播放）。详见 [v4.0 规划](docs/v4/PLAN.md)、[测试方案](docs/v4/TEST_PLAN.md) 和 [更新记录](CHANGELOG.md#v400)。
 
 ## v3.0 做了什么
 

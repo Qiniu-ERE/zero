@@ -249,6 +249,7 @@ stateDiagram-v2
 - **安装包**：`tools/export/build.sh` 本地打包；`tools/test/package_boot.sh` 打出桌面包后运行里面的程序做启动测试（B03）。CI（`.github/workflows/release.yml`）里的冒烟测试在 Actions 可用时运行。
 
 - **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v3-demo.mp4` 和 `tankbattle-v3.gif`）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
+- **测试演示视频**：`tools/dev/record_tests.sh` 真实运行一次 `tools/test/run_all.sh`，记下每行输出的时间，用 ffmpeg 画成终端画面（加速播放，画面上标明实际用时和倍速），输出 `docs/demo/tankbattle-v4-tests.mp4`。只改画面时用 `--from` 读取上次保存的输出记录，不用重跑测试。
 
 ### 自动化测试（v4.0）
 
