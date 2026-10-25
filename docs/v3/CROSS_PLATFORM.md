@@ -248,7 +248,7 @@ v3.0.0、v3.0.1 时，推送 `v*` 标签后 GitHub Actions（`.github/workflows/
 | `TankBattle-<版本>-android.apk` | Android（arm64） | `spx exportapk`（NDK r23c、JDK 17），调试证书签名，**触屏模式** | 直接安装 |
 | `TankBattle-<版本>-ios-unsigned.ipa` | iPhone / iPad | `spx exportios` 只导出 Xcode 工程，`xcodebuild` 不签名编译，**触屏模式** | Sideloadly / AltStore 用自己的 Apple ID 签名安装 |
 
-每个包里都附带对应平台的README.txt（安装说明）（来自 [`tools/export/INSTALL.md`](../../tools/export/INSTALL.md)），Release 里还有 `SHA256SUMS.txt`。
+每个包里都附带对应平台的 README.txt（安装说明）（来自 [`tools/export/INSTALL.md`](../../tools/export/INSTALL.md)），Release 里还有 `SHA256SUMS.txt`。
 
 本地也能用同样的脚本打包：
 
@@ -335,10 +335,10 @@ tools/export/release_local.sh                # 发布 GitHub Release；空着的
 ### 7.5 限制和没验证的部分
 
 - **GitHub Pages 用不了**：仓库是私有的，组织是免费套餐，不支持 Pages。所以网页版以 zip 发布，需要自己上传到静态网站（例如七牛云 Kodo）。仓库公开后可以加一个 Pages 部署任务。
-- **Actions 分钟数**：私有仓库每月 2000 分钟，macOS 机器按 10 倍计算。实际一次完整发布（含冒烟测试）各任务只要 1~4 分钟，macOS 任务 1~2 分钟；调试时推到 `ci/` 开头的分支，用提交信息里的 `[ci 平台]` 只打需要的平台。
+- **Actions 分钟数**（v3.0.0 时的情况）：私有仓库每月 2000 分钟，macOS 机器按 10 倍计算。实际一次完整发布（含冒烟测试）各任务只要 1~4 分钟，macOS 任务 1~2 分钟；调试时推到 `ci/` 开头的分支，用提交信息里的 `[ci 平台]` 只打需要的平台。**后来**：2026-10-25 起组织的 Actions 额度用完，任务启动不了；v3.0.2 起改为本机打包，工作流都只能手动触发（见 7.1 节末尾）。
 - **签名**：macOS 和 Windows 都没有付费签名证书，第一次打开会有系统提示（说明里写了怎么打开）；APK 用调试证书；IPA 不签名。上架应用商店不在 v3.0 范围内。
 - **Intel Mac、Windows ARM、Linux ARM** 没有打包。
-- **真机**：Android、iOS 的包在 CI 上打出来，还没有在真机上装过；手机网页版只在模拟器里测过。
+- **真机**：Android、iOS 的包（v3.0.0、v3.0.1 在 CI 上打；v3.0.2 起 Android 在本机打，iOS 没有新包）到 v4.0.1 为止都没有真机测试记录；手机网页版只在模拟器里测过。
 - **iOS 的 MoltenVK**：模板的 Xcode 工程要求 `MoltenVK.xcframework`，打包时用 Khronos 发布的 v1.3.0 静态版本补上；真机上的渲染还没验证。
 
 ## 附录：复现命令
