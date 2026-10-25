@@ -70,6 +70,13 @@ var (
 
 	// 路演演示模式（主页按 P）：玩家坦克自动驾驶，脚本依次展示各项功能
 	autopilot bool
+	demoOn         bool   // 路演演示正在进行（按 Esc 可以退出）
+	demoStop       bool   // 要退出演示：重新广播 demoFlow，新的处理看到它就收尾（重新广播会打断正在运行的演示）
+	demoTheme      int    // 演示开始时的画风和语言，退出时还原
+	demoLang       int
+	demoKeepEd     []byte // 演示会清空编辑器：先存下玩家的地图，结束或退出时还原
+	demoKeepLoaded bool
+	demoEdSaved    bool
 	apDir     int     // 自动驾驶绕路时的方向
 	apTimer   float64 // 还要绕路多久（撞墙后随机走一会儿）
 	tgtX      float64 // 最近一辆敌人的位置（敌人每帧通过 seeEnemy 汇报）
@@ -1170,6 +1177,11 @@ func confirm() {
 
 // Esc：复活询问时放弃，编辑器里回主页，对局中暂停 / 继续（写成函数，测试可以直接调用）
 func escKey() {
+	if demoOn {
+		demoStop = true
+		broadcast "demoFlow" // 打断正在运行的演示，由新的处理收尾
+		return
+	}
 	if state == stRevive {
 		// 基地被毁后要等 2.2 秒才弹出复活询问；这期间按 Esc（本想暂停）不能当成“放弃复活”（和 confirm 一样）
 		if strings.HasPrefix(screen, "revive_") {
@@ -1268,8 +1280,9 @@ func demoV3() {
 	wait 2.5
 	resumeGame
 	wait 0.5
-	keepEd := ed // 演示会清空编辑器，结束后还原玩家的地图
-	keepLoaded := edLoaded
+	demoKeepEd = ed // 演示会清空编辑器，结束（或按 Esc 退出）后还原玩家的地图
+	demoKeepLoaded = edLoaded
+	demoEdSaved = true
 	edLoaded = true // 演示时不读取玩家保存的地图
 	openEditor
 	edBlank()
@@ -1311,8 +1324,31 @@ func demoV3() {
 	apTimer = 0
 	tgtAge = 9
 	wait 6
-	ed = keepEd
-	edLoaded = keepLoaded
+	restoreDemoEd()
+}
+
+// 还原演示前玩家在编辑器里的地图
+func restoreDemoEd() {
+	if demoEdSaved {
+		ed = demoKeepEd
+		edLoaded = demoKeepLoaded
+		demoEdSaved = false
+	}
+}
+
+// 按 Esc 退出演示：关掉自动驾驶，还原编辑器地图、画风和语言，回到主页
+func stopDemo() {
+	demoStop = false
+	demoOn = false
+	autopilot = false
+	restoreDemoEd()
+	if theme != demoTheme {
+		switchTheme
+	}
+	if lang != demoLang {
+		switchLang
+	}
+	goHome
 }
 
 // 等到画面进入状态 st（最多等 secs 秒），用于演示脚本按实际状态推进
@@ -1625,6 +1661,9 @@ onMsg "adFlow", => {
 	for n := adSeconds; n >= 1; n-- {
 		setScreen "adplay_" + strconv.Itoa(n)
 		wait 1
+		if state != stAd {
+			return // 播放中离开了（例如演示中按 Esc 回到主页）：不发奖励
+		}
 	}
 	if adReward == rewardRevive {
 		revive
@@ -1640,12 +1679,21 @@ onMsg "adFlow", => {
 // → v3.0：新关卡、双人合作、自己做地图（demoV3）→ 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
+	if demoStop {
+		stopDemo
+		return
+	}
+	demoOn = true
+	demoTheme = theme
+	demoLang = lang
 	autopilot = true // 先设好，开局时顶栏就不会显示暂停按钮
 	newGame 1, false
 	autopilot = true
 	apTimer = 0
 	tgtAge = 9
-	wait 9
+	wait 2.5 // 开局提示放完再提示怎么退出
+	toast "msg.demo", 3
+	wait 6.5
 	switchTheme // 经典画风（情怀）
 	wait 4
 	switchTheme // 回到现代画风
@@ -1675,6 +1723,7 @@ onMsg "demoFlow", => {
 	waitState stResult, 10
 	wait 4
 	demoV3
+	demoOn = false
 	autopilot = false
 	broadcast "demoDone"
 }

@@ -33,6 +33,7 @@ STRINGS = {
     "msg.modern": ("现代画风", "Modern style"),
     "msg.classic": ("经典画风", "Classic style"),
     "msg.lang": ("已切换到中文", "Switched to English"),
+    "msg.demo": ("路演演示 · 按 Esc 退出", "Demo mode · press Esc to exit"),
     "msg.adclick": ("演示：这里会打开七牛云广告招商页", "Demo: opens the Qiniu ad sales page"),
     "msg.revived": ("已复活，继续战斗！", "Revived. Keep fighting!"),
     "msg.ed.play": ("试玩你的地图！", "Play your map!"),
