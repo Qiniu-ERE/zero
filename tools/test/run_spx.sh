@@ -23,7 +23,9 @@ GOPATH=${GOPATH:-$(go env GOPATH 2>/dev/null || echo "$HOME/go")}
 GOCACHE=${GOCACHE:-$(go env GOCACHE 2>/dev/null || echo "$HOME/.cache/go-build")}
 # Linux 上 spx 的缓存在 XDG_CACHE_HOME（默认 ~/.cache），也保持在真实位置，免得每组测试都重新准备
 XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
-export GOPATH GOCACHE XDG_CACHE_HOME
+# 测试脚本用 TB_ROOT 找到仓库里的测试数据（tests/data）
+TB_ROOT=$ROOT
+export GOPATH GOCACHE XDG_CACHE_HOME TB_ROOT
 failed=""
 total_pass=0
 total_fail=0
