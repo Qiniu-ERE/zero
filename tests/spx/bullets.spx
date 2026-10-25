@@ -62,5 +62,84 @@ onStart => {
 	tInt "C07 离 2P 近", nearestPlayer(80, 0), 2
 	p2Exists = keep
 
+	// C21~C24 自己的子弹也能打掉自己的老鹰（v5 PLAN 3.2）：真实发射子弹，看子弹飞过去的整个过程
+	// （C04 只直接调用 hitPoint）。老鹰四周是砖墙，每块砖打两下才碎，所以第 3 发才打到老鹰
+
+	// C21 1P 在出生点朝右（基地方向）开火
+	playStage 1
+	wait 0.5
+	tCalm
+	Player.setFace 90
+	for n := 1; n <= 3; n++ {
+		Player.shoot
+		for i := 0; i < 30 && pbCount > 0; i++ {
+			wait 0.1
+		}
+		if n == 1 {
+			tInt "C21 第 1 发：护墙砖裂开", grid[tAt(12, 5)], 3
+		} else if n == 2 {
+			tInt "C21 第 2 发：护墙砖碎了", grid[tAt(12, 5)], 0
+			tCheck "C21 第 2 发：老鹰还在", !baseDown
+		}
+	}
+	tCheck "C21 第 3 发：老鹰被自己打掉", baseDown
+	tInt "C21 进入复活询问", state, stRevive
+
+	// C22 从基地正上方往下打
+	playStage 1
+	wait 0.5
+	tCalm
+	Player.setXYpos cellX(6), cellY(9)
+	Player.setFace 180
+	for n := 1; n <= 3; n++ {
+		Player.shoot
+		for i := 0; i < 30 && pbCount > 0; i++ {
+			wait 0.1
+		}
+		if n == 2 {
+			tInt "C22 第 2 发：上方的护墙砖碎了", grid[tAt(11, 6)], 0
+			tCheck "C22 第 2 发：老鹰还在", !baseDown
+		}
+	}
+	tCheck "C22 第 3 发：从上方打掉老鹰", baseDown
+	tInt "C22 进入复活询问", state, stRevive
+
+	// C23 双人时 2P 在出生点朝左打自己的基地（2P 开火就是 PBullet.fire 自己的位置和朝向，见 Player.shoot）
+	newGame 1, true
+	wait 0.5
+	tCalm
+	for n := 1; n <= 3; n++ {
+		PBullet.fire cellX(8), cellY(12), -90, 2
+		for i := 0; i < 30 && pbCount2 > 0; i++ {
+			wait 0.1
+		}
+		if n == 2 {
+			tInt "C23 第 2 发：右边的护墙砖碎了", grid[tAt(12, 7)], 0
+		}
+	}
+	tCheck "C23 第 3 发：2P 打掉了老鹰", baseDown
+	tInt "C23 进入复活询问", state, stRevive
+
+	// C24 路演演示模式（自动驾驶）：子弹打到老鹰也打不掉
+	newGame 1, false
+	wait 0.5
+	tCalm
+	autopilot = true
+	Player.dead = true // 让自动驾驶的坦克停下来，不要自己乱开火
+	Player.shield = 99
+	Player.hide
+	for n := 1; n <= 4; n++ {
+		PBullet.fire cellX(4), cellY(12), 90, 1
+		for i := 0; i < 30 && pbCount > 0; i++ {
+			wait 0.1
+		}
+	}
+	tInt "C24 护墙砖照样打碎", grid[tAt(12, 5)], 0
+	tCheck "C24 演示模式：老鹰打不掉", !baseDown && grid[baseIdx] == 9
+	tInt "C24 演示模式：还在对局", state, stPlay
+	autopilot = false
+
+	goHome
+	wait 0.3
 	tDone "bullets"
 }
