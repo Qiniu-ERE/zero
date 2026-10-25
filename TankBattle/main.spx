@@ -61,6 +61,7 @@ var (
 	state        int    // 当前画面：stHome / stPlay / stRevive / stAd / stResult
 	screen       string // 全屏 / 弹窗画面的造型名（不含语言后缀），"" 表示不显示
 	revived      bool   // 本局是否已经复活过（每局只能复活一次）
+	baseSafe     float64 // 复活后基地还有几秒打不掉（对局冻结时不倒计时）
 	coins        int    // 本局获得的金币
 	doubled      bool   // 金币是否已经通过看视频翻倍
 	adReward     int    // 正在播放的激励视频对应的奖励：rewardRevive / rewardDouble
@@ -869,7 +870,7 @@ func hitPoint(x, y float64, byPlayer bool) bool {
 		}
 		return true
 	case 9:
-		if !autopilot { // 路演演示时基地不会被打掉，由演示脚本安排“防线失守”
+		if !autopilot && baseSafe <= 0 { // 路演演示时基地不会被打掉，由演示脚本安排“防线失守”；刚复活时有几秒保护
 			baseDestroyed()
 		}
 		return true
@@ -941,7 +942,9 @@ func watchAd(reward int) {
 	broadcast "adFlow"
 }
 
-// 复活：修复基地、额外 1 条命，玩家回到出生点并获得出生保护
+// 复活：修复基地、额外 1 条命，玩家回到出生点并获得出生保护。
+// 同时清场：敌人子弹和基地附近的敌人消失（不算击毁，以后重新出场），补回护墙，基地 3 秒内打不掉。
+// 否则贴在基地旁的敌人一解冻就能再打掉基地，复活就白费了
 func revive() {
 	revived = true
 	if baseDown {
@@ -949,6 +952,19 @@ func revive() {
 		grid[baseIdx] = 9
 		broadcast "baseChanged"
 	}
+	broadcastAndWait "reviveClear"
+	m := levelMap()
+	for _, i := range []int{baseIdx - cols - 1, baseIdx - cols, baseIdx - cols + 1, baseIdx - 1, baseIdx + 1} {
+		if m[i/cols][i%cols] != 'B' || grid[i] == 1 {
+			continue
+		}
+		if grid[i] == 0 {
+			Tile.build cellX(i%cols), cellY(i/cols), 1, i // 碎掉的砖重新摆上；裂开的砖收到 gridChanged 后自己换造型
+		}
+		grid[i] = 1
+	}
+	broadcast "gridChanged"
+	broadcast "baseGuard"
 	lives++
 	if coop {
 		lives2++
@@ -1326,6 +1342,7 @@ func startGame() {
 	enemiesLeft = totalEnemy
 	baseDown = false
 	revived = false
+	baseSafe = 0
 	state = stPlay
 	setScreen ""
 	Camera.setZoom 1
@@ -1500,6 +1517,17 @@ onMsg "editLoop", => {
 			}
 		}
 		waitNextFrame
+	}
+}
+
+// 复活后的基地保护倒计时（暂停、复活询问时不算）
+onMsg "baseGuard", => {
+	baseSafe = 3
+	for baseSafe > 0 {
+		waitNextFrame
+		if !gameOver {
+			baseSafe -= deltaTime
+		}
 	}
 }
 
