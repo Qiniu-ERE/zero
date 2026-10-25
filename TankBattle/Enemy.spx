@@ -39,7 +39,7 @@ func applyLook() {
 
 // 随机选一个方向，更喜欢往下（基地方向）走
 func pickFace() {
-	n := rand(1, 10)
+	n := int(rand(1, 10))
 	if n <= 4 {
 		setFace 180
 	} else if n <= 6 {
