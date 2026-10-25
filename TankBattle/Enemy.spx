@@ -143,6 +143,17 @@ onMsg "themeChanged", => {
 	}
 }
 
+// 复活时清场：基地附近（3 格以内）的敌人消失。不算击毁，让它以后重新出场（总数还是 20 辆）
+onMsg "reviveClear", => {
+	if alive && xpos-baseX < 84 && baseX-xpos < 84 && ypos-baseY < 84 {
+		alive = false
+		enemiesAlive--
+		spawned--
+		Boom.explodeAt xpos, ypos, 0.8
+		destroy
+	}
+}
+
 onMsg "clear", => {
 	if alive {
 		alive = false

@@ -52,6 +52,16 @@ onCloned => {
 	}
 }
 
+// 复活时清场：敌人子弹全部消失
+onMsg "reviveClear", => {
+	if alive {
+		alive = false
+		delete ebPos, this
+		delete ebHit, this
+		destroy
+	}
+}
+
 onMsg "clear", => {
 	if alive {
 		alive = false
