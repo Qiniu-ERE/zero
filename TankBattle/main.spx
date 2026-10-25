@@ -317,6 +317,28 @@ func bulletClash(x0, y0, x1, y1, r float64) bool {
 	return false
 }
 
+// 触屏模式：手指按在 (x, y) 时做什么。返回方向键的方向（0 上，90 右，180 下，-90 左，移动并开火）、
+// 1（只开火）或 -1（什么都不做）
+func touchZone(x, y float64) int {
+	dx := x - padX
+	dy := y - padY
+	if dx*dx+dy*dy <= padR*padR {
+		if math.Abs(dx) > math.Abs(dy) {
+			if dx > 0 {
+				return 90
+			}
+			return -90
+		} else if dy > 0 {
+			return 0
+		}
+		return 180
+	}
+	if cellIndex(x, y) >= 0 {
+		return 1 // 战场上（战场里没有按钮）
+	}
+	return -1 // 顶栏、右侧面板（暂停、语言、广告卡等按钮都在这里）
+}
+
 // (x, y) 离哪辆玩家坦克更近：1 或 2
 func nearestPlayer(x, y float64) int {
 	if p2Exists && math.Abs(x-p2x)+math.Abs(y-p2y) < math.Abs(x-p1x)+math.Abs(y-p1y) {
@@ -607,6 +629,10 @@ func edRandom() {
 
 // 试玩自制地图，two 表示双人
 func playCustom(two bool) {
+	if two && touchUI {
+		toast "msg.coop.touch", 2 // 和 newGame 一样：手机 App 只认一根手指，2P 没法操作
+		return
+	}
 	edCheck()
 	if edProblem != 0 {
 		toast "msg.ed.bad", 2
@@ -1377,6 +1403,7 @@ func startGame() {
 	buildMap
 	broadcast "hud"
 	Player.respawn
+	Player.fireHeld = true // 触屏：点“开始 / 再来一局”开局时手指还按着，先松开才开火
 	if coop {
 		if p2Exists {
 			broadcast "p2respawn"
