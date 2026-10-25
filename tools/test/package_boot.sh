@@ -25,7 +25,7 @@ awk -v prelude="$ROOT/tools/test/prelude.spx" '
 { printf '\n// ---- 测试：boot（安装包启动测试）----\n'; cat "$ROOT/tests/spx/boot.spx"; } >> "$main"
 
 echo "==> 打包（tools/export/build.sh desktop）"
-export CACHE_DIR="$ROOT/.build/cache"   # 用已经准备好的 spx 源码（setup_spx.sh）
+export CACHE_DIR="${CACHE_DIR:-$ROOT/.build/cache}"   # 用已经准备好的 spx 源码（setup_spx.sh）
 export BUILD_DIR="$WORK/build" DIST_DIR="$WORK/dist" APP_VERSION="${APP_VERSION:-boot-test}"
 "$WORK/repo/tools/export/build.sh" desktop > "$WORK/build.log" 2>&1 || { tail -30 "$WORK/build.log"; echo "打包失败"; exit 1; }
 pkg=$(ls "$DIST_DIR"/TankBattle-* | head -1)
