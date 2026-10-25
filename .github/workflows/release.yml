@@ -2,7 +2,7 @@
 #
 # - 推送 v* 标签（例如 v3.0.0）：打全部平台，并创建 GitHub Release，把安装包挂上去
 # - 手动运行（Actions 页面 → Release → Run workflow）：打全部平台，产物在这次运行的 Artifacts 里，不发布
-# - 推送到 feat/v3-release 分支时，只在提交信息里带 [ci 平台] 才打对应平台（调试用，节省 Actions 分钟数）：
+# - 推送到 ci/ 开头的分支（例如 ci/fix-ios）时，只在提交信息里带 [ci 平台] 才打对应平台（调试用，节省 Actions 分钟数）：
 #   [ci desktop] [ci web] [ci android] [ci ios] [ci all]；[ci smoke] 再加桌面版冒烟测试（启动游戏并截图）
 #   （APK 没法在 CI 的 x86_64 安卓模拟器里测：Godot 的安卓模板只有 ARM 引擎库，而模拟器的 ARM 转译不支持 Go 运行时读取 CPU 型号的指令）
 #
@@ -12,7 +12,7 @@ name: Release
 on:
   push:
     tags: ['v*']
-    branches: [feat/v3-release]
+    branches: ['ci/**']   # 调试打包时推到 ci/ 开头的分支
   workflow_dispatch:
 
 permissions:
