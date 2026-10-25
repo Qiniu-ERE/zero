@@ -17,6 +17,40 @@ onStart => {
 	wait 0.5
 	tInt "P09 单人照常开局", state, stPlay
 
+	// P11 编辑器里的“双人试玩”也要拒绝（v5 REVIEW A7）：原来只有 newGame 检查了，会开出一个没法操作的 2P
+	goHome
+	wait 0.3
+	openEditor
+	wait 0.5
+	edBlank()
+	edRebuild()
+	toastKey = ""
+	playCustom true
+	wait 0.3
+	tInt "P11 双人试玩被拒绝：还在编辑器", state, stEdit
+	tCheck "P11 没有进入双人", !coop && !p2Exists
+	tStr "P11 提示需要键盘或手柄", toastKey, "msg.coop.touch"
+	playCustom false
+	wait 0.5
+	tInt "P11 单人试玩照常", state, stPlay
+
+	// P12 只有按在战场或方向键上才开火，按在按钮上不开火（v5 REVIEW A18）
+	tInt "P12 战场中间：开火", touchZone(cellX(6), cellY(6)), 1
+	tInt "P12 战场左上角：开火", touchZone(cellX(0), cellY(0)), 1
+	tInt "P12 方向键上", touchZone(padX, padY+40), 0
+	tInt "P12 方向键下", touchZone(padX, padY-40), 180
+	tInt "P12 方向键左", touchZone(padX-40, padY), -90
+	tInt "P12 方向键右", touchZone(padX+40, padY), 90
+	tInt "P12 顶栏的暂停按钮：不开火", touchZone(176, 164), -1
+	tInt "P12 语言按钮：不开火", touchZone(208, 164), -1
+	tInt "P12 广告卡：不开火", touchZone(162, -113), -1
+	tInt "P12 右侧面板的得分：不开火", touchZone(130, 130), -1
+	// 点“再来一局”开局时手指还按着：先松开才开火
+	goHome
+	wait 0.3
+	newGame 1, false
+	tCheck "P12 开局时要先松开手指才开火", Player.fireHeld
+
 	goHome
 	wait 0.3
 	tDone "touch"
