@@ -3,7 +3,7 @@
 > **本版先只做文档**：评估怎么把游戏放到主流平台上卖，同时整理几处游戏内容的调整。**聚焦四个平台：Steam（PC / Steam Deck）、Xbox（PC 和主机）、Apple App Store、Google Play**。文档合入后，再按第六节的拆分逐个 PR 实施。
 >
 > 依据分三类，文中都已标明：
-> - **代码**：读本仓库 `main`（v4.0.1，`8db33db`）和 spx 源码（`c3c0da5`）确认的现状。
+> - **代码**：读本仓库 `main`（v4.0.1 之后，`373a20e`）和 spx 源码（`c3c0da5`）确认的现状。
 > - **公开资料**：2026-10-25 查阅的平台文档和公开报道，来源列在 [PLATFORMS.md](PLATFORMS.md) 末尾。平台规则经常变，**提交前要以官方文档重新核对**。
 > - **推测**：没有条件验证的判断，包括所有价格和销量。
 
@@ -19,6 +19,7 @@ v2.0 做出了现代画风和 4 个**模拟**广告位，v3.0 做出了 8 个关
 | **6. 盈利周期与现金流** | 每个平台从投入到第一笔钱到账的时间、打款规则、税、三档盈利预期、按月现金流、回本时间 | 📝 已算 | [CASHFLOW.md](CASHFLOW.md) |
 | **7. 路演故事** | 一句话故事、8 页幻灯片大纲、3 分钟讲稿、评委问答 | 📝 已写 | [PITCH.md](PITCH.md) |
 | **8. 游戏内容调整** | 去掉“每日挑战”；确认自己的子弹能打掉自己的老鹰并补测试 | 📝 已定 | 本文第三节 |
+| **9. 全面审查清单** | 对整个项目的审查：游戏 23 项（双人时一方命中会让另一方的子弹消失、复活不清场、选关只能用键盘、难度曲线……）、打包发布与测试工具 18 项（APK 版本号是旧的、签名证书每版都变……）、文档与仓库 15 项；全部列入 v5 | 📝 已排期 | [REVIEW.md](REVIEW.md) |
 
 ---
 
@@ -108,7 +109,7 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 **做**：
 
-- 文档：本文、[PLATFORMS.md](PLATFORMS.md)、[EXPERIENCE.md](EXPERIENCE.md)、[MONETIZATION.md](MONETIZATION.md)、[MARKETING.md](MARKETING.md)、[CASHFLOW.md](CASHFLOW.md)、[PITCH.md](PITCH.md)、[TECH.md](TECH.md)（本 PR）。
+- 文档：本文、[REVIEW.md](REVIEW.md)、[PLATFORMS.md](PLATFORMS.md)、[EXPERIENCE.md](EXPERIENCE.md)、[MONETIZATION.md](MONETIZATION.md)、[MARKETING.md](MARKETING.md)、[CASHFLOW.md](CASHFLOW.md)、[PITCH.md](PITCH.md)、[TECH.md](TECH.md)（本 PR）。
 - 游戏内容：去掉每日挑战；老鹰友伤的回归测试。
 - 商店版：改名、去掉模拟广告、存档、手柄。
 - 上架 Steam（含试玩版），同时提交 Microsoft Store（PC）。
@@ -135,7 +136,8 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 | 阶段 | PR | 内容 | 前提 | 估计 |
 |---|---|---|---|---|
-| **P0 文档** | docs: v5.0 规划 | 本文和七份详细文档 | — | 0.5 天 |
+| **P0 文档** | docs: v5.0 规划 | 本文和八份详细文档 | — | 0.5 天 |
+| **P1 先修** | fix / build / docs: 审查清单第一批 | [REVIEW.md 第四节](REVIEW.md#四排期)：A1~A3、A12 等游戏问题，B1~B5 等打包发布问题，C1~C9 等文档问题；修完发一个修复版 | — | 3 天 |
 | **P1 内容与商店版** | chore: 去掉每日挑战 | 第三节 3.1 | — | 0.5 天 |
 | | test: 老鹰友伤 | 第三节 3.2 的四条回归测试 | — | 0.5 天 |
 | | chore: 改名 | 新的中英文名字、图标、标题画面；README 保留“复刻自 Battle City”的来历说明，商店页不提原作 | 定好名字 | 0.5 天 |
@@ -143,6 +145,8 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 | | feat: 存档 | 最高分、通关进度（解锁到第几关）、设置、金币、外观；桌面版存到 `os.UserConfigDir()` | — | 1 天 |
 | | spike: 手柄 | 给 spx 打补丁（`patch_spx.py`），把手柄输入转成游戏已经认识的按键：左摇杆 / 十字键 → 方向，A → 开火 / 确认，Start → 暂停；两只手柄分别对应 1P、2P | — | 1~2 天 |
 | | feat: 手柄提示 | `build.py` 生成手柄版按键提示（A / B / Start 图标），检测到手柄时切换 | 手柄 spike 通过 | 1 天 |
+| | 审查清单第二批 | 和商店版、手柄、存档一起做的界面和工具问题（A6~A10、A13，B6、B9、B10 等） | — | 含在上面各项里 |
+| **P2 前：玩法打磨** | feat: 难度曲线与道具 | 多跑模拟定 8 关的难度曲线（A4）；评估原版道具（A5）；出生点占用（A11）；结算统计（A19） | — | 3~4 天 |
 | **决策点 1** | | **手柄补丁可行**：继续 Steam；**不可行**：先用 Steam Input 的“键盘模拟”配置上架（Steam Deck 只能评为“可玩”，不是“已验证”），同时给 spx 提上游 PR | | |
 | **P2 Steam + Microsoft Store** | chore: Steam 打包 | 三个平台的 depot、启动选项；Steam Deck 实机测试 | Steamworks 账号（$100） | 1 天 |
 | | docs: 商店页素材 | 截图、预告片（复用路演演示模式录制）、胶囊图、描述（中英） | — | 1 天 |
@@ -156,7 +160,7 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 | **P5 Xbox 主机评估** | docs: Xbox 主机移植评估 | 把游戏逻辑改写成 GDScript 的工作量、第三方移植模板的报价、公司主体和 ID@Xbox 申请；只出文档 | 决策点 2 达标 | 1 天 |
 | | release: v5.0.0 | 更新 README、架构文档、演示视频 | — | 0.5 天 |
 
-P1 约 6 天，不花钱。P2 起要开平台账号（Steam $100，Microsoft Store 免费，Apple $99 / 年，Google Play $25）。
+P1 约 9 天（含审查清单第一批），加上玩法打磨 3~4 天，都不花钱。P2 起要开平台账号（Steam $100，Microsoft Store 免费，Apple $99 / 年，Google Play $25）。
 
 ## 七、交付清单
 
