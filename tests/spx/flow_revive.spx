@@ -11,7 +11,13 @@ onStart => {
 	baseDestroyed
 	tInt "F05 基地被毁 → 复活询问", state, stRevive
 	tCheck "F05 战场冻结", gameOver
-	wait 2.6
+	// F23 复活弹窗出现之前（先等 2.2 秒爆炸和特写）按确认键不算数：J / Enter 也是开火键，连按开火不能误点“看视频”
+	confirm
+	tInt "F23 弹窗出现前按确认：还在复活询问", state, stRevive
+	wait 1
+	confirm
+	tInt "F23 1 秒后按确认：还在复活询问", state, stRevive
+	wait 1.6
 	tStr "F21 复活询问倒计时画面", screen, "revive_7"
 
 	n0 := lives

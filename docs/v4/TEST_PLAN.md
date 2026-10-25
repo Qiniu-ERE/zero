@@ -171,6 +171,8 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | F20 | 播放广告时再次 `watchAd` 被忽略 |
 | F21 | 每个状态下 `setScreen` 的画面名正确（`home`、`revive_*`、`adplay_*`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`） |
 | F22 | 路演演示模式：`demoFlow` 跑完会发出 `demoDone`，期间 `autopilot` 为 true，结束后回到主页 |
+| F23 | 复活询问的弹窗出现之前（战败后 2.2 秒内）按确认键不算数（J / Enter 也是开火键，防止连按开火误点广告） |
+| F24 | 结算画面出现后 0.6 秒内按确认键不算数，之后才能看视频翻倍 |
 
 ### 3.5 地图编辑器（L2 / L3）
 
