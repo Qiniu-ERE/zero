@@ -10,7 +10,7 @@
 | **L2 游戏逻辑** | 舞台函数和精灵：地图、格子、子弹、地形、敌人、得分、生命、编辑器 | 引擎内测试（第二节） | 每组约 10 秒 | 每个 PR |
 | **L3 游戏流程** | 状态机的每条边、复活、激励视频奖励、结算、下一关、双人合作 | 引擎内测试，按真实时间等待异步流程 | 每组 10~30 秒 | 每个 PR |
 | **L4 网页外壳** | `tools/export/web/play.js`：虚拟按键映射、多点触控、双人按钮 | `node --test`（Node 自带） | 几秒 | 每个 PR |
-| **L1.5 XBuilder 兼容** | 游戏代码在 XBuilder 线上的 spx v3.3.0 下也能编译通过（[PR #18](https://github.com/Qiniu-ERE/zero/pull/18) 的问题：`rand(int, int)` 在 v3.3.0 返回 `float64`，在 4.0 返回 `int`） | 用 spx v3.3.0 的源码和对应版本的 xgo 做类型检查（和 PR #18 的验证方法相同） | 约 1 分钟 | 每个改了 `TankBattle/` 的 PR |
+| **L1.5 XBuilder 兼容**（T09） | 游戏代码在 XBuilder 线上的 spx v3.3.0 下也能编译通过（[PR #18](https://github.com/Qiniu-ERE/zero/pull/18) 的问题：`rand(int, int)` 在 v3.3.0 返回 `float64`，在 4.0 返回 `int`） | 用 spx v3.3.0 的源码和对应版本的 xgo 做类型检查（和 PR #18 的验证方法相同） | 约 1 分钟 | 每个改了 `TankBattle/` 的 PR |
 | **L5 平台启动** | 打包后的程序能启动、进入主页、开一局 | 本机打包 + 启动测试（本机只有 macOS，Windows / Linux 手工） | 几分钟 | 发布前 |
 | **手工** | 按键手感、画面、声音、手机触屏 | 发布前检查表（第七节） | — | 发布前 |
 
@@ -107,7 +107,7 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | T06 | 生成文件没有过期：运行 `build.py` 后 `git diff --exit-code TankBattle/` 没有变化（造型、`index.json`、`UI.spx` 的 `GENERATED` 区块） |
 | T07 | `build.py` 连续运行两次结果完全相同（生成是确定的） |
 | T08 | 游戏代码里引用的每个文案 key（`toast "msg.…"`、`stageTip()` 返回值）在 `strings.py` 里都存在 |
-| T09 | 游戏代码在 spx v3.3.0（XBuilder）和 spx 4.0（本地、安装包）下都能编译通过 |
+| T09 | 游戏代码在 XBuilder 线上的 spx v3.3.0 下也能编译（`tools/test/xbuilder_check.sh`：复制 `.spx` 到临时目录，写一个依赖 spx v3.3.0 的 `go.mod`（`//xgo:class`），用 spx v3.3.0 对应的 xgo 生成 Go 代码，生成时做完整的类型检查）；把一处 `int(rand(…))` 改回 #18 修复前的写法，必须报出 `mismatched types float64 and int`。在 #18 修复前的代码上运行，报出的两个错误和当时 XBuilder 报的完全相同（`main.spx:545:8`、`main.spx:1113:5`）。spx 4.0 由引擎内测试覆盖 |
 
 ### 3.2 地图与格子（L2）
 
@@ -291,7 +291,7 @@ v4 的测试都在本地跑，**不依赖 GitHub Actions**：引擎内测试用 
 | 随机数没有种子接口 | 出兵类型、随机地图每次不同 | 测不变量和比例范围（C09、E08） |
 | headless 下没有画面 | 画面对不对测不到 | 画面变化用 PR 截图人工确认（`tools/dev/shot.sh`），测试只检查 `screen`、造型名等状态 |
 | 声音 | 测不到 | 手工检查 |
-| 引擎内测试只在 spx 4.0 上跑 | XBuilder 用 spx v3.3.0，两个版本的接口有差别（例如 `rand` 的返回类型），4.0 上通过不代表 XBuilder 上能运行 | T09 做 v3.3.0 的编译检查；发布前在 x.qiniu.com 导入 `.xbp` 实际玩一次（手工检查表） |
+| 引擎内测试只在 spx 4.0 上跑 | XBuilder 用 spx v3.3.0，两个版本的接口有差别（例如 `rand` 的返回类型），4.0 上通过不代表 XBuilder 上能运行 | T09 用 spx v3.3.0 做编译检查（只检查能不能编译，运行时的行为差别仍要靠发布前在 x.qiniu.com 导入 `.xbp` 实际玩一次，见手工检查表） |
 
 ## 七、发布前手工检查表
 
