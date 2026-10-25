@@ -233,7 +233,7 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 |---|---|
 | B01 | 启动后进入主页（`state = stHome`），没有 `panic` / `cannot alloc method` |
 | B02 | 能开一局并进入对局（`playStage 1`），地图和 HUD 建好 |
-| B03 | 打包产物（Windows / macOS / Linux 单文件程序）启动后 B01、B02 通过 |
+| B03 | 打包产物启动后 B01、B02 通过（`tools/test/package_boot.sh`：把 `boot.spx` 加进工程副本，用同一个 `tools/export/build.sh desktop` 打包，解开安装包运行里面的程序，读 TEST 输出）。2026-10-25 在 macOS 上：打包 + 运行共 21 秒，9 个断言通过。Windows / Linux 包在对应系统上运行同一个脚本 |
 
 ## 四、覆盖率怎么算
 
