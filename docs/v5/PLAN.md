@@ -16,7 +16,9 @@ v2.0 做出了现代画风和 4 个**模拟**广告位，v3.0 做出了 8 个关
 | **3. 盈利方案** | PC：买断 $4.99 + 免费试玩版，不放广告；手机：先付费下载，SDK 接得上后改“免费 + 一次性解锁”，激励视频最后再考虑；收入试算 | 📝 方案已定 | [MONETIZATION.md](MONETIZATION.md) |
 | **4. 推广方案** | 给游戏打广告：Coming Soon 页、Couch Co-Op Fest、Next Fest、试玩版、主播、B 站 / 小红书、付费广告的止损线；目标发售前 5000 个愿望单 | 📝 时间线已定 | [MARKETING.md](MARKETING.md) |
 | **5. 技术前提** | **手柄支持**、商店版（去掉模拟广告）、改名、存档与匿名统计、Android 引擎升级、iOS 签名、Xbox 主机的引擎问题 | 📝 方案已定，手柄未验证；HTTP 已验证 | [TECH.md](TECH.md) |
-| **6. 游戏内容调整** | 去掉“每日挑战”；确认自己的子弹能打掉自己的老鹰并补测试 | 📝 已定 | 本文第三节 |
+| **6. 盈利周期与现金流** | 每个平台从投入到第一笔钱到账的时间、打款规则、税、三档盈利预期、按月现金流、回本时间 | 📝 已算 | [CASHFLOW.md](CASHFLOW.md) |
+| **7. 路演故事** | 一句话故事、8 页幻灯片大纲、3 分钟讲稿、评委问答 | 📝 已写 | [PITCH.md](PITCH.md) |
+| **8. 游戏内容调整** | 去掉“每日挑战”；确认自己的子弹能打掉自己的老鹰并补测试 | 📝 已定 | 本文第三节 |
 
 ---
 
@@ -33,6 +35,8 @@ v2.0 做出了现代画风和 4 个**模拟**广告位，v3.0 做出了 8 个关
 **怎么赚钱**：PC（Steam、Microsoft Store）**买断 $4.99、不放广告**，Steam 加免费试玩版。手机上 96% 以上的下载是免费下载，更适合“免费 + 一次性解锁”，但内购和广告都要接平台 SDK，**spx 现在接不上**（引擎是固定函数表，主流广告插件还要求 Godot 4.5+），所以手机分三步：先付费下载 → SDK 能接后改免费 + 解锁 → 最后才考虑给没付费的玩家放自愿的激励视频。模拟广告位在所有商店版里去掉。详见 [MONETIZATION.md](MONETIZATION.md)。
 
 **怎么让人知道**：Steam 上 2025 年约三分之二的游戏收入不到 $1000，销量主要由发售时的愿望单决定（首周销量约为愿望单的 0.10~0.20 倍）。v5 的推广目标是**发售前 5000 个愿望单**：2026-11 开 Coming Soon 页，2027-02 参加 Couch Co-Op Fest（本地合作游戏节，正好对口）和 Next Fest，3~4 月发售；不到 5000 就推迟。详见 [MARKETING.md](MARKETING.md)。
+
+**盈利预期**（推测，假设见 [CASHFLOW.md](CASHFLOW.md)）：基准情景（发售时 5000 个愿望单）第一年约 $7400（约 ¥5.3 万），投入约 $1500（约 ¥1.1 万），**2027-04 底第一笔 Steam 打款到账时回本**；保守约 ¥1.9 万，乐观约 ¥16.8 万。各平台第一笔钱：Steam 2027-04、苹果约 2027-07、Microsoft Store 累计满 $50 后、Google Play 等引擎升级。路演讲法见 [PITCH.md](PITCH.md)。
 
 **体验上最大的缺口是手柄**：Steam Deck 认证、远程同乐、手机上的双人合作都靠它；而且 Steam Input 的键盘模拟会把两只手柄合并成一个键盘，双人合作没法用，必须在游戏里按设备区分。详见 [EXPERIENCE.md](EXPERIENCE.md)。
 
@@ -104,7 +108,7 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 **做**：
 
-- 文档：本文、[PLATFORMS.md](PLATFORMS.md)、[EXPERIENCE.md](EXPERIENCE.md)、[MONETIZATION.md](MONETIZATION.md)、[MARKETING.md](MARKETING.md)、[TECH.md](TECH.md)（本 PR）。
+- 文档：本文、[PLATFORMS.md](PLATFORMS.md)、[EXPERIENCE.md](EXPERIENCE.md)、[MONETIZATION.md](MONETIZATION.md)、[MARKETING.md](MARKETING.md)、[CASHFLOW.md](CASHFLOW.md)、[PITCH.md](PITCH.md)、[TECH.md](TECH.md)（本 PR）。
 - 游戏内容：去掉每日挑战；老鹰友伤的回归测试。
 - 商店版：改名、去掉模拟广告、存档、手柄。
 - 上架 Steam（含试玩版），同时提交 Microsoft Store（PC）。
@@ -131,7 +135,7 @@ TEST PASS 1P 从出生点往右打，打掉自己的老鹰
 
 | 阶段 | PR | 内容 | 前提 | 估计 |
 |---|---|---|---|---|
-| **P0 文档** | docs: v5.0 规划 | 本文和五份详细文档 | — | 0.5 天 |
+| **P0 文档** | docs: v5.0 规划 | 本文和七份详细文档 | — | 0.5 天 |
 | **P1 内容与商店版** | chore: 去掉每日挑战 | 第三节 3.1 | — | 0.5 天 |
 | | test: 老鹰友伤 | 第三节 3.2 的四条回归测试 | — | 0.5 天 |
 | | chore: 改名 | 新的中英文名字、图标、标题画面；README 保留“复刻自 Battle City”的来历说明，商店页不提原作 | 定好名字 | 0.5 天 |
