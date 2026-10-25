@@ -37,6 +37,16 @@ func tNum(id string, got, want float64) {
 	}
 }
 
+// 已知问题：期望 ok 为 true，但现在还没修好。没通过输出 TEST XFAIL（不算失败，汇总里列出来）；
+// 通过了输出 TEST XPASS（算失败：问题已经修好，把 tXfail 改成 tCheck）
+func tXfail(id string, ok bool, issue string) {
+	if ok {
+		println("TEST XPASS", id, "（已知问题已修好："+issue+"，请把 tXfail 改成 tCheck）")
+	} else {
+		println("TEST XFAIL", id, "（已知问题："+issue+"）")
+	}
+}
+
 // 第 r 行第 c 列的格子编号
 func tAt(r, c int) int {
 	return r*cols + c

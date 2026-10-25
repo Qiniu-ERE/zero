@@ -32,6 +32,7 @@ export GOPATH GOCACHE XDG_CACHE_HOME TB_ROOT
 failed=""
 total_pass=0
 total_fail=0
+total_xfail=0
 for suite in "$@"; do
 	name=$(basename "$suite" .spx)
 	dir="$WORK/${name}"
@@ -65,10 +66,15 @@ for suite in "$@"; do
 
 	pass=$(grep -a -c '^TEST PASS' "${log}" || true)
 	fail=$(grep -a -c '^TEST FAIL' "${log}" || true)
+	xfail=$(grep -a -c '^TEST XFAIL' "${log}" || true)
+	xpass=$(grep -a -c '^TEST XPASS' "${log}" || true)
+	total_xfail=$((total_xfail + xfail))
+	grep -a '^TEST XFAIL' "${log}" | sed "s/^TEST XFAIL /  ${name}: /" >> "$WORK/xfail.txt" || true
 	total_pass=$((total_pass + pass))
 	total_fail=$((total_fail + fail))
 	why=""
 	[ "${fail}" -eq 0 ] || why="${fail} 个断言失败"
+	[ "${xpass}" -eq 0 ] || why="${why:+${why}；}${xpass} 个已知问题已经修好（把 tXfail 改成 tCheck）"
 	grep -a -q "^TEST DONE ${name}" "${log}" || why="${why:+${why}；}没有跑完（缺少 TEST DONE）"
 	[ $timedout -eq 0 ] || why="${why:+${why}；}超时（${limit} 秒）"
 	! grep -a -q -E 'panic|cannot alloc method|failed to build|Engine failed: exit status' "${log}" || why="${why:+${why}；}引擎报错（编译失败或崩溃）"
@@ -76,12 +82,13 @@ for suite in "$@"; do
 		echo "ok    ${name}  pass=${pass}  (${secs}s)"
 	else
 		echo "FAIL  ${name}  pass=${pass} fail=${fail}  ${why}  (${secs}s，日志：${log})"
-		grep -a -E '^TEST FAIL|panic|cannot alloc method|failed to build|error' "${log}" | head -20 | sed 's/^/      /'
+		grep -a -E '^TEST FAIL|^TEST XPASS|panic|cannot alloc method|failed to build|error' "${log}" | head -20 | sed 's/^/      /'
 		failed="${failed} ${name}"
 	fi
 done
 
-echo "---- 断言：通过 ${total_pass}，失败 ${total_fail}"
+echo "---- 断言：通过 ${total_pass}，失败 ${total_fail}，已知问题 ${total_xfail}"
+[ ! -s "$WORK/xfail.txt" ] || { echo "---- 已知问题（还没修好，不算失败）："; cat "$WORK/xfail.txt"; }
 if [ -n "$COVERAGE" ]; then
 	python3 "$ROOT/tools/test/spx_coverage.py" report ${UNITTEST_LOG:+--unittest-log "$UNITTEST_LOG"} "$WORK"/*/run.log > "$WORK/coverage.md"
 	echo "---- 覆盖率报告：$WORK/coverage.md"
