@@ -189,6 +189,8 @@ git tag v3.0.0 && git push origin v3.0.0
 ./tools/dev/record_demo.sh
 ```
 
+版本标签：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的内容；`v2.0.0`、`v3.0.0` 是两次发布。
+
 开发规范：每次改动都通过 Pull Request 合入，详见[架构文档的开发流程](docs/ARCHITECTURE.md#11-开发流程与分工)。
 
 ## 代码里的教学要点
