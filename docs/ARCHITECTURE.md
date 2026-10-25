@@ -246,6 +246,7 @@ stateDiagram-v2
 - **注意**：测试脚本只放在副本里，不要提交；脚本开头至少 `wait 3`，让游戏先完成初始化。
 - **关卡地图**：`python3 tools/levels/check.py` 检查 8 张地图（编辑器里的实时检查是同一套规则）。
 - **安装包**：`tools/export/build.sh` 本地打包；CI（`.github/workflows/release.yml`）里的 `smoke-windows` / `smoke-macos` / `smoke-linux` 会解压桌面包、启动游戏并截图。
+- **自动化测试（v4.0）**：用 `spx run -headless` 在工程副本里运行测试脚本，直接调用舞台函数并检查结果，配合覆盖率插桩和 PR 自动测试。设计见 [v4 测试方案](v4/TEST_PLAN.md)。
 - **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v3-demo.mp4` 和 `tankbattle-v3.gif`）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
 
 ## 11. 开发流程与分工
@@ -288,6 +289,14 @@ stateDiagram-v2
 | #21 | v3.0.1 文档、更新记录、演示视频（含暂停菜单）；发布 v3.0.1 |
 | #22 | README 表格排版；修复审查发现的问题（进编辑器误画、连按开火误点广告、触屏双人、演示改最高分、金币重复计算）；PR 检查流水线、冒烟测试会真正失败 |
 
+### v4.0 的 PR 记录
+
+v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`。计划拆分见 [v4.0 规划](v4/PLAN.md#四里程碑与-pr-拆分)。
+
+| PR | 内容 |
+|---|---|
+| — | v4.0 规划：测试与质量总览、测试方案（文档） |
+
 ### 分工
 
 表中的 `dn-mbp14-qn` 是本地 git 用户名，对应 GitHub 账号 [danielfeng](https://github.com/danielfeng)；`zhangxunling` 是另一位成员。
@@ -299,6 +308,7 @@ stateDiagram-v2
 | 美术与界面管线（`tools/assets`） | dn-mbp14-qn | 生成器、现代画风、HUD 与弹窗、文字转路径 |
 | 商业化（广告位） | dn-mbp14-qn | 广告位设计与实现、正式接入方案 |
 | 测试、演示视频与文档 | dn-mbp14-qn | 实机截图验证、演示视频、架构文档 |
+| v4.0 测试与质量 | zhangxunling | 测试方案、引擎内测试框架、各模块测试用例、覆盖率、CI 测试 |
 | v3.0 关卡、双人合作、地图编辑器 | dn-mbp14-qn | 8 张地图与关卡检查工具、2P 坦克、编辑器与实时检查 |
 | v3.0 跨平台打包与发布 | dn-mbp14-qn | 打包脚本、网页版外壳、手机触屏模式、GitHub Actions 发布与冒烟测试 |
 | v4 测试计划与测试套件 | zhangxunling | v4 测试计划和按模块拆分的测试（编辑器、流程、子弹、敌人、玩家、得分、出兵、工具等），在 `v4.0`、`test/v4-*`、`docs/v4-*` 分支上，尚未合入 main |
