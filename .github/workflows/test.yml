@@ -1,16 +1,14 @@
 # 自动化测试（见 docs/v4/TEST_PLAN.md 第五节）
 #
-# - 每个 PR、推送到 main / v4.0：跑构建工具测试和引擎内测试
-# - 推送到 test/** ci/** 分支时，只在提交信息里带 [ci test] 才跑（调试用，节省 Actions 分钟数）
-# - 结果写在这次运行的 Summary 里；引擎内测试失败时，每组的日志作为 Artifacts 上传
+# 只能手动运行（Actions 页面 → Test → Run workflow）：组织的 Actions 额度有限（2026-10-25 起因为额度 / 付款问题
+# 任务启动不了），v4 的测试改为在本地运行：合入前用 tools/test/pr_check.sh 检查，把报告贴到 PR 里。
+# 额度恢复、想在云端再跑一次时，手动触发这个工作流。
 #
 # 打包和多平台冒烟测试在 release.yml。
 name: Test
 
 on:
-  pull_request:
-  push:
-    branches: [main, v4.0, 'test/**', 'ci/**']
+  workflow_dispatch:
 
 concurrency:
   group: test-${{ github.ref }}
@@ -22,28 +20,8 @@ env:
   PYTHONUTF8: '1'
 
 jobs:
-  plan:
-    runs-on: ubuntu-latest
-    outputs:
-      run: ${{ steps.p.outputs.run }}
-    steps:
-      - id: p
-        env:
-          MSG: ${{ github.event.head_commit.message }}
-          REF: ${{ github.ref_name }}
-        run: |
-          run=true
-          if [ "${{ github.event_name }}" = push ]; then
-            case "$REF" in
-              test/*|ci/*) [[ "$MSG" == *"[ci test]"* ]] || run=false ;;
-            esac
-          fi
-          echo "run=$run" >> "$GITHUB_OUTPUT"
-
   tools:
     name: 构建工具测试
-    needs: plan
-    if: needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,8 +53,6 @@ jobs:
 
   spx:
     name: 引擎内测试
-    needs: plan
-    if: needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
