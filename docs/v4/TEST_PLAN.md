@@ -2,7 +2,7 @@
 
 本文是 v4.0 的测试设计：分几层测、引擎内的测试怎么写怎么跑、要测哪些用例、覆盖率怎么算、怎么在本地检查（不用 CI）。总览和里程碑见 [PLAN.md](PLAN.md)。
 
-> 本文最早是规划稿。第二、四、五节已经按实际实现更新（2026-10-25，v4.0.1）：文件名、函数名、数字以仓库里的代码为准，日常用法见[架构文档第 10 节](../ARCHITECTURE.md#10-测试与演示视频)。
+> 本文最早是规划稿。第二、四、五节已经按实际实现更新（2026-10-25，v4.0.1；第三节的用例清单和第五节的工具跟进到 v5 第一批修复）：文件名、函数名、数字以仓库里的代码为准，日常用法见[架构文档第 10 节](../ARCHITECTURE.md#10-测试与演示视频)。
 
 ## 一、测试分层
 
@@ -31,24 +31,25 @@ tests/
 ├── spx/                      # 引擎内测试：每个文件一组（共 19 组），每组单独起一个进程
 │   ├── boot.spx              # 启动（B01、B02），也用于安装包启动测试 B03
 │   ├── grid.spx              # 地图与格子（G01~G08）
-│   ├── bullets.spx           # 子弹和地形（C01~C07）
+│   ├── bullets.spx           # 子弹和地形（C01~C07）、真实发射子弹打自己的老鹰（C21~C24）
 │   ├── spawn.spx             # 出兵（C08、C09）
-│   ├── score.spx             # 得分（C10、C11）
+│   ├── score.spx             # 得分（C10、C11）、生命显示（C20）
 │   ├── player.spx            # 玩家坦克（C12~C14）
 │   ├── enemy.spx             # 敌人挨打（C15）
 │   ├── theme.spx             # 画风和语言（C16）
 │   ├── clash.spx             # 子弹相撞、正对一块砖（C17、C18）
-│   ├── flow_home.spx         # 流程：主页出发、回到主页（F01~F04、F16）
-│   ├── flow_revive.spx       # 流程：战败、复活、激励视频（F05~F10、F19、F20）
+│   ├── flow_home.spx         # 流程：主页出发、回到主页（F01~F04、F16）、主页按钮（F34）、选关画面（F35）
+│   ├── flow_revive.spx       # 流程：战败、复活、激励视频（F05~F10、F19、F20、F30~F33）
 │   ├── flow_result.spx       # 流程：结算、金币、下一关、全部通关（F11~F15、F18）
 │   ├── flow_custom.spx       # 流程：自制地图试玩（F17）
 │   ├── flow_demo.spx         # 流程：路演演示（F22）
 │   ├── pause.spx             # 暂停菜单（F25~F29）
 │   ├── editor.spx            # 地图编辑器（E01~E06、E08~E15）
 │   ├── editor_parity.spx     # E07：edCheck() 和 check.py 结论一致（游戏这一半）
-│   ├── coop.spx              # 双人合作（P01~P08）
-│   └── touch.spx             # 触屏模式（P09，文件里写了 // touch: true）
-├── tools/                    # L1（Python unittest）：test_check.py、test_strings.py、test_assets.py、test_editor_maps.py、test_xbuilder.py
+│   ├── coop.spx              # 双人合作（P01~P08、P10）
+│   └── touch.spx             # 触屏模式（P09、P11、P12，文件里写了 // touch: true）
+├── tools/                    # L1（Python unittest）：test_check.py、test_strings.py、test_assets.py、test_editor_maps.py、test_xbuilder.py、
+│                             #   test_coverage_tool.py（覆盖率工具）、test_release_tools.py（打包发布工具）
 ├── web/                      # L4：play.test.mjs
 ├── data/editor_maps.txt      # E07 用的 248 张编辑器地图（gen_editor_maps.py 生成）
 └── coverage-baseline.json    # 覆盖率基线（第八节）
@@ -61,6 +62,8 @@ tools/test/
 ├── pr_check.sh               # PR 合入前的本地检查（第五节）
 ├── xbuilder_check.sh         # XBuilder 兼容检查（T09）
 ├── package_boot.sh           # 安装包启动测试（B03）
+├── dist_boot.sh              # 直接运行要发出去的安装包（B14）
+├── difficulty.sh             # 难度模拟（8 关难度曲线，#63）
 └── gen_editor_maps.py        # 生成 tests/data/editor_maps.txt
 ```
 
@@ -68,7 +71,8 @@ tools/test/
 tools/test/run_all.sh                            # 全部
 tools/test/run_spx.sh tests/spx/flow_revive.spx  # 只跑一组
 tools/test/run_spx.sh --coverage                 # 全部引擎内测试 + 覆盖率报告
-SKIP_SPX=1 tools/test/run_all.sh                 # 没装 spx：只跑构建工具和网页外壳的测试
+SKIP_SPX=1 tools/test/run_all.sh                 # 没装 spx：只跑构建工具和网页外壳的测试（会列为“⚠️ 跳过”）
+tools/dev/venv.sh                                # 第一次：建 .venv（锁定版本的 fontTools 等），测试脚本不设 PYTHON 时自动用它
 ```
 
 ### 2.3 输出协议
@@ -145,6 +149,13 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | T08 | 游戏代码里引用的每个文案 key（`toast "msg.…"`、`stageTip()` 返回值）在 `strings.py` 里都存在 |
 | T09 | 游戏代码在 XBuilder 线上的 spx v3.3.0 下也能编译（`tools/test/xbuilder_check.sh`：复制 `.spx` 到临时目录，写一个依赖 spx v3.3.0 的 `go.mod`（`//xgo:class`），用 spx v3.3.0 对应的 xgo 生成 Go 代码，生成时做完整的类型检查）；把一处 `int(rand(…))` 改回 #18 修复前的写法，必须报出 `mismatched types float64 and int`。在 #18 修复前的代码上运行，报出的两个错误和当时 XBuilder 报的完全相同（`main.spx:545:8`、`main.spx:1113:5`）。spx 4.0 由引擎内测试覆盖 |
 
+v5 第一批（[#68](https://github.com/Qiniu-ERE/zero/pull/68)、[#70](https://github.com/Qiniu-ERE/zero/pull/70)、[#72](https://github.com/Qiniu-ERE/zero/pull/72)）给打包和测试工具也加了单元测试（B13），没有编用例号，跟着 `run_all.sh` 一起跑，都用临时目录里的小样本，不联网、不打包：
+
+| 文件 | 测什么 |
+|---|---|
+| `tests/tools/test_coverage_tool.py` | `spx_coverage.py`：找函数和事件处理、插桩、读日志、生成基线（只覆盖到一次的记为不稳定）、和基线比较 |
+| `tests/tools/test_release_tools.py` | `patch_spx.py` 的版本号换算和报错；`env.sh` 从 CHANGELOG 取版本号（认得 `-rc.1`），Go / xgo 版本和工作流一致、sha256 格式正确；`release_local.sh` 的 `DRY_RUN`（按版本号回退、预发布的包不混入、`--append` 合并校验和、已有 Release 拒绝新建、`BUILD_LOCAL.md` 检查）；`build.sh` 的 `--store` / `--demo` 和补丁校验和 |
+
 ### 3.2 地图与格子（L2）
 
 | ID | 用例 |
@@ -171,7 +182,7 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | C07 | `nearestPlayer`：单人时永远是 1；双人时返回离得近的那辆 |
 | C08 | `spawnEnemy` 依次在左、中、右三个出生点出兵；`spawned`、`enemiesAlive` 正确增加 |
 | C09 | `spawnEnemy` 的坦克类型比例：每关采样 300 次，重型 / 快速占比在 `stageTune()` 配置的 ±10% 以内 |
-| C10 | `enemyKilled`：加分、`killed` 加 1、`enemiesLeft` 减 1、刷新最高分；第 20 辆 → 胜利结算 |
+| C10 | `enemyKilled`：加分、`killed` 加 1（顶栏的敌军剩余按 `killed` 显示，v5 去掉了 `enemiesLeft`）、刷新最高分；第 20 辆 → 胜利结算（战场运行时才判胜利，见 F33） |
 | C11 | 最高分只升不降 |
 | C12 | 屏幕上同时只能有 1 发自己的子弹（`pbCount`） |
 | C13 | 出生时有 3 秒保护，保护期内中弹不扣命 |
@@ -181,10 +192,15 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | C17 | 子弹迎面相撞互相抵消（横着、竖着各 5 次都要抵消，敌人子弹也消失）；错开 3 像素要抵消，错开 12 像素、相邻两行擦肩而过不能抵消。v4.0 时是**已知问题**（`tXfail`），v4.0.1 修复后改回普通断言，见第九节 |
 | C18 | 正对一块砖（两个检测点在同一格）只打裂，不会一发打碎（v3.0.2 修复） |
 | C19 | 路演演示（自动驾驶）的得分不算最高分（v3.0.2） |
+| C20 | 生命显示（`lifeLook`）：3 条、2 条照旧；4 条显示图标、`lifex4`、第 3 个不显示；2P 5 条命是 `life2_on`、`lifex5`；超过 9 条也只显示 ×9（A15） |
+| C21 | 真实发射子弹（不直接调用 `hitPoint`）：第 1 关 1P 在出生点朝右打，第 1 发护墙砖裂开、第 2 发砖碎、老鹰还在，第 3 发老鹰被自己打掉 → 复活询问 |
+| C22 | 1P 在基地正上方（第 9 行第 6 列）朝下打：第 2 发上方护墙砖碎、老鹰还在，第 3 发打掉老鹰 |
+| C23 | 双人，2P 在出生点朝左打：第 2 发右边护墙砖碎，第 3 发打掉老鹰 |
+| C24 | 路演演示（`autopilot`）从 1P 出生点朝右打 4 发：护墙砖照样打碎，老鹰打不掉、还在对局 |
 
 ### 3.4 流程状态机（L3）
 
-[架构文档第 5 节](../ARCHITECTURE.md#5-游戏流程状态机)的状态图一共 16 条边，每条至少一个用例（F01~F16），另加规则用例：
+[架构文档第 5 节](../ARCHITECTURE.md#5-游戏流程状态机)的状态图原来一共 16 条边，每条至少一个用例（F01~F16）；v5 加了选关画面的 3 条边，由 F35 覆盖。另加规则用例：
 
 | ID | 用例 |
 |---|---|
@@ -192,11 +208,11 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | F02 | 主页 → 对局：`playStage(n)` 选关，`stage = n`、`stageScore = 0` |
 | F03 | 主页 → 对局：`newGame(1, true)` 双人合作 |
 | F04 | 主页 → 编辑器：`openEditor()`，`state = stEdit` |
-| F05 | 对局 → 复活询问：本局第一次战败（基地被毁） |
-| F06 | 对局 → 复活询问：本局第一次战败（生命用完） |
+| F05 | 对局 → 复活询问：本关第一次战败（基地被毁） |
+| F06 | 对局 → 复活询问：本关第一次战败（生命用完） |
 | F07 | 复活询问 → 播放广告：`confirm()` → `watchAd(rewardRevive)` |
 | F08 | 复活询问 → 结算：放弃 / 7 秒倒计时结束，判负 |
-| F09 | 播放广告 → 对局：复活奖励 = 修复基地、额外 1 条命、`revived = true` |
+| F09 | 播放广告 → 对局：复活奖励 = 修复基地、额外 1 条命、`revived = true`（v5 起还会清场，见 F30） |
 | F10 | 对局 → 结算：复活过之后再次战败，直接结算 |
 | F11 | 对局 → 结算：消灭 20 辆，胜利 |
 | F12 | 结算 → 播放广告 → 结算：金币翻倍，`doubled = true`；第二次不能再翻倍 |
@@ -217,6 +233,12 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | F27 | 暂停时退出：关卡 → 主页；自制地图试玩（`pause_edit` 画面）→ 编辑器 |
 | F28 | 不能暂停：主页、开局 / 复活还没准备好（`gameOver`）、路演演示、复活询问 |
 | F29 | 暂停时一切停下（出生保护不倒计时），继续后接着走 |
+| F30 | 复活清场（A2）：敌人子弹全部消失；基地 3 格以内的敌人消失、远处的还在，清掉的不算击毁、以后重新出场；碎了、裂了的护墙补回来；3 秒内基地打不掉，3 秒后能再被打掉（已经复活过 → 结算） |
+| F31 | 复活询问时按 Esc（A12）：基地刚被毁、弹窗还没出现时按 Esc 还在复活询问；弹窗出现后按 Esc = 放弃 → 结算 |
+| F32 | 复活次数按关卡记录（A16）：复活后暂停 → 重新开始本关，还算复活过，再战败直接结算；输了以后在结算画面重打本关、从主页进关、赢了进下一关，都可以再复活一次 |
+| F33 | 基地先失守（A17）：基地已经被毁时打掉最后一辆敌人，还是复活询问、不判胜利；复活后敌人已经全灭 → 胜利结算 |
+| F34 | 主页按钮（v5 去掉每日挑战）：开始战役、双人合作、自己做地图的点击区域都在，没有 `home.daily`；原来每日挑战卡的位置是“选择关卡” |
+| F35 | 选关画面（A3）：主页 → 选关（`stLevels`、`levels` 画面）；8 张卡片和返回按钮的点击区域在预期位置；Esc 回主页；选第 6 关 → 第 6 关单人对局 |
 
 ### 3.5 地图编辑器（L2 / L3）
 
@@ -251,6 +273,9 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | P07 | 两人各自同时只能有 1 发子弹（`pbCount` / `pbCount2`） |
 | P08 | 回主页 / 单人开局时 2P 被去掉（`p2off`），`p2Exists = false` |
 | P09 | 触屏模式（手机 App，测试文件写 `// touch: true`，runner 用和打包脚本相同的方法打开）：双人合作被拒绝并提示 `msg.coop.touch`，单人照常（v3.0.2） |
+| P10 | 打中敌人只让打中的那一发消失（A1）：2P 往空的一列开火，1P 打中敌人，2P 的子弹还在飞，飞到边界才消失 |
+| P11 | 触屏模式：编辑器里“双人试玩”被拒绝，留在编辑器，提示 `msg.coop.touch`；单人试玩照常（A7） |
+| P12 | 触屏模式的开火区域（`touchZone`，A18）：战场中间、左上角 → 开火；方向键上下左右；暂停按钮、语言按钮、广告卡、右侧得分 → 不开火；开局后 `Player.fireHeld` 为 true（要先松开手指）。真实的手指按下 / 松开测不到，要在手机上手工试 |
 
 ### 3.7 网页外壳（L4）
 
@@ -268,8 +293,9 @@ ID 规则：`T` 构建工具、`G` 地图与格子、`C` 对局规则、`F` 流�
 | ID | 用例 |
 |---|---|
 | B01 | 启动后进入主页（`state = stHome`），没有 `panic` / `cannot alloc method` |
-| B02 | 能开一局并进入对局（`playStage 1`），地图和 HUD 建好 |
+| B02 | 能开一局并进入对局（`playStage 1`），地图和 HUD 建好（v5 起检查 `killed`，不再检查 `enemiesLeft`） |
 | B03 | 打包产物启动后 B01、B02 通过（`tools/test/package_boot.sh`：把 `boot.spx` 加进工程副本，用同一个 `tools/export/build.sh desktop` 打包，解开安装包运行里面的程序，读 TEST 输出）。2026-10-25 在 macOS 上：打包 + 运行共 21 秒，9 个断言通过。Linux 包由 `tools/export/linux_vm.sh build` 在虚拟机里用 Xvfb 运行同一个脚本（`build_local.sh` 会自动调用）；Windows 包要在 Windows 上运行同一个脚本 |
+| B14 | 要发出去的那个安装包能直接运行（`tools/test/dist_boot.sh <安装包> [秒数]`）：把 `dist/` 里的 .zip（macOS .app）/ .tar.gz（Linux）解到临时目录运行，到时间进程还活着、输出里没有 panic / 引擎报错才算通过，结束时只结束自己启动的进程。`build_local.sh` 的 macOS 在 B03 之后跑它；Linux 在 `linux_vm.sh build` 的虚拟机里用 Xvfb 跑，B03 和 B14 都通过才算 ✅ |
 
 ## 四、覆盖率怎么算
 
@@ -286,7 +312,7 @@ spx 没有现成的覆盖率工具，v4.0 用四种互相补充的指标：
 - 命令：`tools/test/run_all.sh --coverage`（构建工具测试也计入用例清单），或者 `tools/test/run_spx.sh --coverage`。报告写到临时目录的 `coverage.md`，终端里打印目标达成情况。插桩工具是 `tools/test/spx_coverage.py`：`tCov` 是插到副本 `main.spx` 里的舞台函数，用舞台变量记住打印过的名字，同一个名字只打印一次 `COV <文件>:<名字>`（热点函数每帧都会调用）。
 - 按键和点击（16 个 `onKey`、1 个 `onKey [Key1…Key8]`、1 个 `onClick`）在无界面测试里触发不了，单独列一栏，不计入事件处理覆盖率。
 - 已知时有时无的（`spx_coverage.py` 里的 `KNOWN_UNSTABLE`）：基线里记为不稳定，消息覆盖率不计入，报告里单独列出。v4.0 时只有子弹相撞抵消的 `EBullet.spx:onMsg "clash"`（C17 已知问题）；v4.0.1 修复后这个处理去掉了，现在没有不稳定的项。
-- README 的徽章（v4.0.1：tests 456 passing：416 个引擎内断言 + 34 个构建工具测试 + 6 个网页外壳测试；coverage 96% functions · 100% handlers）用的是稳定的数字，更新基线时一起更新。v4.0 时是 450 passing、98% handlers。
+- README 的徽章（v5 第一批之后：tests 579 passing：507 个引擎内断言 + 66 个构建工具测试 + 6 个网页外壳测试；coverage 还是 v4.0.1 的 96% functions · 100% handlers）用的是稳定的数字，更新基线时一起更新。v4.0.1 时是 456 passing（416 + 34 + 6），v4.0 时是 450 passing、98% handlers。
 
 **第一次实测（2026-10-25，基于 v3.0.2 的 main）**：
 
@@ -314,9 +340,14 @@ v4 的测试都在本地跑，**不依赖 GitHub Actions**：引擎内测试用 
 |---|---|---|
 | 每个 PR 合入前 | `tools/test/pr_check.sh` | 和 `.github/workflows/check.yml` 相同的三项检查（关卡地图、生成的素材、`.xbp`）+ `run_all.sh` 的全部测试；生成 Markdown 报告，贴到 PR 里 |
 | 需要覆盖率时 | `tools/test/pr_check.sh --coverage` | 同上，再加覆盖率报告 |
-| 发布前 | `tools/export/build_local.sh`：打包并对每个包做检查，桌面包跑启动测试（B03） | macOS 包在本机测；Linux 包在 `linux_vm.sh` 的 OrbStack 虚拟机里用 Xvfb 测；Windows 包本机打不了，有包时要在 Windows 上手工启动一次 |
+| 发布前 | `tools/export/build_local.sh`：打包并对每个包做检查，桌面包跑启动测试（B03）和直接运行安装包（B14） | macOS 包在本机测；Linux 包在 `linux_vm.sh` 的 OrbStack 虚拟机里用 Xvfb 测；Windows 包本机打不了，有包时要在 Windows 上手工启动一次 |
 
-- `pr_check.sh` 的第二项在临时副本里运行 `build.py` 再比较，不会改动工作区；第三项把 `.xbp` 解压后和 `TankBattle/` 比较。
+- `pr_check.sh` 的第二项在临时副本里运行 `build.py` 再比较，不会改动工作区；第三项把 `.xbp` 解压后和 `TankBattle/` 比较（不算 `.DS_Store`）。
+- **报告在哪**：默认写到 `$TMPDIR/pr_check-<校验和>.md`（校验和由仓库路径算出，`cksum`）。
+- **跳过 = 不通过**：`run_all.sh` 把每项跳过都列成“⚠️ 跳过”（unittest 的 `skipped=N` 和原因、没有 node、`SKIP_SPX`），有跳过时最后一行不再是“全部通过”；`pr_check.sh` 把它记成 ⚠️，报告里写明“有 N 项检查跳过，不算通过”，**退出码 2**。
+- **临时目录按仓库区分**：`run_spx.sh`、`pr_check.sh`、`run_all.sh`、`update_baseline.sh` 的临时目录和日志名都带仓库路径的校验和（例如 `$TMPDIR/tankbattle-test-1491624922`），同一台机器上两个 clone 同时跑测试不会互相删。`run_spx.sh` 可以用 `TEST_WORK=目录` 指定工作目录。
+- **Python 环境**：`tools/dev/venv.sh` 在仓库里建 `.venv`，装 `tools/assets/requirements.txt` 里锁定的版本（`fonttools==4.67.0`、`brotli==1.2.1`）；`pr_check.sh`、`run_all.sh` 不设 `PYTHON` 时默认用 `.venv/bin/python`。
+- **清理**：`tools/dev/clean.sh` 默认只列出这个仓库的临时文件和大小，`--yes` 才删，`--legacy` 连旧版脚本留下的、不带校验和的 `$TMPDIR/tankbattle-*` 一起删（别的 clone 的新版目录永远不碰）；另外提示 `.build/cache`、`dist/`、Go 编译缓存、OrbStack 虚拟机各占多少。
 - 报告里写明提交号、分支、工作区是否干净、spx / Python 版本，评审时能看出是在哪个提交上跑的。
 - `.github/workflows/test.yml` 保留，但只能手动触发：Actions 额度恢复后，想在云端（Linux）再确认一次时用。2026-10-25 在云端跑过一次（没有缓存）：构建工具测试 1.5 分钟，引擎内测试 3.3 分钟，Linux 上 `-headless` 不需要 Xvfb。
 - `check.yml` 原来会在每个 PR 上自动触发，Actions 不可用时显示失败（任务没启动）；[#51](https://github.com/Qiniu-ERE/zero/pull/51) 起它和 `release.yml` 一样只能手动触发，以本地报告为准。
@@ -366,14 +397,14 @@ PR 模板（`.github/pull_request_template.md`，已添加）里有“新增 / �
 ### 8.2 覆盖率只能升不能降（已实现）
 
 - 基线文件 `tests/coverage-baseline.json`：所有函数 / 事件处理的列表、覆盖到的（`covered`）、不稳定的（`unstable`）。
-- 生成：`tools/test/update_baseline.sh` 完整跑两遍引擎内测试，**两遍都覆盖到**的才算覆盖到；只有一遍覆盖到的记为不稳定、不强制。例如 v4.0 时子弹相撞抵消（`EBullet.spx:onMsg "clash"`）受已知问题影响时有时无，直接写进基线会让检查随机失败（v4.0.1 修复后已经没有了）。
+- 生成：`tools/test/update_baseline.sh` 完整跑两遍引擎内测试，**有测试失败就停下、不生成基线**，成功后删掉两遍的工作目录（`KEEP=1` 保留）；**两遍都覆盖到**的才算覆盖到；只有一遍覆盖到的记为不稳定、不强制。例如 v4.0 时子弹相撞抵消（`EBullet.spx:onMsg "clash"`）受已知问题影响时有时无，直接写进基线会让检查随机失败（v4.0.1 修复后已经没有了）。
 - 检查：`run_spx.sh --coverage`（`pr_check.sh --coverage` 也一样）在有基线时自动比较，**原来覆盖到的现在没覆盖到，或者新加的函数 / 事件处理没有被任何测试执行，就失败**，报告里列出是哪几个。按键 / 点击处理只能手工测，不算。
 - 覆盖率提高了：报告里会提示，运行 `update_baseline.sh` 更新基线，和改动一起提交。需要降低的（例如删掉了一个功能），在 PR 描述里说明原因，再更新基线。
 - 状态机、消息、规则三张对照表也一样：状态图加了边、加了新消息、README 加了新规则，都要有对应的用例。
 
 ### 8.3 分支和合并
 
-- **合入前必须附上本地检查报告**（`tools/test/pr_check.sh`），报告里所有项都是 ✅。Actions 恢复后，也可以把云端测试设为 `main` 的必需检查。
+- **合入前必须附上本地检查报告**（`tools/test/pr_check.sh`），报告里所有项都是 ✅（有 ⚠️ 跳过也不算通过）。Actions 恢复后，也可以把云端测试设为 `main` 的必需检查。
 - 新版本开集成分支（例如 `v5.0`）时直接从 `main` 拉，测试跟着一起过去；集成分支同步 `main` 时测试也一起同步。
 - 换 spx 版本（本地 4.x 升级，或者 XBuilder 线上升级）时，先单独开一个 PR 只换版本、跑全部测试，确认没有行为变化再做别的改动。
 

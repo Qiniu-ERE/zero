@@ -4,7 +4,37 @@
 
 ## 未发布
 
+### 游戏
+
+- **复活时清场**：看视频复活后，敌人的子弹全部消失，基地 3 格以内的敌人也消失（不算击毁、不加分，之后重新出场，每关还是 20 辆）；基地四周碎了、裂了的护墙恢复成砖墙；基地有 3 秒保护，子弹打到只会消失（A2，[#60](https://github.com/Qiniu-ERE/zero/pull/60)）。
+- **复活询问时按 Esc**：要等复活弹窗出现才算“放弃”。基地刚被毁的 2.2 秒内（爆炸和特写）按 Esc 不会再直接放弃复活（A12，[#61](https://github.com/Qiniu-ERE/zero/pull/61)）。
+- **复活次数按关卡记录**：暂停菜单里“重新开始本关”不会再给一次复活；输了以后在结算画面重打本关，可以再复活一次；从主页进关、过关进入下一关、试玩自制地图也可以（A16，[#61](https://github.com/Qiniu-ERE/zero/pull/61)，规则在 `fix/v5-revive-rule-title` 里定下）。
+- **基地先失守不判胜利**：同一帧里基地被打掉、又打掉了最后一辆敌人，按战败走复活询问；复活后敌人已经全灭就直接胜利结算（A17，[#61](https://github.com/Qiniu-ERE/zero/pull/61)）。
+- **双人时只让打中敌人的那一发子弹消失**：原来一个人打中敌人，另一个人正在飞的子弹也会消失（A1，[#59](https://github.com/Qiniu-ERE/zero/pull/59)）。
+- **触屏版**：编辑器里的“双人试玩”也会提示需要键盘或手柄（A7）；只有按在战场或方向键上才开火，点按钮不再顺便开一枪，开局要先松开手指（A18）（[#62](https://github.com/Qiniu-ERE/zero/pull/62)）。
+- **生命超过 3 条显示“图标 ×N”**（复活后可能有 4 条，最多显示 ×9）（A15，[#64](https://github.com/Qiniu-ERE/zero/pull/64)）。
+- **主页去掉“每日挑战 · 即将推出”卡**：v5 不做每日挑战（[#69](https://github.com/Qiniu-ERE/zero/pull/69)）。
+- **选择关卡画面**：主页新的“选择关卡”卡片，点开有 8 张关卡卡片，鼠标、触屏点一下就开局（单人）；按 1~8 也行，Esc 回主页。主页按 1~8 直接进关照旧（A3，[#74](https://github.com/Qiniu-ERE/zero/pull/74)）。
+- **英文名改为 Brickline Tanks**（中文名“坦克大战”不变）：英文主页标题、窗口标题“坦克大战 2026 · Brickline Tanks”、网页版标题都改了（[#76](https://github.com/Qiniu-ERE/zero/pull/76)、`fix/v5-revive-rule-title`）。
+- 代码清理：去掉只写不读的 `enemiesLeft`，敌军剩余按 `killed` 显示（A22，[#73](https://github.com/Qiniu-ERE/zero/pull/73)）。
+- 新测试：P10、F30~F35、P11、P12、C20、C21~C24（真实发射子弹打自己的老鹰，[#71](https://github.com/Qiniu-ERE/zero/pull/71)）；B02、C10 改成检查 `killed`。引擎内断言从 416 个增加到 507 个。
+
+### 打包与测试工具
+
+- **Android 版本号和调试证书**：打 Android / iOS 前核对 spx 模板里的版本号，不一致就停下（`SPX_REPATCH=1` 自动重装）；调试证书移到仓库外的 `~/.config/tankbattle/debug.keystore`（旧位置 `.build/cache/` 里的会自动搬过去），**请备份**。以前的版本用过不同的证书，装过旧版、提示签名不一致时先卸载一次（B1 B2，[#65](https://github.com/Qiniu-ERE/zero/pull/65)）。
+- **本机打包发布更可靠**：`build_local.sh` 打包前删掉这次要打的平台的同版本旧包，`dist/BUILD_LOCAL.md` 记下提交号和工作区是否干净；`release_local.sh` 发布前核对版本号、标签提交、工作区干净、没有 ❌，不对就停下（别的机器打的包用 `SKIP_BUILD_CHECK=1`）；`--append` 给已有的 Release 补包；`DRY_RUN=1` 只检查、不发布、不需要标签；回退版本按版本号排序；修复 macOS 自带 bash 3.2 下安卓必定失败（B3~B6，[#66](https://github.com/Qiniu-ERE/zero/pull/66)）。
+- **测试工具**：临时目录按仓库路径的校验和区分（两个 clone 同时跑不会互删），`TEST_WORK` 可以指定目录；`pr_check.sh` 的报告默认在 `$TMPDIR/pr_check-<校验和>.md`；有检查跳过时不算通过（退出码 2）；`update_baseline.sh` 测试失败就停；Python 依赖锁定版本，新增 `tools/dev/venv.sh`（建 `.venv`）和 `tools/dev/clean.sh`（清理临时文件，默认只列出）（B8~B11，[#67](https://github.com/Qiniu-ERE/zero/pull/67)）。
+- **工具测试和安装包启动**：新增覆盖率工具、打包发布工具的单元测试；`env.sh` 认得 `-rc.1` 这样的预发布版本号；新增 `tools/test/dist_boot.sh`，直接运行要发出去的安装包（B14）（B13 B14，[#68](https://github.com/Qiniu-ERE/zero/pull/68)）。
+- **打包环境**：Godot 编辑器设置里的 Java / Android SDK 路径每次改成当前的；MoltenVK 和虚拟机里的 Go 核对 sha256；Go 版本不对时提醒，`GO_STRICT=1` 时报错（B15 B16，[#70](https://github.com/Qiniu-ERE/zero/pull/70)）。
+- **商店版 / 试玩版**：`build.sh <平台> [--store] [--demo]`，产物放在 `dist/store/`、`dist/demo/`、`dist/store-demo/`；`setup_spx.sh` 按顺序打 `tools/export/patches/` 里的 spx 补丁（B18 的 P1 部分，[#72](https://github.com/Qiniu-ERE/zero/pull/72)）。
+- **`release.yml`**：手动运行可以选 `platforms`（只打几个平台）、`upload_to`（补进已有的 Release）、`create_release`（新建 Release），**都不选时不发布**；第三方 Action 锁定到提交 SHA（B7 B17，[#75](https://github.com/Qiniu-ERE/zero/pull/75)）。
+- 难度模拟脚本 `tools/test/difficulty.sh`：8 关难度曲线数据和调参建议（A4 A11，[#63](https://github.com/Qiniu-ERE/zero/pull/63)）。
 - **发布说明里缺的平台指向最近一个有包的版本**：`release_local.sh` 遇到本机没打的平台（Windows、iOS），不再固定指向上一个版本，而是找最近一个真的有这个平台安装包的版本（v3.0.2 没有这两个包，所以指向 v3.0.1）；`DRY_RUN=1` 只打印发布说明、不发布（[#53](https://github.com/Qiniu-ERE/zero/pull/53)）。
+
+### 文档
+
+- v4 之后的文档补漏：README、架构文档、测试方案、跨平台文档、更新记录（[#54](https://github.com/Qiniu-ERE/zero/pull/54)–[#58](https://github.com/Qiniu-ERE/zero/pull/58)）。
+- 上面这些改动对应的文档：README 的玩法（复活规则、选择关卡、英文名）、打包和测试；架构文档的状态机、新的舞台变量和消息、工具表、PR 记录；测试方案的新用例；跨平台文档的打包与发布。
 
 ## v4.0.1
 

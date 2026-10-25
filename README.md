@@ -1,4 +1,4 @@
-# 坦克大战 2026 · XBuilder 复刻重铸版
+# 坦克大战 2026 · Brickline Tanks
 
 **[下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · [下载 .xbp](TankBattle.xbp) · [演示视频](docs/demo/tankbattle-v3-demo.mp4) · [快速开始](#快速开始) · [玩法](#玩法) · [更新记录](CHANGELOG.md)
 
@@ -9,12 +9,12 @@
 [![Language XGo](https://img.shields.io/badge/language-XGo-0a7bbb)](https://xgo.dev)
 [![Engine spx](https://img.shields.io/badge/engine-spx_4.0-555)](https://github.com/goplus/spx)
 [![Battle City 1985](https://img.shields.io/badge/remake_of-Battle_City_1985-red)](#素材与版权说明)
-[![Tests](https://img.shields.io/badge/tests-456_passing-brightgreen)](docs/v4/TEST_PLAN.md)
+[![Tests](https://img.shields.io/badge/tests-579_passing-brightgreen)](docs/v4/TEST_PLAN.md)
 [![Coverage](https://img.shields.io/badge/coverage-96%25_functions_·_100%25_handlers-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
 
 > 🏆 **第五届 1024 HACKATHON 参赛项目** · 这是一个 Builder 的时代 —— AI 放大执行，我们撬动价值
 
-用 [XBuilder](https://x.qiniu.com) 把 1985 年的 FC 经典《坦克大战》重做成 2026 年的样子：保留“守住老鹰、打穿砖墙”的玩法内核，换上现代画风，支持中英文，并设计了一套**干净、不打扰玩家**的广告方案。
+用 [XBuilder](https://x.qiniu.com) 把 1985 年的 FC 经典《坦克大战》重做成 2026 年的样子（XBuilder 复刻重铸版，英文名 **Brickline Tanks**）：保留“守住老鹰、打穿砖墙”的玩法内核，换上现代画风，支持中英文，并设计了一套**干净、不打扰玩家**的广告方案。
 
 v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 **Windows / macOS / Linux / 网页版 / Android / iOS** 安装包。v4.0 专门做**测试与质量**：每条游戏规则都有自动化测试，v4.0.1 修复了测试发现的子弹相撞问题。
 
@@ -28,7 +28,7 @@ v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 *
 |---|---|---|---|
 | ![](docs/v3/editor/home.png) | ![](docs/v2/screens/hud-en-modern.png) | ![](docs/v2/screens/revive-zh.png) | ![](docs/v2/screens/result-win-doubled-zh.png) |
 
-> 主页是 v3.0 的截图；对局、复活、结算是 v2.0 的截图，v3.0.1 起对局顶栏多了一个 Ⅱ 暂停按钮，其他基本一样。
+> 主页是 v3.0 的截图（现在主页的“每日挑战”卡换成了“选择关卡”）；对局、复活、结算是 v2.0 的截图，v3.0.1 起对局顶栏多了一个 Ⅱ 暂停按钮，其他基本一样。
 
 ## 下载安装
 
@@ -40,7 +40,7 @@ v3.0 加入了 **8 个关卡、双人合作、自己做地图**，并打包成 *
 | macOS（Apple 芯片） | `macos-arm64.zip` | 第一次右键 → 打开 |
 | Linux | `linux-x64.tar.gz` | 运行 `./TankBattle` |
 | 网页版 / 手机浏览器 | `web.zip` | 放到 HTTPS 网站，手机“添加到主屏幕” |
-| Android | `android.apk` | 直接安装 |
+| Android | `android.apk` | 直接安装；提示签名不一致时先卸载旧版（只需一次） |
 | iPhone / iPad | `ios-unsigned.ipa` | 用 Sideloadly / AltStore 签名安装 |
 
 安装包从 v3.0.2 起在一台 Mac 上本机打包（现在用 `tools/export/build_local.sh` + `release_local.sh`），GitHub Actions 只能手动触发，详见[跨平台文档](docs/v3/CROSS_PLATFORM.md#七实现结果)。
@@ -81,6 +81,7 @@ spx run .
 |---|---|
 | Enter / 空格 | 从第 1 关开始 |
 | 1 ~ 8 | 直接进入对应关卡 |
+| 点「选择关卡」 | 选关画面：点关卡卡片或按 1 ~ 8 开局（单人），Esc 回主页 |
 | C | 双人合作 |
 | E | 自己做地图 |
 | P | 路演演示模式（无人值守） |
@@ -111,14 +112,17 @@ spx run .
 
 | 画面 | 按键 |
 |---|---|
-| 复活询问 | J / Enter 看视频复活，Esc 放弃 |
+| 复活询问 | J / Enter 看视频复活，Esc 放弃（都要等弹窗出现后才算） |
 | 结算 | J 金币翻倍，R 下一关 / 再来一局，H 主页 |
 | 暂停 | Esc / Enter 继续，R 重来，H 主页（试玩时回编辑） |
 
 - **目标**：每关消灭 20 辆敌方坦克，保护好底部的老鹰。共 **8 关**，得分带到下一关；战败后重打本关。
-- **失败**：基地被击中（自己的子弹也算），或者生命用完。**每局第一次战败**可以看视频复活一次。
+- **失败**：基地被击中（自己的子弹也算），或者生命用完。**每关第一次战败**可以看视频复活一次。
+- **复活**：修好基地、加 1 条命，敌人的子弹全部消失，基地 3 格以内的敌人也消失（之后重新出场），碎了的护墙补回来，基地有 3 秒保护。暂停菜单里“重新开始本关”**不会**再给一次复活；输了以后在结算画面重打本关，可以再复活一次。基地和最后一辆敌人在同一刻没了，算战败。
 - **地形**：砖墙打两下才碎；钢墙打不碎；**水面**坦克过不去、子弹能飞过；**草丛**能藏身。
-- 和原版一样，同时只能有 **1 发**自己的子弹；子弹相撞会互相抵消；出生时有 3 秒保护。
+- 和原版一样，同时只能有 **1 发**自己的子弹；子弹相撞会互相抵消；出生时有 3 秒保护。双人时只有打中敌人的那一发子弹消失，不影响另一个人的子弹。
+- **生命**：超过 3 条时右侧面板显示“图标 ×N”。
+- **手机 App（触屏）**：按住战场或方向键开火，点按钮不会开火；双人合作要键盘或两只手柄。
 - **结算**：按本关得分折算金币，胜利额外加 100；可以看视频把金币翻倍。
 
 | 敌人 | 现代 / 经典 | 特点 | 分数 |
@@ -214,8 +218,8 @@ tools/
 ├── assets/               # 美术与文案生成器：build.py、strings.py
 ├── levels/check.py       # 关卡地图检查
 ├── export/               # 各平台打包、网页版外壳、安装说明
-├── dev/                  # 截图、录制演示视频
-├── test/                 # 测试工具：run_all.sh、run_spx.sh、pr_check.sh、覆盖率、XBuilder 兼容、安装包启动测试
+├── dev/                  # 截图、录制演示视频、venv.sh（Python 虚拟环境）、clean.sh（清理临时文件）
+├── test/                 # 测试工具：run_all.sh、run_spx.sh、pr_check.sh、覆盖率、XBuilder 兼容、安装包启动测试、难度模拟
 └── package_xbp.sh        # 打包 TankBattle.xbp
 tests/                    # v4.0 的自动化测试
 ├── spx/                  # 引擎内测试（每个文件一组）
@@ -234,9 +238,11 @@ docs/
 ## 开发
 
 ```sh
+# 第一次：建 Python 虚拟环境 .venv（装好锁定版本的 fontTools，测试脚本会自动用它）
+tools/dev/venv.sh
+
 # 改了文案（tools/assets/strings.py）或美术代码：重新生成造型
-pip install -r tools/assets/requirements.txt
-python3 tools/assets/build.py
+.venv/bin/python tools/assets/build.py
 
 # 改了关卡地图（main.spx 的 levelMap）：检查地图
 python3 tools/levels/check.py
@@ -251,33 +257,39 @@ tools/test/run_spx.sh tests/spx/flow_revive.spx   # 只跑一组引擎内测试
 tools/test/pr_check.sh --coverage   # PR 合入前：和 check.yml 相同的检查 + 全部测试 + 覆盖率，生成报告贴到 PR 里
 tools/test/xbuilder_check.sh        # 用 XBuilder 线上的 spx v3.3.0 编译检查
 tools/test/package_boot.sh          # 打出桌面安装包并运行启动测试
-tools/test/update_baseline.sh       # 覆盖率提高后更新基线
+tools/test/dist_boot.sh dist/TankBattle-版本-macos-arm64.zip   # 直接运行要发出去的安装包（B14）
+tools/test/update_baseline.sh       # 覆盖率提高后更新基线（有测试失败就停下）
+tools/dev/clean.sh                  # 磁盘紧时：先列出测试和打包留下的临时文件，加 --yes 才删
 
 # 打安装包：全部在本地，不用 GitHub Actions（见 docs/v3/CROSS_PLATFORM.md「本地打包」）
 tools/export/setup_spx.sh android   # 第一次：spx、xgo、运行时、安卓模板
 tools/export/linux_vm.sh setup      # 第一次：Linux 打包用的 OrbStack 虚拟机
 tools/export/build_local.sh         # 打本机能打的全部平台并逐个检查（macOS、网页版、Android、Linux；Windows、iOS 暂时空着）
+tools/export/build.sh desktop --store   # 商店版（还有 --demo 试玩版），包放在 dist/store/ 等子目录，不会被发布
 
-# 发布：先在 CHANGELOG.md 写好这个版本，在 main 上打标签并推送，再用 dist/ 发布
+# 发布：先在 CHANGELOG.md 写好这个版本，在 main 上打标签并推送，在这个提交上打包，再用 dist/ 发布
 git tag v4.1.0 && git push origin v4.1.0
-tools/export/release_local.sh
+DRY_RUN=1 tools/export/release_local.sh   # 先看发布说明和检查结果（不发布）
+tools/export/release_local.sh             # 版本号或提交号不对、打包时工作区不干净、表里有 ❌，都会停下
+tools/export/release_local.sh --append    # 以后给已有的 Release 补包（例如 Windows / iOS）
 
 # 重新录制演示视频（需要 ffmpeg）
 ./tools/dev/record_demo.sh
 ```
 
-**跑测试需要什么**：缺了某样东西时，有的测试会**跳过**，不会报错，注意看输出。
+**跑测试需要什么**：缺了某样东西时，有的测试会**跳过**。`run_all.sh` 会逐项列出“⚠️ 跳过”；`pr_check.sh` 有跳过时**不算通过**（退出码 2）。
 
 | 测试 | 需要 | 没有时 |
 |---|---|---|
 | 引擎内测试（`tests/spx`） | spx（见[快速开始](#方式二在本地用-spx-运行)），只支持 macOS / Linux | 用 `SKIP_SPX=1 tools/test/run_all.sh` 只跑其他测试 |
 | 网页外壳测试（`tests/web`） | Node.js 18 以上（用自带的 `node --test`） | 跳过，只打印一行“跳过：没有 node” |
-| 美术生成器测试、`pr_check.sh` 的“生成的素材”一项 | Python 的 fontTools：`pip install -r tools/assets/requirements.txt`；第一次运行会下载字体（要联网） | 跳过。装在虚拟环境里时用 `PYTHON=虚拟环境/bin/python` 指定 |
+| 美术生成器测试、`pr_check.sh` 的“生成的素材”一项 | Python 的 fontTools：运行 `tools/dev/venv.sh` 建 `.venv`（没设 `PYTHON` 时测试脚本自动用它）；第一次运行会下载字体（要联网） | 跳过。用别的虚拟环境时用 `PYTHON=虚拟环境/bin/python` 指定 |
 | XBuilder 兼容检查（`xbuilder_check.sh`，T09） | Go 1.25 以上和网络（第一次要下载 spx v3.3.0 和 xgo） | 没有 Go 时跳过；有 Go 但没网络会失败 |
 | 安装包启动测试（`package_boot.sh`） | 先运行一次 `tools/export/setup_spx.sh` | — |
 
 - **版本标签**：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1` 是发布版本。`v4.0.0` 只有标签、没有安装包，安装包见 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1)。
 - **GitHub 上的红叉**：main 上有几次 Actions 运行显示失败（#22、#23、#50 合入时，还有 v3.0.2、v4.0.0 的标签），都是组织的 Actions 额度用完、任务没启动（3~5 秒就结束），不是代码问题。现在工作流都只能手动触发，检查以 PR 里贴的本地检查报告（`pr_check.sh`）为准。
+- **Android 调试证书**：在仓库外的 `~/.config/tankbattle/debug.keystore`。证书换了，玩家就没法覆盖升级，**请备份**；换电脑打包时拷过去。见[跨平台文档](docs/v3/CROSS_PLATFORM.md#71-发布了哪些包)。
 - **开发规范**：每次改动都通过 Pull Request 合入，详见[架构文档](docs/ARCHITECTURE.md#11-开发流程与分工)。
 
 ## 代码里的教学要点

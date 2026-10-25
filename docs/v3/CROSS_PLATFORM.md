@@ -267,10 +267,11 @@ tools/export/release_local.sh        # 把 dist/ 里的包发布成 GitHub Relea
 ```sh
 tools/export/setup_spx.sh android            # 第一次：spx、xgo、运行时、安卓模板（只打桌面和网页可以不加 android）
 tools/export/linux_vm.sh setup               # 第一次：OrbStack 的 x86_64 Ubuntu 虚拟机（约 3.7 GB），以后可以 linux_vm.sh delete 释放
-tools/export/build_local.sh                  # 打本机能打的全部平台，每个包都检查，结果写在 dist/BUILD_LOCAL.md
 git tag v4.1.0 && git push origin v4.1.0     # 在 main 上打标签
-DRY_RUN=1 tools/export/release_local.sh      # 先看发布说明（不发布）
+tools/export/build_local.sh                  # 在这个提交上（工作区干净）打本机能打的全部平台，每个包都检查，结果写在 dist/BUILD_LOCAL.md
+DRY_RUN=1 tools/export/release_local.sh      # 先看发布说明和检查结果（不发布，不需要标签）
 tools/export/release_local.sh                # 发布 GitHub Release；空着的平台指向最近一个有这个平台安装包的版本
+tools/export/release_local.sh --append       # 以后给已有的 Release 补包（例如别的机器上打的 Windows / iOS 包）
 ```
 
 `build_local.sh` 在一台 Apple 芯片 Mac 上（2026-10-25 实测，v4.0.0）：
@@ -283,6 +284,35 @@ tools/export/release_local.sh                # 发布 GitHub Release；空着的
 | Linux x64 | ✅ 39 MB | OrbStack 的 x86_64 Ubuntu 虚拟机（Rosetta 转译）里 `buildlauncher`，再在虚拟机里用 Xvfb + 软件 Vulkan 跑启动测试 |
 | Windows | ⏸ 空着 | `buildlauncher` 只能打本机平台，需要 Windows 环境。VMware Fusion 已装，但 Windows 虚拟机至少要 30 GB 磁盘，本机剩余不够。以后有空间时装 Windows 11（ARM 版能转译运行 x64 的 Go 工具链）或者用一台 Windows 电脑运行同样的 `build.sh desktop` |
 | iOS | ⏸ 空着 | 需要 Xcode（十几 GB），本机只有命令行工具 |
+
+#### v5 第一批（P1）之后的打包与发布
+
+v5 第一批修复（[#65](https://github.com/Qiniu-ERE/zero/pull/65)、[#66](https://github.com/Qiniu-ERE/zero/pull/66)、[#68](https://github.com/Qiniu-ERE/zero/pull/68)、[#70](https://github.com/Qiniu-ERE/zero/pull/70)、[#72](https://github.com/Qiniu-ERE/zero/pull/72)、[#75](https://github.com/Qiniu-ERE/zero/pull/75)）之后：
+
+| 方面 | 现在的做法 |
+|---|---|
+| Android 调试证书 | 默认在仓库外的 `~/.config/tankbattle/debug.keystore`（`KEYSTORE_DIR` 可改，`GODOT_ANDROID_KEYSTORE_DEBUG_*` 优先）。旧位置 `.build/cache/debug.keystore` 有证书时自动搬过去。**请备份这个文件**：换了证书，玩家就不能覆盖升级；换电脑打包时拷过去。以前的版本用过不同的证书，装过旧版的玩家提示签名不一致时要先卸载一次（`INSTALL.md`、发布说明里写了）。想让 CI 打的 APK 也用它，把它 base64 后存进 Secret `ANDROID_KEYSTORE_BASE64` |
+| 版本号核对 | `build.sh android / ios` 打包前读出 spx 模板里的版本号，和 `APP_VERSION` 不一样就停下；`SPX_REPATCH=1` 时自动重新运行 `setup_spx.sh`（`build_local.sh` 默认打开）。打完 APK 再用 `aapt` 核对一次 |
+| Godot 编辑器设置 | `build.sh android` 每次把 Java SDK / Android SDK 路径改成这次的 `JAVA_HOME` / `ANDROID_HOME`（只在不一样时改，打印“原来 → 现在”） |
+| 下载校验 | MoltenVK（iOS）、虚拟机里的 Go 都核对 sha256（写在 `env.sh`）；本机 Go 版本和 `env.sh` 的 `GO_VERSION` 不一样时提醒，正式发布建议加 `GO_STRICT=1`（不一样就报错） |
+| 旧包 | `build_local.sh` 打包前删掉 `dist/` 里这次要打的平台的同版本旧包；只打一部分平台时，表里其余平台的结果保留 |
+| 打包记录 | `dist/BUILD_LOCAL.md` 记下版本号、完整提交号、工作区是否干净（`dirty=0/1`） |
+| 直接运行安装包 | macOS、Linux 包打好后用 `tools/test/dist_boot.sh` 解开要发出去的那个包直接运行（B14）；Linux 在虚拟机里用 Xvfb 跑 |
+| 发布前核对 | `release_local.sh` 核对：版本号相同、提交号等于标签指向的提交、打包时工作区干净、表里没有 ❌，不对就停下；别的机器上打的包没有这张表，用 `SKIP_BUILD_CHECK=1` 跳过 |
+| 补包 | `release_local.sh --append`：只上传 Release 里还没有的文件，合并 `SHA256SUMS.txt`，重新生成说明；普通模式遇到已有的 Release 直接报错 |
+| 试运行 | `DRY_RUN=1`：检查不通过也继续，最后列出会停下的项；不创建、不修改 Release，不需要标签 |
+| 商店版 / 试玩版 | `build.sh <平台> [--store] [--demo]`：在 `.build/work` 的副本里把 `main.spx` 的常量 `storeBuild` / `demoBuild` 改成 true（`--store` 时没有这个常量就报错），包放在 `dist/store/`、`dist/demo/`、`dist/store-demo/`。`release_local.sh` 只发 `dist/` 根目录下的包 |
+| spx 补丁 | `setup_spx.sh` 每次先把 spx 源码恢复成固定提交，再按文件名顺序 `git apply tools/export/patches/*.patch`（打不上就停下）；补丁改了而 spx 没重装时 `build.sh` 报错。说明见 [`tools/export/patches/README.md`](../../tools/export/patches/README.md)，目前没有补丁 |
+
+**`release.yml`（手动运行）** 有三个输入，**两个发布选项都不选时只打包、不发布**（产物在这次运行的 Artifacts 里）：
+
+| 输入 | 作用 |
+|---|---|
+| `platforms` | `all`（默认）、`desktop`，或者逗号分隔的 `windows,macos,linux,web,android,ios`；加 `smoke` 对打了的桌面平台跑冒烟测试（`all` 包含） |
+| `upload_to` | 已有 Release 的标签（例如 `v4.0.1`）：检出这个标签的代码打包，再用 `release_local.sh --append` 补进去 |
+| `create_release` | 在标签上运行时新建 Release |
+
+Actions 额度恢复后，补 Windows / iOS 的推荐做法是 `platforms=windows,ios`、`upload_to=v4.x.y`。工作流里的第三方 Action 都锁定到提交 SHA（注释写了版本）。
 
 踩过的坑：后台运行或者特殊语言环境下，macOS 的 `sed` 读到 `CHANGELOG.md` 里的中文会报 `illegal byte sequence`（`env.sh` 读版本号改成 `LC_ALL=C`）；bash 里变量后面紧跟中文（如 `$VM（`）会被当成变量名的一部分，要写成 `${VM}（`；开着 `pipefail` 时 `unzip -l | grep -q` 会因为 grep 提前退出而误判失败。
 
@@ -336,7 +366,7 @@ tools/export/release_local.sh                # 发布 GitHub Release；空着的
 
 - **GitHub Pages 用不了**：仓库是私有的，组织是免费套餐，不支持 Pages。所以网页版以 zip 发布，需要自己上传到静态网站（例如七牛云 Kodo）。仓库公开后可以加一个 Pages 部署任务。
 - **Actions 分钟数**（v3.0.0 时的情况）：私有仓库每月 2000 分钟，macOS 机器按 10 倍计算。实际一次完整发布（含冒烟测试）各任务只要 1~4 分钟，macOS 任务 1~2 分钟；调试时推到 `ci/` 开头的分支，用提交信息里的 `[ci 平台]` 只打需要的平台。**后来**：2026-10-25 起组织的 Actions 额度用完，任务启动不了；v3.0.2 起改为本机打包，工作流都只能手动触发（见 7.1 节末尾）。
-- **签名**：macOS 和 Windows 都没有付费签名证书，第一次打开会有系统提示（说明里写了怎么打开）；APK 用调试证书；IPA 不签名。上架应用商店不在 v3.0 范围内。
+- **签名**：macOS 和 Windows 都没有付费签名证书，第一次打开会有系统提示（说明里写了怎么打开）；APK 用调试证书（v5 起固定放在 `~/.config/tankbattle/`，见 7.1 节）；IPA 不签名。上架应用商店不在 v3.0 范围内。
 - **Intel Mac、Windows ARM、Linux ARM** 没有打包。
 - **真机**：Android、iOS 的包（v3.0.0、v3.0.1 在 CI 上打；v3.0.2 起 Android 在本机打，iOS 没有新包）到 v4.0.1 为止都没有真机测试记录；手机网页版只在模拟器里测过。
 - **iOS 的 MoltenVK**：模板的 Xcode 工程要求 `MoltenVK.xcframework`，打包时用 Khronos 发布的 v1.3.0 静态版本补上；真机上的渲染还没验证。
