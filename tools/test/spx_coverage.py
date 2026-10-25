@@ -110,7 +110,7 @@ def covered_in(logs):
 
 # 已知会时有时无的（不靠抽样判断，直接算不稳定）：原因写在后面
 KNOWN_UNSTABLE = {
-    'EBullet.spx:onMsg "clash"': "子弹迎面相撞经常不抵消（C17 已知问题），抵消没发生时这个处理不会执行",
+    # 例：'EBullet.spx:onMsg "clash"': "原因"。v4.0 时子弹相撞抵消受已知问题（C17）影响时有时无，v4.0.1 修好后去掉了
 }
 
 
