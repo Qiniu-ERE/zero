@@ -18,3 +18,6 @@ __pycache__/
 /zero-1024-hackathon-*.key
 /zero-1024-hackathon-*.pptx
 /zero-1024-hackathon-*.pdf
+
+# 效果图生成器的中间文件（SVG 内嵌了大量 base64，只提交导出的 PNG）
+docs/v6/mockups/v6-*.svg
