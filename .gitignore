@@ -10,3 +10,11 @@ __pycache__/
 .env
 .venv/
 .claude/
+
+# spx run 生成的引擎缓存（gdextension、lib、.godot），每次运行会重新生成
+.temp/
+
+# 路演幻灯片（Keynote / PowerPoint / PDF）在仓库外维护，不进仓库
+/zero-1024-hackathon-*.key
+/zero-1024-hackathon-*.pptx
+/zero-1024-hackathon-*.pdf
