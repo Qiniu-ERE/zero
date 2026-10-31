@@ -11,7 +11,7 @@
 | 名称 | 中文：坦克大战 2026；英文：Brickline Tanks |
 | 类型 | 动作、街机、复古 |
 | 开发者 / 发行商 | 待定（个人或公司名，和 Steamworks 账号一致） |
-| 价格 | $4.99，区域定价按 Valve 建议（[MONETIZATION.md 第二节](MONETIZATION.md#二steam-和-microsoft-store买断制)） |
+| 价格 | $0.99 买断（Steam 最低档），区域定价按 Valve 建议（[MONETIZATION.md 第一节](MONETIZATION.md#一结论2026-10-28-更新)） |
 | 语言 | 简体中文、英语（界面、字幕；没有配音） |
 | 平台 | Windows、macOS（Apple 芯片）、Linux / Steam Deck |
 | 玩家人数 | 单人；本地双人合作（同一键盘或两只手柄）；Remote Play Together |

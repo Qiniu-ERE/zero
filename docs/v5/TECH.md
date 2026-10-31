@@ -71,7 +71,7 @@ Steamworks（成就、排行榜、创意工坊）、StoreKit / Play 结算（内
 - 主流 AdMob 插件的新版本要求 Godot 4.5 以上（[MONETIZATION.md 第五节](MONETIZATION.md#五技术前提为什么-sdk-现在接不上代码)），spx 是 4.4.1。所以手机上的内购和广告，实际都要等 spx 升级引擎。
 - 网页版有 `syscall/js` 这条路（[v3.0 小游戏评估 4.2](../v3/WECHAT_MINIGAME.md#42-watchad-怎么接到微信关键问题)），但网页版不在本次的四个平台里。
 
-v5 的买断制不需要这些。等商店版上架、有了真实数据，再决定要不要给 spx 做宿主接口。
+PC 的 $0.99 买断不需要这些；手机和微信小游戏的激励视频、$0.99 去广告需要（[MONETIZATION.md 第一节](MONETIZATION.md#一结论2026-10-28-更新)），所以 PC 先上，宿主接口和微信 JS 桥同时推进。等商店版上架、有了真实数据，再决定要不要给 spx 做宿主接口。
 
 ## 五、Xbox 主机：改写还是等待
 
