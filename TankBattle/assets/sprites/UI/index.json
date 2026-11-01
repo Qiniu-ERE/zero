@@ -211,6 +211,48 @@
       "bitmapResolution": 4
     },
     {
+      "name": "chips_zh",
+      "path": "chips_zh.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "chips_en",
+      "path": "chips_en.svg",
+      "x": 4.0,
+      "y": 29.92,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tag.c1_zh",
+      "path": "tag.c1_zh.svg",
+      "x": 4.0,
+      "y": 28.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tag.c1_en",
+      "path": "tag.c1_en.svg",
+      "x": 4.0,
+      "y": 28.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tag.c2_zh",
+      "path": "tag.c2_zh.svg",
+      "x": 4.0,
+      "y": 28.6,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tag.c2_en",
+      "path": "tag.c2_en.svg",
+      "x": 4.0,
+      "y": 28.6,
+      "bitmapResolution": 4
+    },
+    {
       "name": "stage.1.co_zh",
       "path": "stage.1.co_zh.svg",
       "x": 4,
@@ -855,6 +897,258 @@
       "bitmapResolution": 4
     },
     {
+      "name": "msg.elite_zh",
+      "path": "msg.elite_zh.svg",
+      "x": 300.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.elite_en",
+      "path": "msg.elite_en.svg",
+      "x": 364.26,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.max_zh",
+      "path": "msg.chip.max_zh.svg",
+      "x": 250.55,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.max_en",
+      "path": "msg.chip.max_en.svg",
+      "x": 337.76,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.reroll.used_zh",
+      "path": "msg.reroll.used_zh.svg",
+      "x": 210.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.reroll.used_en",
+      "path": "msg.reroll.used_en.svg",
+      "x": 284.93,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.shield_zh",
+      "path": "msg.shield_zh.svg",
+      "x": 210.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.shield_en",
+      "path": "msg.shield_en.svg",
+      "x": 224.89,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.combo.barrage_zh",
+      "path": "msg.combo.barrage_zh.svg",
+      "x": 264.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.combo.barrage_en",
+      "path": "msg.combo.barrage_en.svg",
+      "x": 310.37,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.combo.salvo_zh",
+      "path": "msg.combo.salvo_zh.svg",
+      "x": 264.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.combo.salvo_en",
+      "path": "msg.combo.salvo_en.svg",
+      "x": 331.97,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.rapid_zh",
+      "path": "msg.chip.rapid_zh.svg",
+      "x": 192.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.rapid_en",
+      "path": "msg.chip.rapid_en.svg",
+      "x": 288.62,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.double_zh",
+      "path": "msg.chip.double_zh.svg",
+      "x": 228.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.double_en",
+      "path": "msg.chip.double_en.svg",
+      "x": 309.68,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.pierce_zh",
+      "path": "msg.chip.pierce_zh.svg",
+      "x": 210.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.pierce_en",
+      "path": "msg.chip.pierce_en.svg",
+      "x": 307.36,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.bounce_zh",
+      "path": "msg.chip.bounce_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.bounce_en",
+      "path": "msg.chip.bounce_en.svg",
+      "x": 259.79,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.shield_zh",
+      "path": "msg.chip.shield_zh.svg",
+      "x": 246.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.shield_en",
+      "path": "msg.chip.shield_en.svg",
+      "x": 284.93,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.engine_zh",
+      "path": "msg.chip.engine_zh.svg",
+      "x": 210.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.engine_en",
+      "path": "msg.chip.engine_en.svg",
+      "x": 285.64,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.float_zh",
+      "path": "msg.chip.float_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.float_en",
+      "path": "msg.chip.float_en.svg",
+      "x": 305.6,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.stealth_zh",
+      "path": "msg.chip.stealth_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.stealth_en",
+      "path": "msg.chip.stealth_en.svg",
+      "x": 277.1,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.magnet_zh",
+      "path": "msg.chip.magnet_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.magnet_en",
+      "path": "msg.chip.magnet_en.svg",
+      "x": 261.55,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.fortify_zh",
+      "path": "msg.chip.fortify_zh.svg",
+      "x": 264.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.fortify_en",
+      "path": "msg.chip.fortify_en.svg",
+      "x": 312.85,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.bomb_zh",
+      "path": "msg.chip.bomb_zh.svg",
+      "x": 246.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.bomb_en",
+      "path": "msg.chip.bomb_en.svg",
+      "x": 340.09,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.freeze_zh",
+      "path": "msg.chip.freeze_zh.svg",
+      "x": 192.99,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.chip.freeze_en",
+      "path": "msg.chip.freeze_en.svg",
+      "x": 292.21,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "toggle_zh",
       "path": "toggle_zh.svg",
       "x": 80,
@@ -1114,6 +1408,13 @@
       "bitmapResolution": 4
     },
     {
+      "name": "pip_elite",
+      "path": "pip_elite.svg",
+      "x": 8,
+      "y": 16,
+      "bitmapResolution": 4
+    },
+    {
       "name": "life_on",
       "path": "life_on.svg",
       "x": 24,
@@ -1184,17 +1485,451 @@
       "bitmapResolution": 4
     },
     {
-      "name": "ally_1",
-      "path": "ally_1.svg",
-      "x": 72.0,
+      "name": "ally_1_1",
+      "path": "ally_1_1.svg",
+      "x": 88.0,
       "y": 112,
       "bitmapResolution": 4
     },
     {
-      "name": "ally_2",
-      "path": "ally_2.svg",
-      "x": 72.0,
+      "name": "ally_1_2",
+      "path": "ally_1_2.svg",
+      "x": 88.0,
       "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ally_1_3",
+      "path": "ally_1_3.svg",
+      "x": 88.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ally_1_4",
+      "path": "ally_1_4.svg",
+      "x": 88.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ally_2_1",
+      "path": "ally_2_1.svg",
+      "x": 88.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ally_2_2",
+      "path": "ally_2_2.svg",
+      "x": 88.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ally_2_3",
+      "path": "ally_2_3.svg",
+      "x": 88.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ally_2_4",
+      "path": "ally_2_4.svg",
+      "x": 88.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "drop",
+      "path": "drop.svg",
+      "x": 64,
+      "y": 64,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_empty",
+      "path": "ci_empty.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_rapid",
+      "path": "ci_rapid.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_double",
+      "path": "ci_double.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_pierce",
+      "path": "ci_pierce.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_bounce",
+      "path": "ci_bounce.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_shield",
+      "path": "ci_shield.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_engine",
+      "path": "ci_engine.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_float",
+      "path": "ci_float.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_stealth",
+      "path": "ci_stealth.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_magnet",
+      "path": "ci_magnet.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_fortify",
+      "path": "ci_fortify.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_bomb",
+      "path": "ci_bomb.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ci_freeze",
+      "path": "ci_freeze.svg",
+      "x": 28.0,
+      "y": 28.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "pickwho_1",
+      "path": "pickwho_1.svg",
+      "x": 50.97,
+      "y": 30.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "pickwho_2",
+      "path": "pickwho_2.svg",
+      "x": 50.97,
+      "y": 30.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "pc_rapid_zh",
+      "path": "pc_rapid_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_rapid_combo_zh",
+      "path": "pc_rapid_combo_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_double_zh",
+      "path": "pc_double_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_double_combo_zh",
+      "path": "pc_double_combo_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_pierce_zh",
+      "path": "pc_pierce_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_pierce_combo_zh",
+      "path": "pc_pierce_combo_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_bounce_zh",
+      "path": "pc_bounce_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_bounce_combo_zh",
+      "path": "pc_bounce_combo_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_shield_zh",
+      "path": "pc_shield_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_engine_zh",
+      "path": "pc_engine_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_float_zh",
+      "path": "pc_float_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_stealth_zh",
+      "path": "pc_stealth_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_magnet_zh",
+      "path": "pc_magnet_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_fortify_zh",
+      "path": "pc_fortify_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_bomb_zh",
+      "path": "pc_bomb_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_freeze_zh",
+      "path": "pc_freeze_zh.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pick_zh",
+      "path": "pick_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "reroll_ad_zh",
+      "path": "reroll_ad_zh.svg",
+      "x": 380.0,
+      "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "reroll_free_zh",
+      "path": "reroll_free_zh.svg",
+      "x": 380.0,
+      "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "reroll_used_zh",
+      "path": "reroll_used_zh.svg",
+      "x": 380.0,
+      "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "pc_rapid_en",
+      "path": "pc_rapid_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_rapid_combo_en",
+      "path": "pc_rapid_combo_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_double_en",
+      "path": "pc_double_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_double_combo_en",
+      "path": "pc_double_combo_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_pierce_en",
+      "path": "pc_pierce_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_pierce_combo_en",
+      "path": "pc_pierce_combo_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_bounce_en",
+      "path": "pc_bounce_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_bounce_combo_en",
+      "path": "pc_bounce_combo_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_shield_en",
+      "path": "pc_shield_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_engine_en",
+      "path": "pc_engine_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_float_en",
+      "path": "pc_float_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_stealth_en",
+      "path": "pc_stealth_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_magnet_en",
+      "path": "pc_magnet_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_fortify_en",
+      "path": "pc_fortify_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_bomb_en",
+      "path": "pc_bomb_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pc_freeze_en",
+      "path": "pc_freeze_en.svg",
+      "x": 120.0,
+      "y": 150.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "pick_en",
+      "path": "pick_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "reroll_ad_en",
+      "path": "reroll_ad_en.svg",
+      "x": 380.0,
+      "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "reroll_free_en",
+      "path": "reroll_free_en.svg",
+      "x": 380.0,
+      "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "reroll_used_en",
+      "path": "reroll_used_en.svg",
+      "x": 380.0,
+      "y": 48.0,
       "bitmapResolution": 4
     },
     {

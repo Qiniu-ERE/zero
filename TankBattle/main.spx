@@ -83,6 +83,24 @@ var (
 	tgtY      float64
 	tgtDist   float64
 	tgtAge    float64 // 距离上次汇报过了多久，太久说明目标已经没了
+
+	// v6 局内升级（docs/v6/PLAN.md 第二节）：打精英坦克掉芯片，三选一。下标 1 是 1P，2 是 2P（0 不用）
+	lvl          [3]int     // 坦克等级 1~4（= 1 + 已装的升级芯片数）
+	chips        [3][]int   // 已装的升级芯片（按选择的先后），最多 3 块
+	snapChips    [3][]int   // 进入本关时的芯片：战败重打、暂停里重新开始本关时恢复成这样
+	shieldCD     [3]float64 // 能量护盾：挡下一发后还要多久才恢复（秒）
+	shooter      int        // 正在判定的玩家子弹是谁打的（PBullet 调 bulletHit 之前设好，穿甲弹靠它）
+	elitesKilled int        // 本关已击毁的精英
+	dropX        float64    // 场上的芯片在哪（同一时间只有一块）
+	dropY        float64
+	dropLeft     float64 // 芯片还有几秒消失；0 表示场上没有芯片
+	pickWho      int     // 谁在三选一
+	pickOpts     []int   // 三选一的三块芯片
+	rerollUsed   bool    // 本关已经刷新过一次
+	adFree       bool    // 买了去广告（$0.99）：三选一的刷新不用看视频。接上内购 SDK 后由购买回调设置，现在没有入口
+	freezeLeft   float64 // 冰冻：敌人还要停几秒
+	fortifyLeft  float64 // 钢铁堡垒：基地四周的钢墙还剩几秒
+	cmdLevel     int     // 指挥官等级（局外成长，车库里升级）：决定哪些芯片已经解锁
 )
 
 const (
@@ -94,9 +112,11 @@ const (
 	stEdit   = 5 // 自己做地图
 	stPause  = 6 // 对局暂停（Esc 或顶栏的暂停按钮）
 	stLevels = 7 // 选择关卡（v5：鼠标、触屏也能选关）
+	stPick   = 8 // v6：捡到芯片，三选一（战场冻结）
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
+	rewardReroll = 3 // 激励视频奖励：三选一刷新一次（v6）
 
 	adSeconds     = 5 // 模拟激励视频的时长
 	reviveSeconds = 7 // 复活询问的倒计时
@@ -114,6 +134,32 @@ const (
 	padY       = 8.0
 	padR       = 58.0 // 方向键的响应半径
 	customStage = 9     // 自制地图试玩时的关卡编号
+	storeBuild  = false // 商店版（PC 买断，没有广告）：tools/export/build.sh --store 改成 true。v6 起三选一每局免费刷新 1 次
+)
+
+// v6 芯片（docs/v6/PLAN.md 2.3）：1~9 是升级芯片（占一个位置、升一级），10~12 是战术芯片（立即生效、不占位置）
+const (
+	cRapid   = 1  // 疾速弹：子弹速度 +40%
+	cDouble  = 2  // 双联炮：同时 2 发子弹
+	cPierce  = 3  // 穿甲弹：能打穿钢墙
+	cBounce  = 4  // 跳弹：打到墙反弹一次
+	cShield  = 5  // 能量护盾：挡住 1 发，30 秒恢复
+	cEngine  = 6  // 涡轮引擎：移动速度 +25%
+	cFloat   = 7  // 浮桥履带：能开过水面
+	cStealth = 8  // 迷彩：在草丛里不会被敌人子弹打中
+	cMagnet  = 9  // 磁吸：芯片自动飞过来
+	cFortify = 10 // 钢铁堡垒：基地四周变钢墙 15 秒
+	cBomb    = 11 // 空袭：场上的敌人全部炸掉
+	cFreeze  = 12 // 冰冻：敌人原地停 5 秒
+
+	chipCount   = 12
+	maxLevel    = 4
+	dropSecs    = 10.0 // 芯片掉落后几秒内要捡
+	maxBonus    = 500  // 满级后再捡到芯片：直接加分
+	elitePoints = 300  // 精英比同类坦克多的分数
+	shieldSecs  = 30.0
+	freezeSecs  = 5.0
+	fortifySecs = 15.0
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
@@ -288,8 +334,9 @@ func stageTip() string {
 	return "msg.stage" + strconv.Itoa(stage)
 }
 
-// 玩家子弹的朝向：2P 的子弹存的是朝向 + 1000（见 PBullet.fire）
+// 玩家子弹的朝向：2P 的子弹存的是朝向 + 1000（见 PBullet.fire），反弹过的再加 10000 × 次数（v6 跳弹）
 func bulletDir(f int) int {
+	f = pbStrip(f)
 	if f >= 500 {
 		return f - 1000
 	}
@@ -363,6 +410,475 @@ func nearestPlayer(x, y float64) int {
 		return 2
 	}
 	return 1
+}
+
+// ---------- v6 局内升级：精英、芯片、三选一（docs/v6/PLAN.md 第二节） ----------
+
+// 芯片的英文名：造型和文案 key 都用它（"chip.rapid"、"pc_rapid_zh"、"ci_rapid"）
+func chipKey(id int) string {
+	return []string{"", "rapid", "double", "pierce", "bounce", "shield", "engine", "float", "stealth", "magnet", "fortify", "bomb", "freeze"}[id]
+}
+
+// 战术芯片：立即生效，不占位置、不升级
+func chipTactical(id int) bool {
+	return id >= cFortify
+}
+
+// 稀有度：1 普通，2 稀有，3 传奇。三选一时出现的权重是 6 : 3 : 1
+func chipRarity(id int) int {
+	switch id {
+	case cPierce:
+		return 3
+	case cDouble, cBounce, cFloat, cBomb, cFreeze:
+		return 2
+	}
+	return 1
+}
+
+// 指挥官几级解锁这块芯片（车库，docs/v6/PLAN.md 第三节）。一开始就有 9 块
+func chipUnlockLv(id int) int {
+	switch id {
+	case cFloat:
+		return 3
+	case cStealth:
+		return 5
+	case cMagnet:
+		return 8
+	}
+	return 1
+}
+
+func chipUnlocked(id int) bool {
+	return cmdLevel >= chipUnlockLv(id)
+}
+
+func hasChip(who, id int) bool {
+	for _, c := range chips[who] {
+		if c == id {
+			return true
+		}
+	}
+	return false
+}
+
+// 连携：两块芯片都装上时有额外效果。弹幕（穿甲弹 + 跳弹）：反弹 2 次；连射（疾速弹 + 双联炮）：同时 3 发
+func comboBarrage(who int) bool {
+	return hasChip(who, cPierce) && hasChip(who, cBounce)
+}
+
+func comboSalvo(who int) bool {
+	return hasChip(who, cRapid) && hasChip(who, cDouble)
+}
+
+// 场上同时最多几发子弹
+func bulletLimit(who int) int {
+	if comboSalvo(who) {
+		return 3
+	}
+	if hasChip(who, cDouble) {
+		return 2
+	}
+	return 1
+}
+
+// 子弹速度（像素/秒）
+func bulletSpeed(who int) float64 {
+	if hasChip(who, cRapid) {
+		return 260 * 1.4
+	}
+	return 260
+}
+
+// 子弹能反弹几次
+func bounceLimit(who int) int {
+	if comboBarrage(who) {
+		return 2
+	}
+	if hasChip(who, cBounce) {
+		return 1
+	}
+	return 0
+}
+
+// 坦克移动速度（像素/秒）
+func moveSpeed(who int) float64 {
+	if hasChip(who, cEngine) {
+		return 60 * 1.25
+	}
+	return 60
+}
+
+// 玩家坦克中心在 (x, y) 时会不会压到东西：装了浮桥履带时水面能开过去
+func playerBlocked(x, y float64, who int) bool {
+	if !hasChip(who, cFloat) {
+		return tankBlocked(x, y)
+	}
+	h := 11.0
+	for _, p := range [][2]float64{{x - h, y - h}, {x + h, y - h}, {x - h, y + h}, {x + h, y + h}} {
+		v := cellAt(p[0], p[1])
+		if v != 0 && v != 5 && v != 4 {
+			return true
+		}
+	}
+	return false
+}
+
+// 迷彩：装了迷彩、并且坦克中心在草丛里，敌人子弹打不中
+func stealthed(who int) bool {
+	x, y := p1x, p1y
+	if who == 2 {
+		x, y = p2x, p2y
+	}
+	return hasChip(who, cStealth) && cellAt(x, y) == 5
+}
+
+// 能量护盾挡下这一发：返回 true 表示挡住了（坦克不会被击毁），护盾 30 秒后恢复
+func shieldBlock(who int) bool {
+	if !hasChip(who, cShield) || shieldCD[who] > 0 {
+		return false
+	}
+	shieldCD[who] = shieldSecs
+	sfx "armor"
+	toast "msg.shield", 1.2
+	return true
+}
+
+// 本关第 n 辆（从 0 数）出场的敌人是不是精英：第 4、11 辆；第 4 关起还有第 18 辆
+func eliteSlot(n int) bool {
+	return n == 3 || n == 10 || (n == 17 && stage >= 4 && stage <= lastStage)
+}
+
+// 本关一共几辆精英
+func eliteCount() int {
+	n := 0
+	for i := 0; i < totalEnemy; i++ {
+		if eliteSlot(i) {
+			n++
+		}
+	}
+	return n
+}
+
+// 精英被击毁：在它的位置掉一块芯片（场上原来的芯片被替换），10 秒内去捡
+func eliteDown(x, y float64) {
+	elitesKilled++
+	dropX = x
+	dropY = y
+	dropLeft = dropSecs
+	broadcast "hud"
+}
+
+// 新的一关：等级和芯片回到进关时的样子，其他 v6 状态清零
+func resetRun() {
+	for w := 1; w <= 2; w++ {
+		chips[w] = append([]int{}, snapChips[w]...)
+		lvl[w] = 1 + len(chips[w])
+		shieldCD[w] = 0
+	}
+	elitesKilled = 0
+	dropLeft = 0
+	freezeLeft = 0
+	fortifyLeft = 0
+	rerollUsed = false
+	pickWho = 0
+}
+
+// 记下现在的芯片：之后战败重打本关时恢复成这样
+func snapRun() {
+	for w := 1; w <= 2; w++ {
+		snapChips[w] = append([]int{}, chips[w]...)
+	}
+}
+
+// 从主页、选关、自制地图开局：等级回到 Lv1
+func clearRun() {
+	for w := 1; w <= 2; w++ {
+		snapChips[w] = nil
+	}
+}
+
+// 坦克被击毁：掉 1 级，最后选的那块芯片失效
+func loseLevel(who int) {
+	n := len(chips[who])
+	if n == 0 {
+		return
+	}
+	chips[who] = chips[who][:n-1]
+	lvl[who] = 1 + len(chips[who])
+	broadcast "hud"
+}
+
+// 三选一：从解锁了、还没装上的芯片里按稀有度权重抽 3 块（不重复）
+func pickRoll() {
+	cand := []int{}
+	for id := 1; id <= chipCount; id++ {
+		if chipUnlocked(id) && !hasChip(pickWho, id) {
+			cand = append(cand, id)
+		}
+	}
+	pickOpts = []int{}
+	for len(pickOpts) < 3 && len(cand) > 0 {
+		total := 0
+		for _, id := range cand {
+			total += []int{0, 6, 3, 1}[chipRarity(id)]
+		}
+		r := chipRand(total)
+		k := 0
+		for i, id := range cand {
+			r -= []int{0, 6, 3, 1}[chipRarity(id)]
+			if r < 0 {
+				k = i
+				break
+			}
+		}
+		pickOpts = append(pickOpts, cand[k])
+		rest := []int{}
+		for i, id := range cand {
+			if i != k {
+				rest = append(rest, id)
+			}
+		}
+		cand = rest
+	}
+}
+
+// 0 ~ n-1 的随机整数（三选一用）
+func chipRand(n int) int {
+	r := int(rand(0, n-1)) // XBuilder 的 spx v3.3.0 里 rand(int, int) 返回 float64
+	if r >= n {
+		r = n - 1
+	}
+	return r
+}
+
+// 玩家 who 捡到了芯片：满级直接加分；否则战场冻结，弹出三选一（路演演示时直接装第一块）
+func pickChip(who int) {
+	dropLeft = 0
+	if lvl[who] >= maxLevel {
+		score += maxBonus
+		if score > best && !autopilot {
+			best = score
+		}
+		broadcast "hud"
+		toast "msg.chip.max", 1.5
+		return
+	}
+	pickWho = who
+	pickRoll()
+	if autopilot {
+		applyChip who, pickOpts[0]
+		return
+	}
+	state = stPick
+	gameOver = true
+	sfx "start"
+	setScreen "pick"
+}
+
+// 三选一选了第 i 块（0~2）
+func pickChoose(i int) {
+	if state != stPick || i < 0 || i >= len(pickOpts) {
+		return
+	}
+	state = stPlay
+	setScreen ""
+	gameOver = false // 先解冻再生效：空袭可能打掉最后一辆，要能判胜利
+	applyChip pickWho, pickOpts[i]
+}
+
+// 三选一的这块芯片和已经装上的能不能组成连携（卡片上显示连携提示）
+func pickCombo(id int) bool {
+	switch id {
+	case cPierce:
+		return hasChip(pickWho, cBounce)
+	case cBounce:
+		return hasChip(pickWho, cPierce)
+	case cRapid:
+		return hasChip(pickWho, cDouble)
+	case cDouble:
+		return hasChip(pickWho, cRapid)
+	}
+	return false
+}
+
+// 三选一里刷新一次（每关 1 次）：商店版和买了去广告的免费刷新，免费版看激励视频
+func pickReroll() {
+	if state != stPick {
+		return
+	}
+	if rerollUsed {
+		toast "msg.reroll.used", 1.2
+		return
+	}
+	if storeBuild || adFree {
+		rerollUsed = true
+		pickRoll()
+		setScreen "pick"
+		return
+	}
+	watchAd rewardReroll
+}
+
+// 三选一的刷新按钮是哪种：ad 看视频、free 免费、used 本关已刷新
+func rerollLook() string {
+	if rerollUsed {
+		return "used"
+	}
+	if storeBuild || adFree {
+		return "free"
+	}
+	return "ad"
+}
+
+// 芯片生效：升级芯片装上并升一级；战术芯片立即生效
+func applyChip(who, id int) {
+	switch id {
+	case cFortify:
+		fortify()
+	case cBomb:
+		broadcast "bomb"
+	case cFreeze:
+		freezeLeft = freezeSecs
+	}
+	if chipTactical(id) {
+		toast "msg.chip."+chipKey(id), 1.5
+		return
+	}
+	chips[who] = append(chips[who], id)
+	lvl[who] = 1 + len(chips[who])
+	broadcast "hud"
+	if (id == cPierce || id == cBounce) && comboBarrage(who) {
+		toast "msg.combo.barrage", 2
+	} else if (id == cRapid || id == cDouble) && comboSalvo(who) {
+		toast "msg.combo.salvo", 2
+	} else {
+		toast "msg.chip."+chipKey(id), 1.5
+	}
+}
+
+// 基地四周的 5 格（上方三格和左右两格）
+func baseRing() []int {
+	return []int{baseIdx - cols - 1, baseIdx - cols, baseIdx - cols + 1, baseIdx - 1, baseIdx + 1}
+}
+
+// 把格子 i 换成 k 类型（换掉原来的 Tile 克隆）
+func setCell(i, k int) {
+	edChanged = i
+	broadcastAndWait "tileGone"
+	grid[i] = k
+	if k != 0 {
+		Tile.build cellX(i%cols), cellY(i/cols), k, i
+	}
+}
+
+// 钢铁堡垒：基地四周变成钢墙 15 秒（再捡一次就重新计时）
+func fortify() {
+	if fortifyLeft <= 0 {
+		for _, i := range baseRing() {
+			setCell i, 2
+		}
+	}
+	fortifyLeft = fortifySecs
+}
+
+// 钢铁堡垒到时间：四周恢复成完整的砖墙（钢墙被穿甲弹打掉的也补上）
+func endFortify() {
+	fortifyLeft = 0
+	m := levelMap()
+	for _, i := range baseRing() {
+		k := 0
+		if m[i/cols][i%cols] == 'B' {
+			k = 1
+		}
+		setCell i, k
+	}
+}
+
+// 每帧（战场冻结时不算）：护盾恢复、冰冻和钢铁堡垒倒计时、场上芯片的消失倒计时、磁吸和拾取
+func chipTick(dt float64) {
+	if gameOver {
+		return
+	}
+	for w := 1; w <= 2; w++ {
+		if shieldCD[w] > 0 {
+			shieldCD[w] -= dt
+		}
+	}
+	if freezeLeft > 0 {
+		freezeLeft -= dt
+	}
+	if fortifyLeft > 0 {
+		fortifyLeft -= dt
+		if fortifyLeft <= 0 {
+			endFortify()
+		}
+	}
+	if dropLeft <= 0 {
+		return
+	}
+	dropLeft -= dt
+	if dropLeft <= 0 {
+		dropLeft = 0
+		return
+	}
+	for w := 1; w <= 2; w++ {
+		x, y := p1x, p1y
+		if w == 2 {
+			if !coop || !p2Exists {
+				continue
+			}
+			x, y = p2x, p2y
+		}
+		if x > 9000 {
+			continue // 坦克被击毁了
+		}
+		if hasChip(w, cMagnet) {
+			d := math.Hypot(x-dropX, y-dropY)
+			if d > 1 {
+				step := math.Min(d, 150*dt)
+				dropX += (x - dropX) / d * step
+				dropY += (y - dropY) / d * step
+			}
+		}
+		if math.Abs(dropX-x) < 18 && math.Abs(dropY-y) < 18 {
+			pickChip w
+			return
+		}
+	}
+}
+
+// 玩家子弹的朝向 f 里还记着谁打的、反弹过几次：f = 朝向 + 1000（2P）+ 10000 × 反弹次数
+func pbStrip(f int) int {
+	for f >= 5000 {
+		f -= 10000
+	}
+	return f
+}
+
+func pbBounces(f int) int {
+	n := 0
+	for f >= 5000 {
+		f -= 10000
+		n++
+	}
+	return n
+}
+
+func pbWho(f int) int {
+	if pbStrip(f) >= 500 {
+		return 2
+	}
+	return 1
+}
+
+// 反弹：朝向反过来，反弹次数加 1
+func pbBounce(f int) int {
+	d := bulletDir(f)
+	nd := d + 180
+	if nd > 180 {
+		nd -= 360
+	}
+	return f - d + nd + 10000
 }
 
 // ---------- 自己做地图 ----------
@@ -661,6 +1177,7 @@ func playCustom(two bool) {
 	stage = customStage
 	stageScore = 0
 	reviveStage = 0
+	clearRun()
 	startGame
 }
 
@@ -826,6 +1343,7 @@ func buildHud() {
 	UI.icon kPauseBtn, 176, 164, 0 // 暂停按钮（对局中显示；手机上没有 Esc 键，靠它暂停和退出）
 	UI.icon kAlly, 0, 0, 1 // 我方标识（v6 敌我区分）：1P、2P 脚下的光圈和头顶的标签
 	UI.icon kAlly, 0, 0, 2
+	UI.icon kDrop, 0, 0, 0 // 战场上掉落的芯片（v6）
 	// 右侧面板：得分、最高分、生命、按键提示
 	UI.label 104, 140, "score"
 	UI.number kScore, 104, 120, 9
@@ -838,10 +1356,17 @@ func buildHud() {
 		UI.icon kLife, 110+float64(i)*16, 68, i // 位置在刷新时按单人 / 双人调整
 		UI.icon kLife2, 124+float64(i)*16, 52, i
 	}
-	UI.label 104, 30, "hint.move" // 双人时换成 1P / 2P 的按键说明
-	UI.label 104, 14, "hint.fire"
-	UI.label 104, -2, "hint.style"
-	UI.label 104, -18, "hint.lang"
+	// 芯片格（v6）：1P 一行、双人时 2P 再一行；触屏模式不显示（方向键在这里）
+	UI.label 104, 36, "chips"
+	UI.label 104, 20, "tag.c1"
+	UI.label 104, 4, "tag.c2"
+	for i := 0; i < 6; i++ {
+		UI.icon kChip, 0, 0, i // 位置在刷新时按单人 / 双人调整
+	}
+	UI.label 104, -10, "hint.move" // 双人时换成 1P / 2P 的按键说明
+	UI.label 104, -26, "hint.fire"
+	UI.label 104, -42, "hint.style"
+	UI.label 104, -58, "hint.lang"
 	// 广告位：对局中的原生广告卡、主页横幅
 	UI.adSlot 162, -113, "card"
 	UI.adSlot 0, -152, "banner"
@@ -856,6 +1381,12 @@ func buildHud() {
 	UI.icon kEdCursor, 0, 0, 0
 	UI.icon kEdMark, 0, 0, 0
 	UI.number kCoin, -132, 35, 9
+	// 三选一（v6）：三张卡片、刷新按钮、谁在选
+	for i := 0; i < 3; i++ {
+		UI.icon kPick, -134+float64(i)*134, 13, i
+	}
+	UI.icon kPick, 0, -98, 3
+	UI.icon kPick, 0, 150, 4
 	// 战场上方的提示条
 	UI.toastBar -72, 20
 }
@@ -932,6 +1463,12 @@ func hitPoint(x, y float64, byPlayer bool) bool {
 		}
 		return true
 	case 2:
+		if byPlayer && hasChip(shooter, cPierce) { // 穿甲弹：钢墙一发打掉
+			grid[i] = 0
+			broadcast "gridChanged"
+			sfx "brick"
+			return true
+		}
 		if byPlayer {
 			sfx "steel"
 		}
@@ -1021,6 +1558,9 @@ func revive() {
 		broadcast "baseChanged"
 	}
 	broadcastAndWait "reviveClear"
+	if fortifyLeft > 0 {
+		endFortify() // 先把钢铁堡垒恢复成砖墙，下面再按地图补护墙
+	}
 	m := levelMap()
 	for _, i := range []int{baseIdx - cols - 1, baseIdx - cols, baseIdx - cols + 1, baseIdx - 1, baseIdx + 1} {
 		if m[i/cols][i%cols] != 'B' || grid[i] == 1 {
@@ -1132,9 +1672,11 @@ func again() {
 	if won && stage < lastStage {
 		stage++
 		stageScore = score
+		snapRun() // 坦克等级和芯片带到下一关
 	} else if won {
 		stage = 1
 		stageScore = 0
+		clearRun()
 	}
 	reviveStage = 0 // 结算后的下一关、重打本关都可以再复活一次（只有暂停里的“重新开始本关”不清零）
 	startGame
@@ -1161,6 +1703,7 @@ func playStage(n int) {
 	stage = n
 	stageScore = 0
 	reviveStage = 0 // 从主页进关：可以重新复活一次
+	clearRun()      // 坦克等级从 Lv1 开始
 	startGame
 }
 
@@ -1410,6 +1953,10 @@ func spawnEnemy() {
 	} else if n <= heavy+fast {
 		kind = 1
 	}
+	if eliteSlot(spawned) {
+		kind += 10 // 精英（v6）：类型加 10，不给 Enemy 加字段（方法表上限）
+		toast "msg.elite", 2
+	}
 	Enemy.spawn cellX(c), cellY(0), kind
 	spawned++
 	enemiesAlive++
@@ -1468,6 +2015,7 @@ func startGame() {
 	revived = reviveStage == stage
 	won = false
 	baseSafe = 0
+	resetRun()
 	state = stPlay
 	setScreen ""
 	Camera.setZoom 1
@@ -1570,7 +2118,9 @@ onKey KeyS, => {
 // 主页和选关画面按 1~8 直接进入对应关卡
 onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 	n := int(key) - int(Key0)
-	if state == stHome || state == stLevels {
+	if state == stPick {
+		pickChoose(n - 1) // 三选一
+	} else if state == stHome || state == stLevels {
 		newGame n, false
 	} else if state == stEdit && n <= 5 {
 		edTool = n // 编辑器：选工具
@@ -1583,7 +2133,9 @@ onKey KeyEscape, => {
 }
 
 onKey KeyR, => {
-	if state == stResult {
+	if state == stPick {
+		pickReroll
+	} else if state == stResult {
 		again
 	} else if state == stPause {
 		startGame // 重新开始本关
@@ -1680,6 +2232,11 @@ onMsg "adFlow", => {
 	}
 	if adReward == rewardRevive {
 		revive
+	} else if adReward == rewardReroll {
+		rerollUsed = true
+		pickRoll()
+		state = stPick
+		setScreen "pick"
 	} else {
 		coins *= 2
 		doubled = true
@@ -1758,8 +2315,22 @@ onMsg "gameEnd", => {
 	}
 }
 
+// v6 芯片：每帧的倒计时、磁吸和拾取（见 chipTick）。只在 onStart 里广播一次（再次广播会打断正在运行的处理）
+onMsg "chipLoop", => {
+	for {
+		waitNextFrame
+		dt := deltaTime
+		if dt > 0.05 {
+			dt = 0.05
+		}
+		chipTick dt
+	}
+}
+
 onStart => {
 	stage = 1
+	cmdLevel = 1
+	broadcast "chipLoop"
 	initTheme
 	buildHud
 	goHome

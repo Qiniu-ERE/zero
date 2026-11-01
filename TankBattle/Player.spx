@@ -17,6 +17,14 @@ func myLook() string {
 	return look("player")
 }
 
+// 自己是 1P 还是 2P（舞台的芯片状态按它取）
+func me() int {
+	if isCloned {
+		return 2
+	}
+	return 1
+}
+
 // 切换引擎声
 func setEngine(s int) {
 	if s == engine {
@@ -76,26 +84,27 @@ func drive(d int, dt float64) {
 		setFace d
 	}
 	wasTouching := touching("Enemy")
-	dx := dirDX(face) * 60 * dt
-	dy := dirDY(face) * 60 * dt
+	v := moveSpeed(me()) // 涡轮引擎（v6）更快
+	dx := dirDX(face) * v * dt
+	dy := dirDY(face) * v * dt
 	changeXYpos dx, dy
-	if tankBlocked(xpos, ypos) || (!wasTouching && touching("Enemy")) {
+	if playerBlocked(xpos, ypos, me()) || (!wasTouching && touching("Enemy")) { // 浮桥履带（v6）能过水
 		changeXYpos -dx, -dy
 	}
 }
 
-// 开火：每人场上同时只能有一发子弹
+// 开火：每人场上同时只能有一发子弹（v6：双联炮 2 发，连射 3 发）
 func shoot() {
 	if gameOver || dead {
 		return
 	}
 	if isCloned {
-		if pbCount2 > 0 {
+		if pbCount2 >= bulletLimit(2) {
 			return
 		}
 		PBullet.fire xpos, ypos, face, 2
 	} else {
-		if pbCount > 0 {
+		if pbCount >= bulletLimit(1) {
 			return
 		}
 		PBullet.fire xpos, ypos, face, 1
@@ -253,7 +262,11 @@ onMsg "playerHit", => {
 	if dead || gameOver || shield > 0 || autopilot { // 路演演示时不会被击毁
 		return
 	}
+	if shieldBlock(me()) { // 能量护盾（v6）挡下了这一发
+		return
+	}
 	dead = true
+	loseLevel me() // 掉 1 级，最后选的芯片失效（v6）
 	left := 0
 	if isCloned {
 		lives2--

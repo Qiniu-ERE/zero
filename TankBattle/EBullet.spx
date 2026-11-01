@@ -42,9 +42,12 @@ onCloned => {
 		ebPos[this] = [2]float64{xpos, ypos}
 		if touching("Player") {
 			// 双人时看离哪辆坦克更近（死掉的坦克报的位置很远）
-			hitWho = nearestPlayer(xpos, ypos)
-			broadcast "playerHit"
-			vanish
+			w := nearestPlayer(xpos, ypos)
+			if !stealthed(w) { // 迷彩（v6）：坦克在草丛里，子弹穿过去
+				hitWho = w
+				broadcast "playerHit"
+				vanish
+			}
 		}
 		if bulletHit(xpos, ypos, face, false) {
 			vanish

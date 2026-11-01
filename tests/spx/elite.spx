@@ -1,0 +1,90 @@
+// 精英坦克和芯片掉落（U01~U07），见 docs/v6/TEST_PLAN.md
+// 敌人放在四面是水的格子里（坦克过不了水、原地不动，子弹能飞过），从紧挨着的水面打它
+onStart => {
+	wait 3
+	eliteBox := func(r, c int) {
+		for _, w := range []int{tAt(r-1, c), tAt(r+1, c), tAt(r, c-1), tAt(r, c+1)} {
+			grid[w] = 4
+		}
+	}
+
+	// U01 哪几辆是精英：第 4、11 辆；第 4 关起还有第 18 辆
+	stage = 1
+	tCheck "U01 第 1 关第 4 辆是精英", eliteSlot(3)
+	tCheck "U01 第 1 关第 11 辆是精英", eliteSlot(10)
+	tCheck "U01 第 1 关第 18 辆不是精英", !eliteSlot(17)
+	tCheck "U01 第 1 关第 1 辆不是精英", !eliteSlot(0)
+	tInt "U01 第 1~3 关 2 辆精英", eliteCount(), 2
+	stage = 4
+	tInt "U01 第 4 关起 3 辆精英", eliteCount(), 3
+	stage = customStage
+	tInt "U01 自制地图 2 辆精英", eliteCount(), 2
+
+	// U02 出兵：第 4 辆的类型加 10（精英），有提示
+	tQuiet
+	spawned = 3
+	toastKey = ""
+	spawnEnemy
+	tCheck "U02 第 4 辆出场时提示“精英来袭”", toastKey == "msg.elite"
+	tInt "U02 出兵计数", spawned, 4
+	wait 0.2
+	tCalm
+
+	// U03 精英多 1 发血：普通精英 2 发、重型精英 4 发；分数多 300；掉芯片
+	shots := []int{2, 2, 4}
+	points := []int{400, 500, 700}
+	names := []string{"普通", "快速", "重型"}
+	for k := 0; k < 3; k++ {
+		tQuiet
+		eliteBox(6, 6)
+		score, killed, elitesKilled = 0, 0, 0
+		dropLeft = 0
+		Enemy.spawn cellX(6), cellY(6), 10+k
+		enemiesAlive = 1
+		wait 0.3
+		for s := 1; s <= shots[k]; s++ {
+			PBullet.fire cellX(5), cellY(6), 90, 1
+			wait 0.6
+			if s < shots[k] {
+				tInt "U03 "+names[k]+"精英第 "+strconv.Itoa(s)+" 发后还活着", killed, 0
+			}
+		}
+		tInt "U03 "+names[k]+"精英 "+strconv.Itoa(shots[k])+" 发被消灭", killed, 1
+		tInt "U03 "+names[k]+"精英的分数（多 300）", score, points[k]
+		tInt "U04 "+names[k]+"精英被击毁计数", elitesKilled, 1
+		tCheck "U04 "+names[k]+"精英掉了一块芯片", dropLeft > 9
+		tCheck "U04 芯片掉在精英的位置（差不到 3 像素：坦克在格子里会晃一点）", math.Abs(dropX-cellX(6)) < 3 && math.Abs(dropY-cellY(6)) < 3
+	}
+
+	// U05 芯片 10 秒内没人捡就消失；暂停时不倒计时
+	tQuiet
+	Player.setXYpos cellX(0), cellY(12)
+	dropX, dropY, dropLeft = cellX(10), cellY(2), 10
+	pauseGame
+	wait 1
+	tCheck "U05 暂停时芯片不倒计时", dropLeft > 9.9
+	resumeGame
+	wait 4
+	tCheck "U05 4 秒后芯片还在", dropLeft > 0 && dropLeft < 6.5
+	wait 6.5
+	tNum "U05 10 秒后芯片消失", dropLeft, 0
+
+	// U06 普通敌人不掉芯片、不是精英的造型
+	tQuiet
+	eliteBox(6, 6)
+	dropLeft, elitesKilled = 0, 0
+	Enemy.spawn cellX(6), cellY(6), 0
+	enemiesAlive = 1
+	wait 0.3
+	PBullet.fire cellX(5), cellY(6), 90, 1
+	wait 0.6
+	tNum "U06 普通敌人不掉芯片", dropLeft, 0
+	tInt "U06 普通敌人不算精英", elitesKilled, 0
+
+	// U07 顶栏剩余格子：还没击毁的精英排在最后（紫色）——数量对得上
+	stage = 4
+	elitesKilled = 1
+	tInt "U07 第 4 关击毁 1 辆精英后还剩 2 辆", eliteCount()-elitesKilled, 2
+
+	tDone "elite"
+}

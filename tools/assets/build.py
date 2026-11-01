@@ -350,6 +350,9 @@ LABELS = {
     "lives": (6.8, MUTED, True, "start"),
     "tag.1p": (7.5, "#ffd23a", True, "start"),
     "tag.2p": (7.5, "#4fe3c1", True, "start"),
+    "chips": (6.8, MUTED, True, "start"),
+    "tag.c1": (6.5, "#ffd23a", True, "start"),
+    "tag.c2": (6.5, "#4fe3c1", True, "start"),
 }
 # 按键提示：key -> 按键
 HINTS = {"hint.move": "WASD", "hint.fire": "J", "hint.style": "T", "hint.lang": "L", "hint.p1": "1P", "hint.p2": "2P"}
@@ -404,7 +407,7 @@ def num_costumes():
 
 def icon_costumes():
     out = []
-    for name, col in (("pip_on", "#ff5a4a"), ("pip_off", "#3a4256")):
+    for name, col in (("pip_on", "#ff5a4a"), ("pip_off", "#3a4256"), ("pip_elite", ELITE)):
         out.append((name, svg(4, 8, f'<rect width="4" height="8" rx="1" fill="{col}"/>', res=HR), (2, 4)))
     defs, body = tank_body(*TANKS["player"])
     for name, op in (("life_on", 1), ("life_off", 0.22)):
@@ -419,12 +422,12 @@ def icon_costumes():
     return out
 
 
-def ally_costume(p):
-    """我方标识（v6 敌我区分）：坦克脚下的光圈 + 头顶的 1P / 2P 标签。UI 克隆每帧跟着坦克走，
+def ally_costume(p, lv):
+    """我方标识（v6 敌我区分）：坦克脚下的光圈 + 头顶的标签“1P · Lv3”。UI 克隆每帧跟着坦克走，
     不画进坦克造型：造型变大会改变碰撞范围。锚点是光圈中心"""
     col = TANKS["player" if p == 1 else "player2"][0]
-    w, h, cy, r = 36, 46, 28, 15
-    tag = f"{p}P"
+    w, h, cy, r = 44, 46, 28, 15
+    tag = f"{p}P · Lv{lv}"
     tw = width(tag, 6.5, True) + 8
     body = (f'<circle cx="{w/2}" cy="{cy}" r="{r}" fill="{col}" fill-opacity="0.1" stroke="{col}" stroke-width="1.3"/>'
             f'<rect x="{(w-tw)/2:.2f}" y="1" width="{tw:.2f}" height="10" rx="5" fill="{col}"/>'
@@ -926,6 +929,159 @@ def screen_costumes():
     return out
 
 
+# ---------- v6 芯片：图标、三选一卡片、右侧面板的芯片格、战场上掉落的芯片（docs/v6/PLAN.md 第二节） ----------
+# 顺序和 main.spx 的 chipKey 一致（编号 1~12）
+CHIP_KEYS = ("rapid", "double", "pierce", "bounce", "shield", "engine", "float", "stealth", "magnet", "fortify", "bomb", "freeze")
+CHIP_RARITY = {"pierce": 3, "double": 2, "bounce": 2, "float": 2, "bomb": 2, "freeze": 2}  # 其余是 1（普通）
+CHIP_TACTICAL = ("fortify", "bomb", "freeze")
+RARITY_COL = {1: "#8fb3ff", 2: ELITE, 3: "#ffb020"}
+CHIP_COL = {"rapid": "#ffd54a", "double": "#ffd54a", "pierce": "#ff8a3a", "bounce": "#ffd54a", "shield": "#5ad1ff",
+            "engine": "#2ee88a", "float": "#5ad1ff", "stealth": "#2ee88a", "magnet": "#ff7ab8", "fortify": "#c8d2e3",
+            "bomb": "#ff5a4a", "freeze": "#9fe8ff"}
+COMBO_PARTNER = {"pierce": "bounce", "bounce": "pierce", "rapid": "double", "double": "rapid"}
+
+
+def chip_icon_body(key, col):
+    """芯片图标：24x24 的线条图"""
+    st = f'stroke="{col}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"'
+    return {
+        "rapid": f'<circle cx="16" cy="12" r="4" fill="{col}"/><path d="M3 8h7M2 12h8M3 16h7" {st}/>',
+        "double": f'<circle cx="8" cy="15" r="3.4" fill="{col}"/><circle cx="16" cy="9" r="3.4" fill="{col}"/><path d="M8 22v-3M16 16v-3" {st}/>',
+        "pierce": f'<rect x="8" y="7" width="8" height="10" rx="1.2" fill="{col}" fill-opacity="0.3" stroke="{col}" stroke-width="1.4"/><path d="M2 12h20M18 8l4 4-4 4" {st}/>',
+        "bounce": f'<path d="M3 20l8-14 8 14" {st}/><path d="M2 21h20" stroke="{col}" stroke-width="1.4" stroke-opacity="0.5"/><circle cx="19" cy="20" r="2.4" fill="{col}"/>',
+        "shield": f'<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" fill="{col}" fill-opacity="0.25" stroke="{col}" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2.2 2.2L15.5 10" {st}/>',
+        "engine": f'<path d="M5 5l7 7-7 7M12 5l7 7-7 7" {st}/>',
+        "float": f'<path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 20c2-2 4-2 6 0s4 2 6 0 4-2 6 0" {st}/><rect x="7" y="4" width="10" height="7" rx="2" fill="{col}"/>',
+        "stealth": f'<path d="M2 13s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z" {st}/><circle cx="12" cy="13" r="2.6" fill="{col}"/><path d="M4 22l16-18" {st}/>',
+        "magnet": f'<path d="M6 4v8a6 6 0 0 0 12 0V4" stroke="{col}" stroke-width="3.4" fill="none"/><path d="M4.4 4h3.2M16.4 4h3.2" stroke="#ffffff" stroke-width="3.4"/>',
+        "fortify": f'<path d="M12 6l2 2.6 3.8-1.2-2 3.8 2.6 1.3-4.5 1.2L12 17l-1.9-3.3-4.5-1.2 2.6-1.3-2-3.8 3.8 1.2z" fill="{col}"/><rect x="2.5" y="2.5" width="19" height="19" rx="2" fill="none" stroke="{col}" stroke-width="1.6" stroke-dasharray="3 1.6"/>',
+        "bomb": f'<circle cx="11" cy="14" r="7" fill="{col}"/><path d="M15 8l3-3M19 3l1 1M21 6h1" {st}/>',
+        "freeze": f'<path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 3 3-3M9 20l3-3 3 3" {st}/>',
+    }[key]
+
+
+def chip_icon(key, x, y, size):
+    return f'<g transform="translate({x:.2f},{y:.2f}) scale({size / 24:.4f})">{chip_icon_body(key, CHIP_COL[key])}</g>'
+
+
+def chip_badge(key, s=14):
+    """右侧面板的芯片格（s x s），边框是稀有度的颜色"""
+    rc = RARITY_COL[CHIP_RARITY.get(key, 1)]
+    body = (f'<rect x="0.4" y="0.4" width="{s-0.8}" height="{s-0.8}" rx="{s*0.22:.2f}" fill="{rc}" fill-opacity="0.16" stroke="{rc}" stroke-opacity="0.85" stroke-width="0.7"/>'
+            + chip_icon(key, s * 0.15, s * 0.15, s * 0.7))
+    return svg(s, s, body, res=HR), (s / 2, s / 2)
+
+
+def chip_empty(s=14):
+    body = (f'<rect x="0.4" y="0.4" width="{s-0.8}" height="{s-0.8}" rx="{s*0.22:.2f}" fill="none" stroke="#3a4256" stroke-width="0.7" stroke-dasharray="2 1.6"/>'
+            + text(s / 2, s / 2 + 2.6, "+", 7, "#3a4256", True, "middle"))
+    return svg(s, s, body, res=HR), (s / 2, s / 2)
+
+
+def chip_drop():
+    """精英被击毁后掉在战场上的芯片：紫色六边形 + 星，外面一圈光"""
+    defs = rad("cg", [(0, ELITE, 0.75), (0.5, ELITE, 0.25), (1, ELITE, 0)])
+    pts = " ".join(f"{16 + math.cos(math.radians(30 + i * 60)) * 8:.2f},{16 + math.sin(math.radians(30 + i * 60)) * 8:.2f}" for i in range(6))
+    star = []
+    for i in range(10):
+        a = math.radians(-90 + i * 36)
+        r = 4.8 if i % 2 == 0 else 2.16
+        star.append(f"{16 + math.cos(a) * r:.2f},{16.4 + math.sin(a) * r:.2f}")
+    body = (f'<circle cx="16" cy="16" r="16" fill="url(#cg)"/><polygon points="{pts}" fill="#2a0f45" stroke="{ELITE}" stroke-width="1.3"/>'
+            f'<polygon points="{" ".join(star)}" fill="#f3dcff"/>')
+    return svg(32, 32, body, defs, res=HR), (16, 16)
+
+
+PK_CW, PK_CH, PK_GAP, PK_Y = 120, 150, 14, 92  # 三选一的卡片
+PK_X0 = (W - 3 * PK_CW - 2 * PK_GAP) / 2
+PK_REROLL = (W / 2 - 95, 266, 190, 24)
+
+
+def pick_card(key, lang, combo=False):
+    """三选一的一张卡片（不含按键数字，按键画在底图上）。锚点是卡片中心"""
+    w, h = PK_CW, PK_CH
+    rar = CHIP_RARITY.get(key, 1)
+    rc = RARITY_COL[rar]
+    s = [f'<rect x="0.8" y="0.8" width="{w-1.6}" height="{h-1.6}" rx="11" fill="url(#card)" stroke="{rc}" stroke-width="1.2"/>']
+    lab = tr(f"rar.{rar}", lang)
+    pw = width(lab, 5.6, True) + 8
+    s.append(f'<rect x="10" y="10" width="{pw:.2f}" height="10" rx="5" fill="{rc}"/>' + text(10 + pw / 2, 17.2, lab, 5.6, "#120a1f", True, "middle"))
+    s.append(f'<circle cx="{w/2}" cy="56" r="25" fill="{rc}" fill-opacity="0.12"/>')
+    s.append(chip_icon(key, w / 2 - 18, 38, 36))
+    name, desc = tr(f"chip.{key}", lang), tr(f"chip.{key}.d", lang)
+    if width(name, 12, True) > w - 12 or width(desc, 6.4) > w - 10:
+        sys.exit(f"芯片卡片的文字太长：{name} / {desc}")
+    s.append(text(w / 2, 102, name, 12, "#ffffff", True, "middle"))
+    s.append(text(w / 2, 116, desc, 6.4, "#c8d2e3", False, "middle"))
+    if key in CHIP_TACTICAL:
+        s.append(text(w / 2, 136, tr("tactical", lang), 5.8, "#8fb3ff", True, "middle"))
+    if combo:
+        lab = tr(f"pk.combo.{key}", lang)
+        if width(lab, 5.6, True) > w - 24:
+            sys.exit(f"连携提示太长：{lab}")
+        s.append(f'<rect x="10" y="126" width="{w-20}" height="16" rx="5" fill="#ff8a3a" fill-opacity="0.16"/>')
+        s.append(text(w / 2, 137, lab, 5.6, "#ffc08a", True, "middle"))
+    return svg(w, h, "".join(s), lin("card", "#1b2335", "#10151f"), res=2), (w / 2, h / 2)
+
+
+def pick_screen(lang):
+    """三选一的底图：压暗的战场、标题、三个卡片位置下面的按键。卡片、刷新按钮、1P / 2P 标签是 UI 的 kPick 克隆"""
+    s = [f'<rect width="{W}" height="{H}" fill="#07040d" fill-opacity="0.74"/>']
+    s.append(text(W / 2, 64, tr("pk.title", lang), 17, "#ffffff", True, "middle"))
+    s.append(text(W / 2, 80, tr("pk.sub", lang), 7, "#c8b4e8", False, "middle"))
+    for i in range(3):
+        x = PK_X0 + i * (PK_CW + PK_GAP)
+        button(f"pick.{i+1}", x, PK_Y, PK_CW, PK_CH)
+        c, cw = chip(0, 0, str(i + 1))
+        s.append(f'<g transform="translate({x + PK_CW / 2 - cw / 2:.2f},{PK_Y + PK_CH + 6})">{c}</g>')
+    x, y, w, h = PK_REROLL
+    button("pick.reroll", x, y, w, h)
+    s.append(text(W / 2, 320, tr("pk.keys", lang), 6.8, "#c8d2e3", True, "middle"))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def reroll_button(kind, lang):
+    """三选一的刷新按钮：ad 看视频（广告蓝），free 免费，used 本关已刷新。锚点是中心"""
+    w, h = PK_REROLL[2], PK_REROLL[3]
+    lab = tr(f"pk.reroll.{kind}", lang)
+    if kind == "ad":
+        b, bw = ad_badge(10, 7.5, lang)
+        s = (f'<rect x="0.5" y="0.5" width="{w-1}" height="{h-1}" rx="{(h-1)/2}" fill="none" stroke="{GBLUE}" stroke-width="1"/>'
+             + b + play_icon(bw + 20, h / 2, "#8ab4f8", 0.9) + text(w / 2 + 12, 15.5, lab, 8, "#8ab4f8", True, "middle"))
+    elif kind == "free":
+        s = (f'<rect x="0.5" y="0.5" width="{w-1}" height="{h-1}" rx="{(h-1)/2}" fill="#ffffff" fill-opacity="0.06" stroke="#3ee8ff" stroke-opacity="0.7" stroke-width="0.8"/>'
+             + text(w / 2 - 6, 15.5, lab, 8, "#9fdcea", True, "middle"))
+    else:
+        s = (f'<rect x="0.5" y="0.5" width="{w-1}" height="{h-1}" rx="{(h-1)/2}" fill="#ffffff" fill-opacity="0.03" stroke="#2c3850" stroke-width="0.6"/>'
+             + text(w / 2, 15.5, lab, 8, "#5a6680", True, "middle"))
+    if kind != "used":
+        c, cw = chip(0, 0, "R")
+        s += f'<g transform="translate({w - 10 - cw:.2f},7)">{c}</g>'
+    return svg(w, h, s, res=HR), (w / 2, h / 2)
+
+
+def pick_who(p):
+    col = TANKS["player" if p == 1 else "player2"][0]
+    tw = width(f"{p}P", 9, True) + 14
+    body = f'<rect width="{tw:.2f}" height="15" rx="7.5" fill="{col}"/>' + text(tw / 2, 11, f"{p}P", 9, "#1a1405", True, "middle")
+    return svg(tw, 15, body, res=HR), (tw / 2, 7.5)
+
+
+def chip_costumes():
+    out = [("drop", *chip_drop()), ("ci_empty", *chip_empty())]
+    out += [(f"ci_{k}", *chip_badge(k)) for k in CHIP_KEYS]
+    out += [(f"pickwho_{p}", *pick_who(p)) for p in (1, 2)]
+    for lang in LANGS:
+        for k in CHIP_KEYS:
+            out.append((f"pc_{k}_{lang}", *pick_card(k, lang), 2))
+            if k in COMBO_PARTNER:
+                out.append((f"pc_{k}_combo_{lang}", *pick_card(k, lang, True), 2))
+        out.append((f"pick_{lang}", *pick_screen(lang), 2))
+        for kind in ("ad", "free", "used"):
+            out.append((f"reroll_{kind}_{lang}", *reroll_button(kind, lang)))
+    return out
+
+
 def stage_xy(x, y):
     """SVG 坐标 -> 舞台坐标"""
     return x - W / 2, H / 2 - y
@@ -969,7 +1125,8 @@ def build_hud():
     nums, widths = num_costumes()
     costumes += nums
     costumes += icon_costumes()
-    costumes += [(f"ally_{p}", *ally_costume(p)) for p in (1, 2)]
+    costumes += [(f"ally_{p}_{lv}", *ally_costume(p, lv)) for p in (1, 2) for lv in range(1, 5)]
+    costumes += chip_costumes()
     costumes += ed_widgets()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])

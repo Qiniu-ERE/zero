@@ -28,6 +28,10 @@ def ui_costumes():
         return {c["name"] for c in json.load(f)["costumes"]}
 
 
+# v6 的 12 块芯片（和 main.spx 的 chipKey 一致）
+CHIP_KEYS = ("rapid", "double", "pierce", "bounce", "shield", "engine", "float", "stealth", "magnet", "fortify", "bomb", "freeze")
+
+
 def referenced_msg_keys():
     """游戏代码里用到的 msg.* 文案。写成 "msg.stage" + 关卡号、"msg.ed.copy" + 关卡号的，展开成每一关"""
     keys = set()
@@ -37,6 +41,8 @@ def referenced_msg_keys():
                 keys |= {f"msg.stage{n}" for n in range(2, LAST_STAGE + 1)}
             elif k == "msg.ed.copy":
                 keys |= {f"msg.ed.copy{n}" for n in range(1, LAST_STAGE + 1)}
+            elif k == "msg.chip.":  # v6："msg.chip." + chipKey(id)，每块芯片一条
+                keys |= {f"msg.chip.{c}" for c in CHIP_KEYS}
             else:
                 keys.add(k)
     return keys

@@ -40,7 +40,10 @@ const (
 
 	kTouchPad = 17 // 触屏模式的方向键（手机 App 里替换右侧的按键说明）
 	kPauseBtn = 18 // 顶栏的暂停按钮
-	kAlly     = 19 // v6 敌我区分：我方坦克脚下的光圈和头顶的 1P / 2P 标签（slot 1 是 1P，2 是 2P），每帧跟着坦克走
+	kAlly     = 19 // v6 敌我区分：我方坦克脚下的光圈和头顶的“1P · Lv3”标签（slot 1 是 1P，2 是 2P），每帧跟着坦克走
+	kChip     = 20 // v6 右侧面板的芯片格：slot 0~2 是 1P 的三个位置，3~5 是 2P 的
+	kPick     = 21 // v6 三选一：slot 0~2 是三张卡片，3 是刷新按钮，4 是“1P / 2P”标签（双人时）
+	kDrop     = 22 // v6 战场上掉落的芯片（精英被击毁后出现，每帧跟着舞台的 dropX / dropY）
 )
 
 // ---------- 创建 ----------
@@ -104,6 +107,14 @@ func screenLayer() {
 func hit(name string, x, y float64) bool {
 	// BEGIN GENERATED hit
 	switch name {
+	case "pick.1":
+		return x >= -194 && x <= -74 && y >= -62 && y <= 88
+	case "pick.2":
+		return x >= -60 && x <= 60 && y >= -62 && y <= 88
+	case "pick.3":
+		return x >= 74 && x <= 194 && y >= -62 && y <= 88
+	case "pick.reroll":
+		return x >= -95 && x <= 95 && y >= -110 && y <= -86
 	case "home.start":
 		return x >= -224 && x <= -54 && y >= 46 && y <= 96
 	case "home.coop":
@@ -284,8 +295,11 @@ func refresh() {
 			k = "hint.p1"
 		} else if coop && key == "hint.fire" {
 			k = "hint.p2"
-		} else if !coop && (key == "tag.1p" || key == "tag.2p") {
+		} else if !coop && (key == "tag.1p" || key == "tag.2p" || key == "tag.c1" || key == "tag.c2") {
 			hide
+			return
+		} else if touchUI && (key == "chips" || key == "tag.c1" || key == "tag.c2") {
+			hide // 触屏模式：芯片格的位置是方向键（等级看坦克头顶的标签）
 			return
 		}
 		setCostume k + "_" + langCode()
@@ -295,10 +309,16 @@ func refresh() {
 	case kPip:
 		if slot < killed {
 			setCostume "pip_off"
+		} else if slot >= totalEnemy-(eliteCount()-elitesKilled) {
+			setCostume "pip_elite" // 还没击毁的精英（v6）排在最后，紫色
 		} else {
 			setCostume "pip_on"
 		}
 		show
+	case kChip:
+		refreshChip
+	case kPick:
+		refreshPick
 	case kLife:
 		c := lifeLook(lives, slot, false)
 		if c == "" {
@@ -383,12 +403,93 @@ func allyStep(shown bool) bool {
 		return false
 	}
 	setXYpos x, y
+	c := "ally_" + strconv.Itoa(slot) + "_" + strconv.Itoa(lvl[slot]) // 等级变了才换造型（key 记着当前的造型）
+	if c != key {
+		key = c
+		setCostume c
+	}
 	if !shown {
-		setCostume "ally_" + strconv.Itoa(slot)
 		setLayer Front
 		show
 	}
 	return true
+}
+
+// 战场上的芯片：对局中（含暂停）显示在 dropX / dropY，最后 3 秒闪烁
+func dropStep(shown bool) bool {
+	if dropLeft <= 0 || (state != stPlay && state != stPause) {
+		if shown {
+			hide
+		}
+		return false
+	}
+	setXYpos dropX, dropY
+	if dropLeft < 3 && int(dropLeft*6)%2 == 0 {
+		setGraphicEffect GhostEffect, 70
+	} else {
+		clearGraphicEffects
+	}
+	if !shown {
+		setCostume "drop"
+		setLayer Front
+		show
+	}
+	return true
+}
+
+// 右侧面板的芯片格：第 slot/3+1 个玩家的第 slot%3 个位置。触屏模式（方向键在这里）和单人时的 2P 行不显示
+func refreshChip() {
+	who := slot/3 + 1
+	i := slot % 3
+	if touchUI || (who == 2 && !coop) {
+		hide
+		return
+	}
+	c := "ci_empty"
+	if i < len(chips[who]) {
+		c = "ci_" + chipKey(chips[who][i])
+	}
+	setCostume c
+	x := 111.0 + float64(i)*17
+	if coop {
+		x += 16 // 左边留出「1P / 2P」标签
+	}
+	y := 22.0
+	if who == 2 {
+		y = 6
+	}
+	setXYpos x, y
+	show
+}
+
+// 三选一的卡片、刷新按钮、谁在选（只在三选一时显示）
+func refreshPick() {
+	if state != stPick {
+		hide
+		return
+	}
+	if slot <= 2 {
+		if slot >= len(pickOpts) {
+			hide
+			return
+		}
+		id := pickOpts[slot]
+		c := "pc_" + chipKey(id)
+		if pickCombo(id) {
+			c += "_combo"
+		}
+		setCostume c + "_" + langCode()
+	} else if slot == 3 {
+		setCostume "reroll_" + rerollLook() + "_" + langCode()
+	} else {
+		if !coop {
+			hide
+			return
+		}
+		setCostume "pickwho_" + strconv.Itoa(pickWho)
+	}
+	setLayer Front
+	show
 }
 
 // 编辑器小部件：位置和造型跟着舞台的编辑状态走
@@ -508,6 +609,16 @@ func clickScreen() {
 		} else if hit("revive.giveup", x, y) {
 			endGame false
 		}
+	case stPick:
+		for n := 1; n <= 3; n++ {
+			if hit("pick."+strconv.Itoa(n), x, y) {
+				pickChoose(n - 1)
+				return
+			}
+		}
+		if hit("pick.reroll", x, y) {
+			pickReroll
+		}
 	case stResult:
 		if hit("result.ad", x, y) && !doubled {
 			watchAd rewardDouble
@@ -522,11 +633,15 @@ func clickScreen() {
 // ---------- 事件 ----------
 
 onCloned => {
-	if kind == kAlly {
+	if kind == kAlly || kind == kDrop {
 		shown := false
 		for {
 			waitNextFrame
-			shown = allyStep(shown)
+			if kind == kAlly {
+				shown = allyStep(shown)
+			} else {
+				shown = dropStep(shown)
+			}
 		}
 	}
 	refresh
@@ -581,7 +696,7 @@ onMsg "edCursor", => {
 }
 
 onMsg "raise", => {
-	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin) {
+	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick) {
 		setLayer Front
 	}
 }
