@@ -1,0 +1,151 @@
+// 赛季、分享战报、助战码（S01~S09），见 docs/v6/TEST_PLAN.md
+// timeout: 90
+onStart => {
+	wait 3
+
+	// S01 赛季：6 周一季，2026-11-01 开始 S1
+	tInt "S01 第 20758 天（2026-11-01）是 S1", seasonOf(20758), 1
+	tInt "S01 第 1 天还剩 42 天", seasonLeft(20758), 42
+	tInt "S01 第 42 天还剩 1 天", seasonLeft(20758+41), 1
+	tInt "S01 第 43 天是 S2", seasonOf(20758+42), 2
+	tInt "S01 S2 第一天还剩 42 天", seasonLeft(20758+42), 42
+
+	// S02 段位：青铜 0、白银 300、黄金 800、铂金 1600、钻石 3000、王牌 5000
+	tInt "S02 299 分青铜", tierOf(299), 0
+	tInt "S02 300 分白银", tierOf(300), 1
+	tInt "S02 5000 分王牌", tierOf(5000), 5
+	have, need := tierProgress(400)
+	tInt "S02 白银里已有 100", have, 100
+	tInt "S02 白银到黄金要 500", need, 500
+
+	// S03 积分来源：每日挑战正式成绩 50 + 得分 / 200；战役过一关 20；练习和演示不算
+	dayOverride = 20790 // S1 里的一天
+	refreshSeason()
+	seasonPts = 0
+	dailyDay = 0
+	playDaily
+	wait 0.3
+	tCalm
+	score = 4000
+	endGame false
+	tInt "S03 每日挑战正式成绩：50 + 4000 / 200", seasonPts, 70
+	again
+	wait 0.3
+	tCalm
+	score = 8000
+	endGame true
+	tInt "S03 练习不加积分", seasonPts, 70
+	playStage 1
+	wait 0.3
+	tCalm
+	endGame true
+	tInt "S03 战役过一关 +20", seasonPts, 90
+	autopilot = true
+	gainSeason 500
+	tInt "S03 路演演示不加", seasonPts, 90
+	autopilot = false
+
+	// S04 黄金段位送赛季涂装（不卖）；升段位有提示
+	skinsOwned[seasonSkin] = false
+	wallet = 99999
+	goHome
+	buySkin seasonSkin
+	tCheck "S04 赛季涂装买不到", !skinsOwned[seasonSkin]
+	tStr "S04 提示要到黄金", toastKey, "msg.season.locked"
+	seasonPts = 790
+	gainSeason 20
+	tCheck "S04 到黄金送赛季涂装", skinsOwned[seasonSkin]
+	tStr "S04 提示获得涂装", toastKey, "msg.season.skin"
+	buySkin seasonSkin
+	tInt "S04 送的涂装可以换上", skin, seasonSkin
+
+	// S05 换季：积分清零（涂装留着）
+	dayOverride = 20758 + 42
+	refreshSeason()
+	tInt "S05 换到 S2", seasonNo, 2
+	tInt "S05 积分清零", seasonPts, 0
+	tCheck "S05 赛季涂装留着", skinsOwned[seasonSkin]
+	b, _ := os.ReadFile(saveFile())
+	tCheck "S05 赛季写进存档", strings.Contains(string(b), "season=2")
+
+	// S06 连续打卡：连着打 +1，断了从 1 开始（只展示，不扣东西）
+	streak, streakDay = 3, 20900
+	tInt "S06 第二天接着打", dailyStreakAfter(20901), 4
+	tInt "S06 同一天不变", dailyStreakAfter(20900), 3
+	tInt "S06 断了从 1 开始", dailyStreakAfter(20903), 1
+
+	// S07 助战码：5 位，能解回芯片；改一位就无效；没有芯片无效
+	code := assistCode([]int{cPierce, cBounce, cShield})
+	tInt "S07 助战码 5 位", len(code), 5
+	got := assistDecode(code)
+	tCheck "S07 解回三块芯片", len(got) == 3 && got[0] == cPierce && got[1] == cBounce && got[2] == cShield
+	bad := string([]byte{code[0], code[1], code[2], code[3], byte('0' + (int(code[4]-'0')+1)%10)})
+	tCheck "S07 校验位不对无效", assistDecode(bad) == nil
+	tCheck "S07 没有芯片的码无效", assistDecode(assistCode(nil)) == nil
+	tCheck "S07 位数不对无效", assistDecode("123") == nil
+	tCheck "S07 只有一块芯片也行", len(assistDecode(assistCode([]int{cEngine}))) == 1
+
+	// S08 输入助战码：主页按 A，数字键输入、Backspace 删除、Enter 确认；下一关开局装上好友的第一块芯片
+	goHome
+	openAssist
+	tInt "S08 打开助战码输入", state, stAssist
+	for i := 0; i < len(code); i++ {
+		assistKey int(code[i] - '0')
+	}
+	assistKey 7
+	tStr "S08 最多 5 位", assistInput, code
+	assistKey -1
+	tInt "S08 Backspace 删一位", len(assistInput), 4
+	assistKey int(code[4] - '0')
+	assistConfirm
+	tInt "S08 确认后回主页", state, stHome
+	tInt "S08 记下好友的第一块芯片", assistGift, cPierce
+	playStage 2
+	wait 0.3
+	tCheck "S08 下一关开局装上了", hasChip(1, cPierce)
+	tInt "S08 升到 Lv2", lvl[1], 2
+	tInt "S08 只送一次", assistGift, 0
+	goHome
+	openAssist
+	assistInput = "12345"
+	assistConfirm
+	tInt "S08 输错了留在输入画面", state, stAssist
+	tStr "S08 提示助战码不对", toastKey, "msg.assist.bad"
+	tStr "S08 输错后清空", assistInput, ""
+	escKey
+	tInt "S08 Esc 返回主页", state, stHome
+	assistGift = cBounce
+	dayOverride = 20900
+	playDaily
+	wait 0.3
+	tCheck "S08 每日挑战不用助战芯片（公平）", !hasChip(1, cBounce)
+	tInt "S08 留到下一局战役", assistGift, cBounce
+	assistGift = 0
+
+	// S09 分享战报：每日挑战正式成绩结算后按 S 打开，卡片上的数字；Esc 回到结算
+	dailyDay = 0
+	tCalm
+	chips[1] = []int{cRapid, cDouble}
+	score = 6400
+	dailySecs = 187
+	endGame true
+	tCheck "S09 正式成绩", dailyOfficial
+	openShare
+	tInt "S09 打开分享战报", state, stShare
+	tStr "S09 第几期", shareText(0), strconv.Itoa(20900-dailyEpoch)
+	tStr "S09 得分", shareText(1), "6400"
+	tStr "S09 用时", shareText(2), "187"
+	tStr "S09 没联网时不显示名次", shareText(3), ""
+	tStr "S09 助战码是这一局的芯片", shareText(5), assistCode([]int{cRapid, cDouble})
+	tInt "S09 卡片上的芯片", len(dailyBuild), 2
+	escKey
+	tInt "S09 Esc 回到结算", state, stResult
+	again
+	wait 0.3
+	tCalm
+	endGame true
+	openShare
+	tInt "S09 练习局结算后也能打开今天正式成绩的战报", state, stShare
+
+	tDone "season"
+}

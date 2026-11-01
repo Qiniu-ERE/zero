@@ -141,6 +141,16 @@ var (
 	lbMyBest  int      // 自己在这个榜上的最好成绩
 	serverDay int      // 服务器告诉的今天（网页版拿不到本机时间时用）
 
+	// v6 赛季、分享战报、助战码（docs/v6/PLAN.md 第四节）
+	seasonNo      int    // 存档里的赛季
+	seasonPts     int    // 这个赛季的积分
+	streak        int    // 连续打每日挑战的天数（只展示）
+	streakDay     int    // 上次打每日挑战是哪一天
+	dailyBestSecs int    // 每日挑战正式成绩那一局的用时（秒，分享卡片上显示）
+	assistInput   string // 正在输入的助战码
+	assistGift    int    // 好友送的助战芯片：下一局开局时装上（0 表示没有）
+	dailyBuild    []int  // 每日挑战正式成绩那一局的芯片（分享卡片上显示）
+
 	// 后台 goroutine 写、舞台每帧收（lbPoll）
 	lbDoneSend   bool
 	lbDoneLeft   []string
@@ -167,6 +177,8 @@ const (
 	stPick   = 8 // v6：捡到芯片，三选一（战场冻结）
 	stGarage = 9 // v6：车库
 	stRanks  = 10 // v6：排行榜
+	stShare  = 11 // v6：分享战报（每日挑战结算后）
+	stAssist = 12 // v6：输入好友的助战码
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
@@ -201,6 +213,11 @@ const (
 	lbOK        = 1
 	lbOffline   = 2
 	lbNoServer  = 3
+
+	seasonDays = 42 // 6 周一季
+	seasonSkin = 5  // 赛季涂装（黄金段位送）
+	ptsDaily   = 50 // 每日挑战正式成绩：50 + 得分 / 200
+	ptsClear   = 20 // 战役过一关
 	storeBuild  = false // 商店版（PC 买断，没有广告）：tools/export/build.sh --store 改成 true。v6 起三选一每局免费刷新 1 次
 )
 
@@ -233,7 +250,7 @@ const (
 	xpKill      = 2  // 击毁一辆敌人的经验
 	xpElite     = 10 // 击毁精英额外的经验
 	xpClear     = 50 // 过关的经验
-	skinCount   = 5
+	skinCount   = 6 // 0 默认，1~4 金币买，5 赛季奖励
 	taskCount   = 8 // 每日任务的种类
 	taskReward  = 50
 
@@ -1026,7 +1043,9 @@ func saveText() string {
 	lines := []string{"v=1", "id=" + playerID, "xp=" + strconv.Itoa(cmdXP), "coins=" + strconv.Itoa(wallet),
 		"skin=" + strconv.Itoa(skin), "skins=" + joinInts(owned),
 		"task.day=" + strconv.Itoa(taskDay), "task.ids=" + joinInts(taskIDs), "task.prog=" + joinInts(taskProg),
-		"daily.day=" + strconv.Itoa(dailyDay), "daily.score=" + strconv.Itoa(dailyScore)}
+		"daily.day=" + strconv.Itoa(dailyDay), "daily.score=" + strconv.Itoa(dailyScore),
+		"daily.secs=" + strconv.Itoa(dailyBestSecs), "streak=" + strconv.Itoa(streak), "streak.day=" + strconv.Itoa(streakDay),
+		"season=" + strconv.Itoa(seasonNo), "season.pts=" + strconv.Itoa(seasonPts)}
 	for _, q := range lbQueue {
 		lines = append(lines, "lb.queue="+q) // 没传上去的成绩，一条一行
 	}
@@ -1083,6 +1102,16 @@ func loadText(text string) bool {
 			dailyDay = n
 		case "daily.score":
 			dailyScore = n
+		case "daily.secs":
+			dailyBestSecs = n
+		case "streak":
+			streak = n
+		case "streak.day":
+			streakDay = n
+		case "season":
+			seasonNo = n
+		case "season.pts":
+			seasonPts = n
 		case "lb.queue":
 			if strings.HasPrefix(v, "{") && len(lbQueue) < lbQueueMax {
 				lbQueue = append(lbQueue, v)
@@ -1114,6 +1143,11 @@ func newSave() {
 	dailyDay = 0
 	dailyScore = 0
 	lbQueue = nil
+	dailyBestSecs = 0
+	streak = 0
+	streakDay = 0
+	seasonNo = 0
+	seasonPts = 0
 }
 
 // 16 位十六进制的随机 ID（只用来区分玩家，不含任何个人信息）
@@ -1139,6 +1173,7 @@ func initSave() {
 		saveGame()
 	}
 	refreshTasks()
+	refreshSeason()
 }
 
 // 指挥官从 l 级升到 l+1 级要多少经验
@@ -1204,7 +1239,7 @@ func nextUnlock() int {
 
 // 涂装的价格（金币），0 号是默认的金色
 func skinPrice(i int) int {
-	return []int{0, 1500, 2000, 2500, 3000}[i]
+	return []int{0, 1500, 2000, 2500, 3000, 0}[i]
 }
 
 // 点了第 i 款涂装：有了就换上，没有就用金币买（钱不够提示）
@@ -1215,6 +1250,9 @@ func buySkin(i int) {
 	if skinsOwned[i] {
 		skin = i
 		toast "msg.skin.on", 1.2
+	} else if i == seasonSkin {
+		toast "msg.season.locked", 1.8 // 赛季涂装不卖，到黄金段位送
+		return
 	} else if wallet >= skinPrice(i) {
 		wallet -= skinPrice(i)
 		skinsOwned[i] = true
@@ -1529,7 +1567,7 @@ func lbPoll() {
 			lbOnline = false
 		}
 		lbDoneFetch = 0
-		if state == stRanks {
+		if state == stRanks || state == stShare {
 			broadcast "hud"
 		}
 	}
@@ -1606,6 +1644,222 @@ func lbText(row, field int) string {
 func myTag() int {
 	n, _ := strconv.ParseInt(playerID[:4], 16, 64)
 	return int(n) % 10000
+}
+
+// ---------- v6 赛季、分享战报、助战码（docs/v6/PLAN.md 第四节） ----------
+
+// 第 d 天是第几个赛季（6 周一季，2026-11-01 开始 S1）
+func seasonOf(d int) int {
+	if d <= dailyEpoch {
+		return 1
+	}
+	return 1 + (d-dailyEpoch-1)/seasonDays
+}
+
+// 这个赛季还剩几天（含今天）
+func seasonLeft(d int) int {
+	if d <= dailyEpoch {
+		return seasonDays
+	}
+	return seasonDays - (d-dailyEpoch-1)%seasonDays
+}
+
+// 段位：0 青铜，1 白银，2 黄金，3 铂金，4 钻石，5 王牌
+func tierOf(pts int) int {
+	t := 0
+	for i, need := range []int{0, 300, 800, 1600, 3000, 5000} {
+		if pts >= need {
+			t = i
+		}
+	}
+	return t
+}
+
+// 离下一个段位：已有、一共要（王牌之后返回 1, 1）
+func tierProgress(pts int) (int, int) {
+	needs := []int{0, 300, 800, 1600, 3000, 5000}
+	t := tierOf(pts)
+	if t >= len(needs)-1 {
+		return 1, 1
+	}
+	return pts - needs[t], needs[t+1] - needs[t]
+}
+
+// 换季了：赛季积分清零（段位重置）
+func refreshSeason() {
+	d := today()
+	if d <= 0 {
+		return
+	}
+	s := seasonOf(d)
+	if s != seasonNo {
+		seasonNo = s
+		seasonPts = 0
+		saveGame()
+	}
+}
+
+// 加赛季积分；第一次到黄金送赛季涂装（S1 天空蓝，免费，不卖）
+func gainSeason(n int) {
+	if autopilot || n <= 0 {
+		return
+	}
+	refreshSeason()
+	old := tierOf(seasonPts)
+	seasonPts += n
+	t := tierOf(seasonPts)
+	if t > old {
+		toast "msg.tier.up", 2
+	}
+	if t >= 2 && !skinsOwned[seasonSkin] {
+		skinsOwned[seasonSkin] = true
+		toast "msg.season.skin", 2.5
+	}
+	saveGame()
+}
+
+// 连续打了几天每日挑战（只展示，断了不扣东西）
+func dailyStreakAfter(d int) int {
+	if streakDay == d {
+		return streak
+	}
+	if streakDay == d-1 {
+		return streak + 1
+	}
+	return 1
+}
+
+// 助战码：把升级芯片（编号 1~9，最多 3 块）编成 5 位数字：三位芯片 + 两位校验
+func assistCode(cs []int) string {
+	s := ""
+	sum := 0
+	for i := 0; i < 3; i++ {
+		c := 0
+		if i < len(cs) && cs[i] >= 1 && cs[i] <= 9 {
+			c = cs[i]
+		}
+		s += strconv.Itoa(c)
+		sum += c * (i + 3)
+	}
+	ck := (sum*7 + 13) % 97
+	if ck < 10 {
+		s += "0"
+	}
+	return s + strconv.Itoa(ck)
+}
+
+// 解助战码：不对返回 nil
+func assistDecode(code string) []int {
+	if len(code) != 5 {
+		return nil
+	}
+	cs := []int{}
+	digits := []int{}
+	for i := 0; i < 3; i++ {
+		c := int(code[i] - '0')
+		if c < 0 || c > 9 {
+			return nil
+		}
+		digits = append(digits, c)
+		if c > 0 {
+			cs = append(cs, c)
+		}
+	}
+	if assistCode(digits) != code || len(cs) == 0 {
+		return nil
+	}
+	return cs
+}
+
+// 打开分享战报（每日挑战结算后按 S）
+func openShare() {
+	if state != stResult || stage != dailyStage || dailyDay != dailyDayNow {
+		return // 今天还没有正式成绩
+	}
+	state = stShare
+	setScreen "share"
+	if lbBase != "" && today() > 0 { // 联网时顺便查一下全球名次
+		lbTab = 0
+		lbGen++
+		lbMyRank = 0
+		go lbFetch(lbGen, lbBase, "daily", dailyDayNow)
+	}
+}
+
+// 输入助战码（主页按 A）
+func openAssist() {
+	if state != stHome {
+		return
+	}
+	assistInput = ""
+	state = stAssist
+	setScreen "assist"
+}
+
+// 助战码输入：数字键加一位，Backspace 删一位，Enter 确认
+func assistKey(k int) {
+	if state != stAssist {
+		return
+	}
+	if k >= 0 && k <= 9 && len(assistInput) < 5 {
+		assistInput += strconv.Itoa(k)
+	} else if k == -1 && len(assistInput) > 0 {
+		assistInput = assistInput[:len(assistInput)-1]
+	}
+	broadcast "hud"
+}
+
+func assistConfirm() {
+	if state != stAssist {
+		return
+	}
+	cs := assistDecode(assistInput)
+	if cs == nil {
+		toast "msg.assist.bad", 1.5
+		assistInput = ""
+		broadcast "hud"
+		return
+	}
+	assistGift = cs[0]
+	goHome
+	toast "msg.assist.ok", 2.5
+}
+
+// 开局时送出好友的助战芯片（战役和自制地图都行，每日挑战不行：大家要公平）
+func applyAssist() {
+	if assistGift == 0 || stage == dailyStage || autopilot {
+		return
+	}
+	id := assistGift
+	assistGift = 0
+	if hasChip(1, id) || lvl[1] >= maxLevel {
+		return
+	}
+	chips[1] = append(chips[1], id)
+	lvl[1] = 1 + len(chips[1])
+	toast "msg.assist.used", 2
+}
+
+// 分享卡片上的数字（和排行榜一样用数字克隆显示）：0 第几期，1 得分，2 用时（秒），3 全球名次，4 连续天数，5 助战码
+func shareText(field int) string {
+	switch field {
+	case 0:
+		return strconv.Itoa(dailyNo(dailyDayNow))
+	case 1:
+		return strconv.Itoa(dailyScore)
+	case 2:
+		return strconv.Itoa(dailyBestSecs)
+	case 3:
+		if lbMyRank > 0 && lbTab == 0 {
+			return strconv.Itoa(lbMyRank)
+		}
+		return ""
+	case 4:
+		return strconv.Itoa(streak)
+	case 5:
+		return assistCode(chips[1])
+	}
+	return ""
 }
 
 // ---------- 自己做地图 ----------
@@ -1987,8 +2241,13 @@ func dailyEnd(win bool) {
 		return
 	}
 	dailyOfficial = true
+	streak = dailyStreakAfter(dailyDayNow)
+	streakDay = dailyDayNow
 	dailyDay = dailyDayNow
 	dailyScore = score
+	dailyBestSecs = int(dailySecs)
+	dailyBuild = append([]int{}, chips[1]...)
+	gainSeason ptsDaily + score/200
 	gainXP xpDaily
 	taskAdd tkDaily, 1
 	toast "msg.daily.done", 2.5
@@ -2224,8 +2483,11 @@ func buildHud() {
 		UI.icon kGarage, -10+float64(i%4)*66, 83-float64(i/4)*52, 10+i // 芯片图鉴
 	}
 	for i := 0; i < skinCount; i++ {
-		UI.icon kGarage, -209+float64(i)*34, -51, 30+i // 涂装
+		UI.icon kGarage, -211+float64(i)*28, -49, 30+i // 涂装
 	}
+	UI.icon kGarage, -30, -158, 50 // 赛季和段位
+	UI.icon kGarage, 90, -154, 51  // 离下一个段位
+	UI.icon kGarage, 216, -158, 52 // 赛季还剩几天
 	for i := 0; i < 3; i++ {
 		UI.icon kGarage, -40, -70-float64(i)*22, 40+i  // 今日任务
 		UI.icon kGarage, 90, -79-float64(i)*22, 43+i   // 任务进度
@@ -2248,6 +2510,18 @@ func buildHud() {
 		lbNumber r, 2, 216, y-15, 7
 	}
 	UI.icon kRanks, -224, 180-326, 48 // 我的名次
+	// 分享战报（v6）：坐标和 build.py 的 share_screen 一致（数值都从 x = 236 开始）
+	UI.lbNum -4, 180-64, 900, 4  // 第几期
+	UI.lbNum -4, 180-90, 910, 7  // 得分
+	UI.lbNum -4, 180-112, 920, 5 // 用时
+	UI.lbNum -4, 180-136, 930, 7 // 全球名次
+	UI.lbNum -4, 180-160, 940, 4 // 连续天数
+	UI.lbNum -4, 180-214, 950, 5 // 助战码
+	for i := 0; i < 3; i++ {
+		UI.icon kShare, 3+float64(i)*20, 0, i
+	}
+	UI.icon kShare, -4, 180-136, 3 // 还不知道全球名次时显示“联网后显示”
+	UI.lbNum -30, -8, 1000, 5 // 助战码输入
 	lbNumber 8, 0, -120, 180-341, 7
 	lbNumber 8, 3, 0, 180-341, 7
 	lbNumber 8, 2, 216, 180-341, 7
@@ -2485,6 +2759,7 @@ func endGame(win bool) {
 		gainXP xpClear
 		if stage <= lastStage {
 			taskAdd tkClear, 1
+			gainSeason ptsClear
 		}
 	}
 	if stage == customStage {
@@ -2615,6 +2890,11 @@ func playStage(n int) {
 // 确认键：主页开始、复活询问时看视频、结算时看视频翻倍
 func confirm() {
 	switch state {
+	case stAssist:
+		assistConfirm
+	case stShare:
+		state = stResult
+		showResult
 	case stHome:
 		newGame 1, false
 	case stEdit:
@@ -2654,8 +2934,11 @@ func escKey() {
 		pauseGame
 	} else if state == stPause {
 		resumeGame
-	} else if state == stLevels || state == stGarage || state == stRanks {
+	} else if state == stLevels || state == stGarage || state == stRanks || state == stAssist {
 		goHome
+	} else if state == stShare {
+		state = stResult // 分享战报：回到结算
+		showResult
 	}
 }
 
@@ -2926,6 +3209,7 @@ func startGame() {
 	won = false
 	baseSafe = 0
 	resetRun()
+	applyAssist()
 	dailySeed = dailyDayNow*31 + 7
 	dailySecs = 0
 	state = stPlay
@@ -3015,6 +3299,23 @@ onKey KeyD, => {
 	}
 }
 
+// 主页按 A：输入好友的助战码（v6）
+onKey KeyA, => {
+	openAssist
+}
+
+onKey [Key0, Key9], (key) => {
+	if key == Key0 {
+		assistKey 0
+	} else {
+		assistKey 9
+	}
+}
+
+onKey KeyBackspace, => {
+	assistKey -1
+}
+
 // 主页按 B：排行榜（v6）
 onKey KeyB, => {
 	openRanks
@@ -3040,8 +3341,13 @@ onKey KeyK, => {
 	edCommand "copy"
 }
 
+// 编辑器里 S 是保存；每日挑战结算后 S 是分享战报（v6）
 onKey KeyS, => {
-	edCommand "save"
+	if state == stResult {
+		openShare
+	} else {
+		edCommand "save"
+	}
 }
 
 // 主页和选关画面按 1~8 直接进入对应关卡
@@ -3053,6 +3359,8 @@ onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 		buySkin(n - 1) // 车库：换 / 买涂装
 	} else if state == stRanks && n <= 2 {
 		lbShow(n - 1) // 排行榜：切换选项卡
+	} else if state == stAssist {
+		assistKey n // 助战码
 	} else if state == stHome || state == stLevels {
 		newGame n, false
 	} else if state == stEdit && n <= 5 {
