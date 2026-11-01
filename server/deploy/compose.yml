@@ -1,0 +1,29 @@
+# 一台云服务器上的完整部署：Caddy 自动申请 HTTPS 证书，反向代理到排行榜服务
+# 用法（在仓库根目录）：LB_DOMAIN=lb.example.com docker compose -f server/deploy/compose.yml up -d
+# 域名要先解析到这台服务器；国内服务器的域名还要先完成 ICP 备案，否则 80 / 443 端口会被拦截
+services:
+  lb:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - lb-data:/data
+    expose:
+      - "8787"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - lb
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      LB_DOMAIN: ${LB_DOMAIN:?请设置 LB_DOMAIN，例如 lb.example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+volumes:
+  lb-data:
+  caddy-data:

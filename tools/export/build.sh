@@ -13,6 +13,8 @@
 #   --demo   试玩版：把 demoBuild = false 改成 true（游戏里还没有这个常量时只提醒，照常打包）
 #            两个选项可以一起用；环境变量 STORE_BUILD / DEMO_BUILD（1 或 0）会传给后面的命令。
 #            只改 .build/work 里的副本，仓库里的游戏和 TankBattle.xbp 永远是路演版（docs/v5/TECH.md 第二节）
+#   LB_URL=https://lb.example.com  排行榜服务地址（v6）：写进副本 main.spx 的常量 lbURL；不设就是空的，游戏里显示“还没上线”
+#   LB_REGION=global|cn            国内榜还是海外榜（默认 global）；国内的包（例如微信小游戏）用 cn，和服务端的 region 对应
 #
 # 产物放在 dist/，文件名带版本号和平台，例如 TankBattle-3.0.0-macos-arm64.zip；
 # 商店版 / 试玩版放在 dist/store/、dist/demo/、dist/store-demo/，不和路演版的包混在一起（release_local.sh 只发 dist/ 下面的）
@@ -28,7 +30,7 @@ for a in "$@"; do
   case "$a" in
     --store) STORE_BUILD=1 ;;
     --demo) DEMO_BUILD=1 ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     -*) echo "不认识的选项：${a}。${usage}" >&2; exit 1 ;;
     *)
       [ -z "$target" ] || { echo "只能打一个平台（已经有 ${target}，又给了 ${a}）。${usage}" >&2; exit 1; }
@@ -84,7 +86,32 @@ enable_flag() {
   echo "已打开 ${name}（只改了 ${main}）"
 }
 
+# 排行榜的服务地址和区域写进副本 main.spx 的常量 lbURL / lbRegion（只改副本，仓库里一直是空的）
+lb_config() {
+  local main="$G/main.spx" url="${LB_URL:-}" region="${LB_REGION:-global}"
+  url="${url%/}"
+  [ -n "$url" ] || [ "$region" != global ] || return 0  # 没设置：不改（游戏里显示“排行榜服务还没上线”）
+  case "$region" in
+    global|cn) ;;
+    *) echo "LB_REGION 只能是 global 或 cn（现在是 ${region}）" >&2; exit 1 ;;
+  esac
+  [ -n "$url" ] || { echo "设置了 LB_REGION=${region}，也要设置 LB_URL（这个区域的排行榜服务地址）" >&2; exit 1; }
+  case "$url" in
+    https://*|http://127.0.0.1*|http://localhost*) ;;  # http 只给本机测试用
+    *) echo "LB_URL 要用 https://（网页版和手机 App 都不允许明文 http），现在是「${url}」" >&2; exit 1 ;;
+  esac
+  case "$url" in
+    *[!A-Za-z0-9.:/_-]*) echo "LB_URL 只能有字母、数字和 . : / _ -（不带路径参数），现在是「${url}」" >&2; exit 1 ;;
+  esac
+  grep -qE '^[[:space:]]*lbURL[[:space:]]*=[[:space:]]*""' "$main" || { echo "main.spx 里没有常量 lbURL = \"\"" >&2; exit 1; }
+  grep -qE '^[[:space:]]*lbRegion[[:space:]]*=[[:space:]]*"global"' "$main" || { echo "main.spx 里没有常量 lbRegion = \"global\"" >&2; exit 1; }
+  sed -E -i.bak -e "s|^([[:space:]]*lbURL[[:space:]]*=[[:space:]]*)\"\"|\\1\"${url}\"|" \
+    -e "s|^([[:space:]]*lbRegion[[:space:]]*=[[:space:]]*)\"global\"|\\1\"${region}\"|" "$main" && rm -f "$main.bak"
+  echo "排行榜：lbURL = \"${url}\"，lbRegion = \"${region}\"（只改了 ${main}）"
+}
+
 build_flags() {
+  lb_config
   if [ "$STORE_BUILD" = 1 ]; then
     enable_flag storeBuild || { echo "要打商店版（--store），但 main.spx 里没有常量 storeBuild = false" >&2; exit 1; }
   fi

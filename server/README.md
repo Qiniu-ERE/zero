@@ -4,7 +4,7 @@ v6 自建的**全球榜（周榜）**和**每日挑战榜**的后端（规划见
 
 - 一个文件 `leaderboard.py`，只用 Python 3 标准库（`http.server`、`sqlite3`、`json`、`threading`），不装任何第三方包。
 - 数据存在一个 sqlite 文件里。
-- **还没有部署**，游戏里的服务地址上线前再填。
+- **还没有部署**。部署文件和步骤见下面的“部署”一节；部署后打包时用 `LB_URL` 填上服务地址。
 
 ## 本地运行
 
@@ -90,10 +90,35 @@ curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1", "day"
 - **不存 IP**：IP 只在内存里做限频，60 秒后就清掉。
 - 不收集任何其他个人信息。
 
-## 部署（还没做）
+## 部署
 
-- 随便一台小虚拟机，或者无服务器容器（能跑 Python 3、能挂一块持久盘放 sqlite 就行）；玩家量级下用免费额度即可（推测）。
-- 放在反向代理 / 平台网关后面时打开 `--trust-proxy`，否则所有请求看起来都来自同一个代理 IP，会一起被限频。
-- **海外榜和国内榜是两份独立部署**，各在自己的地区：海外（Steam、App Store、Google Play、网页）用 `region=global` 部署在海外；国内（微信小游戏）用 `region=cn`。
-- **国内数据必须存在境内**，例如用微信云开发（CloudBase）的云函数 + 数据库按同样的接口和规则实现一份；这里没有实现。
-- sqlite 适合单实例；要多实例横向扩展就得换成共享数据库，限频也要挪到共享存储里。
+部署文件在 [`deploy/`](deploy/)，测试见 [test_deploy.py](../tests/tools/test_deploy.py)（R31、R32）。**还没有真正部署**：需要一台服务器和一个域名。
+
+| 文件 | 用途 |
+|---|---|
+| `Dockerfile` | 容器镜像（`python:3.12-slim` + `leaderboard.py`），数据在卷 `/data`，非 root 运行，带健康检查 |
+| `compose.yml` + `Caddyfile` | 一台云服务器上的完整部署：Caddy 自动申请 HTTPS 证书，反向代理到服务 |
+| `tankbattle-lb.service` | 不用 Docker 时用 systemd 运行（只监听本机，前面自己接 HTTPS 反向代理） |
+| `smoke.sh` | 部署后的冒烟检查：健康检查、上传一条测试成绩、读榜单、查名次 |
+
+### 步骤（以海外榜为例）
+
+1. 准备一台能跑 Docker 的小云服务器，把域名（例如 `lb.example.com`）解析到它，开放 80、443 端口。
+2. 在服务器上的仓库根目录运行：
+   ```bash
+   LB_DOMAIN=lb.example.com docker compose -f server/deploy/compose.yml up -d
+   ```
+3. 冒烟检查：`server/deploy/smoke.sh https://lb.example.com global`。它会以测试玩家 `ffff000000000000` 在当天的每日挑战榜上传一条 0 分的成绩（排在最后）。
+4. 打包时填上地址：
+   ```bash
+   LB_URL=https://lb.example.com tools/export/build_local.sh
+   ```
+   `build.sh` 只改打包用的副本里的常量 `lbURL`，仓库里一直是空的（路演版不联网）。`LB_URL` 只能是 `https://`，本机测试可以用 `http://127.0.0.1`。
+
+### 注意
+
+- **海外榜和国内榜是两份独立部署**，各在自己的地区：海外（Steam、App Store、Google Play、网页）用 `region=global` 部署在海外；国内的包打包时加 `LB_REGION=cn`，指向境内的服务。
+- **国内数据必须存在境内**：服务器放在境内云上，域名要先完成 ICP 备案，否则 80 / 443 端口会被拦截。微信小游戏还要把域名加进小程序后台的 request 合法域名。也可以用微信云开发（CloudBase）按同样的接口和规则重写一份，这里没有实现。
+- compose 和 systemd 都打开了 `--trust-proxy`（服务在 Caddy 后面）。如果直接把 8787 端口开到公网，要去掉它，否则客户端能伪造 IP 绕过限频。
+- 备份：sqlite 文件在 Docker 卷 `lb-data`（systemd 是 `/var/lib/tankbattle-lb/lb.sqlite`），定期复制一份即可；服务收到 SIGINT 正常关闭，`docker stop` 已经改成发 SIGINT。
+- 玩家量级下一台最小规格的虚拟机就够了（推测）。sqlite 只适合单实例；要多实例横向扩展，得换成共享数据库，限频也要挪到共享存储里。

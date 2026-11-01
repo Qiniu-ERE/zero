@@ -1,0 +1,9 @@
+# HTTPS 反向代理：Caddy 自动申请和续期证书。域名来自环境变量 LB_DOMAIN（见 compose.yml）
+# Caddy 会把真实客户端地址写进 X-Forwarded-For，排行榜服务用 --trust-proxy 读它来限频
+{$LB_DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 8KB
+	}
+	reverse_proxy lb:8787
+}

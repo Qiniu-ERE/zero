@@ -350,18 +350,20 @@ class BuildArgs(unittest.TestCase):
                 self.assertNotEqual(out.returncode, 0)
                 self.assertIn(words, out.stderr)
 
-    def flags(self, main_spx, store, demo):
-        """把 build.sh 里的 enable_flag / build_flags 拿出来，对一份临时的 main.spx 运行"""
+    def flags(self, main_spx, store, demo, **env_extra):
+        """把 build.sh 里的 enable_flag / lb_config / build_flags 拿出来，对一份临时的 main.spx 运行"""
         d = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, d)
         with open(os.path.join(d, "main.spx"), "w", encoding="utf-8") as f:
             f.write(main_spx)
         script = (
             'eval "$(awk \'/^enable_flag\\(\\) \\{/,/^\\}/\' "$1")"\n'
+            'eval "$(awk \'/^lb_config\\(\\) \\{/,/^\\}/\' "$1")"\n'
             'eval "$(awk \'/^build_flags\\(\\) \\{/,/^\\}/\' "$1")"\n'
             'set -euo pipefail; G="$2"; STORE_BUILD="$3"; DEMO_BUILD="$4"; build_flags\n')
+        env = {k: v for k, v in os.environ.items() if k not in ("LB_URL", "LB_REGION")}
         out = subprocess.run([BASH, "-c", script, "-", os.path.join(EXPORT, "build.sh"), d, store, demo],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, env=dict(env, **env_extra))
         with open(os.path.join(d, "main.spx"), encoding="utf-8") as f:
             return out, f.read()
 
@@ -384,6 +386,45 @@ class BuildArgs(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn("demoBuild", out.stderr)
         self.assertEqual(main, src)
+
+    LB_SRC = 'const (\n\tlbURL       = ""\n\tlbRegion    = "global" // 海外榜\n)\n\nfunc f() {\n\tif lbURL == "" {\n\t}\n}\n'
+
+    def test_R30_lb_url_and_region(self):
+        """R30 打包时写入排行榜地址和区域：只改常量定义；不设置就不改"""
+        out, main = self.flags(self.LB_SRC, "0", "0")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(main, self.LB_SRC)
+        out, main = self.flags("const (\n\ttouchUI = false\n)\n", "0", "0")   # 没有这两个常量也照常打包
+        self.assertEqual(out.returncode, 0, out.stderr)
+        out, main = self.flags(self.LB_SRC, "0", "0", LB_URL="https://lb.example.com/")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('\tlbURL       = "https://lb.example.com"\n', main)   # 去掉最后的 /
+        self.assertIn('\tlbRegion    = "global" // 海外榜\n', main)
+        self.assertIn('if lbURL == ""', main)
+        out, main = self.flags(self.LB_SRC, "0", "0", LB_URL="https://lb.example.cn", LB_REGION="cn")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('\tlbRegion    = "cn" // 海外榜\n', main)
+
+    def test_R30_lb_bad_config_fails(self):
+        for env, words in [({"LB_URL": "http://lb.example.com"}, "https"), ({"LB_URL": "https://a.com/x?y=\"1\""}, "只能有"),
+                           ({"LB_URL": "https://a.com|b"}, "只能有"), ({"LB_REGION": "eu", "LB_URL": "https://a.com"}, "global 或 cn"),
+                           ({"LB_REGION": "cn"}, "也要设置 LB_URL")]:
+            with self.subTest(env=env):
+                out, main = self.flags(self.LB_SRC, "0", "0", **env)
+                self.assertNotEqual(out.returncode, 0)
+                self.assertIn(words, out.stderr)
+                self.assertEqual(main, self.LB_SRC)
+        out, _ = self.flags("const (\n\ttouchUI = false\n)\n", "0", "0", LB_URL="https://a.com")
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("lbURL", out.stderr)
+        out, _ = self.flags('const (\n\tlbURL = ""\n)\n', "0", "0", LB_URL="https://a.com")
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("lbRegion", out.stderr)
+
+    def test_R30_local_http_allowed(self):
+        out, main = self.flags(self.LB_SRC, "0", "0", LB_URL="http://127.0.0.1:8787")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('"http://127.0.0.1:8787"', main)
 
     def test_patches_digest(self):
         d = tempfile.mkdtemp()
