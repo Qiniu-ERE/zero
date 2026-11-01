@@ -1,0 +1,24 @@
+# 不用 Docker 时：systemd 直接运行排行榜服务，只监听本机，前面再接 Caddy / Nginx 做 HTTPS
+# 安装：
+#   sudo install -D -m 644 server/leaderboard.py /opt/tankbattle-lb/leaderboard.py
+#   sudo cp server/deploy/tankbattle-lb.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now tankbattle-lb
+# 数据在 /var/lib/tankbattle-lb/lb.sqlite（StateDirectory 自动创建）
+[Unit]
+Description=TankBattle leaderboard
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/tankbattle-lb/leaderboard.py --host 127.0.0.1 --port 8787 --db /var/lib/tankbattle-lb/lb.sqlite --trust-proxy
+DynamicUser=yes
+StateDirectory=tankbattle-lb
+# 服务收到 SIGINT 会正常关闭
+KillSignal=SIGINT
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
