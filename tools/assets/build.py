@@ -295,7 +295,8 @@ def player_index():
     p = os.path.join(ASSETS, "sprites", "Player", "index.json")
     with open(p, encoding="utf-8") as f:
         cfg = json.load(f)
-    cfg["costumes"] = [{"name": n, "path": n + ".svg", "x": 12, "y": 12} for n in ("player", "player_m", "player2", "player2_m")]
+    names = ["player", "player_m", "player2", "player2_m"] + [f"player_s{i}_m" for i in range(1, len(SKINS))]
+    cfg["costumes"] = [{"name": n, "path": n + ".svg", "x": 12, "y": 12} for n in names]
     with open(p, "w", encoding="utf-8") as f:
         f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
 
@@ -560,6 +561,15 @@ def banner(lang):
 # 主页上的其他模式：(文案 key, 按键)。v5 去掉了“每日挑战 · 即将推出”（需要服务器和排行榜，不会做）
 # 选择关卡（v5）放在原来每日挑战的位置；按键提示是“1-8”（主页直接按数字键进关）
 HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.levels", "1-8")]
+HOME_TILES = [("garage", "G", 308)]  # v6：(名字, 按键, x)
+
+
+def home_tile_icon(k, cx, cy):
+    if k == "garage":
+        defs, body = tank_body(*TANKS["player"])
+        defs, body = defs.replace('id="sh"', 'id="shg"'), body.replace("url(#sh)", "url(#shg)")
+        return f'<defs>{defs}</defs><g transform="translate({cx-9} {cy-9}) scale(0.75)">{body}</g>'
+    return ""
 
 
 def home(lang):
@@ -590,6 +600,14 @@ def home(lang):
         s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
         s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
         s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
+    # v6 的入口：右下角的小卡片（每日挑战、车库、排行榜按顺序放在 x = 226、308、390）
+    for k, key, x in HOME_TILES:
+        button(f"home.{k}", x, 262, 74, 44)
+        s.append(f'<rect x="{x+0.4}" y="262.4" width="73.2" height="43.2" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.7"/>')
+        s.append(home_tile_icon(k, x + 37, 278))
+        s.append(text(x + 10, 298, tr(f"home.{k}", lang), 7.5, "#e6ecf5", True))
+        c, cw = chip(0, 0, key, dark=True)
+        s.append(f'<g transform="translate({x+74-8-cw:.2f},290)">{c}</g>')
     # 路演演示模式提示（选关的“1-8”已经在选择关卡卡片上）
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
@@ -1082,6 +1100,126 @@ def chip_costumes():
     return out
 
 
+# ---------- v6 车库：指挥官等级、芯片图鉴、涂装、今日任务（docs/v6/PLAN.md 第三节） ----------
+# 涂装（1P，只换现代画风的外观）：都是亮色，深灰和红色留给敌方（tests/tools/test_garage.py 检查）
+SKINS = [TANKS["player"], ("#ff9a3a", "#8a3d00", "#ffe0b8"), ("#eef4ff", "#7f8fb0", "#ffffff"),
+         ("#ff7ab8", "#8a1f55", "#ffd6ea"), ("#8fd14f", "#3f6e1a", "#e2ffc8")]
+SKIN_PRICES = [0, 1500, 2000, 2500, 3000]  # 和 main.spx 的 skinPrice 一致
+CHIP_UNLOCK = {"float": 3, "stealth": 5, "magnet": 8}  # 和 main.spx 的 chipUnlockLv 一致
+TASK_TARGETS = [30, 3, 2, 3, 1, 1, 1, 1]  # 任务 1~8 的目标，和 main.spx 的 taskTarget 一致
+MAX_CMD = 30
+GR_CELL = (200, 74, 60, 46, 66, 52)   # 图鉴格子：左上角、宽高、横竖间距
+GR_SKIN = (16, 216, 30, 34)            # 涂装格子：左上角、边长、间距
+GR_TASK = (200, 250, 260, 18, 22)      # 任务行：左上角、宽高、行距
+GR_BACK = (16, 316, 110, 24)
+
+
+def tank_icon(colors, size, rot=0):
+    """独立的坦克小图（size x size）"""
+    defs, body = tank_body(*colors)
+    k = size / 24
+    return svg(size, size, f'<g transform="rotate({rot} {size/2} {size/2}) scale({k:.4f})">{body}</g>', defs, res=HR)
+
+
+def garage_screen(lang):
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    s.append(text(16, 30, tr("gr.title", lang), 16, "#ffffff", True))
+    s.append('<rect x="16" y="42" width="170" height="150" rx="10" fill="#ffffff" fill-opacity="0.04" stroke="#263046" stroke-width="0.7"/>')
+    s.append('<rect x="28" y="66" width="146" height="5" rx="2.5" fill="#ffffff" fill-opacity="0.1"/>')
+    s.append('<ellipse cx="101" cy="172" rx="58" ry="11" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')
+    s.append(text(16, 210, tr("gr.skins", lang), 7, MUTED, True))
+    x0, y0, cs, gap = GR_SKIN
+    for i in range(len(SKINS)):
+        button(f"gr.sk.{i+1}", x0 + i * gap, y0, cs, cs)
+    s.append('<circle cx="22" cy="281" r="5.5" fill="url(#gold)"/><circle cx="22" cy="281" r="3.5" fill="none" stroke="#a86a00" stroke-width="0.8"/>')
+    s.append(text(16, 300, tr("gr.coins.d", lang), 5.8, MUTED))
+    s.append(text(200, 54, tr("gr.codex", lang), 9, "#ffffff", True))
+    s.append(text(200, 66, tr("gr.codex.d", lang), 5.8, MUTED))
+    s.append(text(200, 244, tr("gr.tasks", lang), 7, MUTED, True))
+    s.append(text(460, 244, tr("gr.tasks.d", lang), 5.8, MUTED, False, "end"))
+    x, y, w, h = GR_BACK
+    button("gr.back", x, y, w, h)
+    s.append(f'<rect x="{x+0.3}" y="{y+0.3}" width="{w-0.6}" height="{h-0.6}" rx="{h/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>')
+    s.append(text(x + 14, y + 15.5, tr("lv.back", lang), 8.5, "#c8d2e3", True))
+    c, cw = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({x+w-10-cw:.2f},{y+7})">{c}</g>')
+    c, cw = chip(0, 0, "1-5")
+    s.append(f'<g transform="translate({186-cw:.2f},203)">{c}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def codex_cell(key, lang, unlocked):
+    w, h = GR_CELL[2], GR_CELL[3]
+    rc = RARITY_COL[CHIP_RARITY.get(key, 1)]
+    if unlocked:
+        s = (f'<rect x="0.4" y="0.4" width="{w-0.8}" height="{h-0.8}" rx="7" fill="#ffffff" fill-opacity="0.05" stroke="{rc}" stroke-opacity="0.7" stroke-width="0.7"/>'
+             + chip_icon(key, 20, 6, 20) + text(30, 39, tr(f"chip.{key}", lang), 6.2, "#e6ecf5", True, "middle"))
+    else:
+        lock = f'<rect x="24" y="16" width="12" height="9" rx="2" fill="#3a4256"/><path d="M26.5 16v-3a3.5 3.5 0 0 1 7 0v3" stroke="#3a4256" stroke-width="2" fill="none"/>'
+        s = (f'<rect x="0.4" y="0.4" width="{w-0.8}" height="{h-0.8}" rx="7" fill="#ffffff" fill-opacity="0.02" stroke="#263046" stroke-width="0.7"/>'
+             + lock + text(30, 39, tr("gr.locklv", lang).format(n=CHIP_UNLOCK[key]), 6, "#5a6680", True, "middle"))
+    return svg(w, h, s, res=HR), (w / 2, h / 2)
+
+
+def skin_cell(i, st):
+    """涂装格子（30x30）下面带价格；st：sel 正在用、own 已拥有、lock 没买"""
+    cs = GR_SKIN[2]
+    sel = st == "sel"
+    s = [f'<rect x="0.6" y="0.6" width="{cs-1.2}" height="{cs-1.2}" rx="6" fill="#ffffff" fill-opacity="{0.1 if sel else 0.04}" stroke="{"#3ee8ff" if sel else "#263046"}" stroke-width="{1.2 if sel else 0.6}"/>']
+    defs, body = tank_body(*SKINS[i])
+    s.append(f'<g transform="translate(3 3)">{body}</g>')
+    if st == "lock":
+        s.append(f'<rect x="0.6" y="0.6" width="{cs-1.2}" height="{cs-1.2}" rx="6" fill="#07090f" fill-opacity="0.55"/>')
+        s.append(f'<circle cx="7" cy="38" r="3" fill="url(#gold)"/>')
+        s.append(text(12, 40.5, str(SKIN_PRICES[i]), 5.6, "#ffe27a", True))
+    return svg(cs + 2, 44, "".join(s), defs + lin("gold", "#ffe27a", "#f29a00"), res=HR), (cs / 2, cs / 2)
+
+
+def task_row(k, done, lang):
+    w, h = GR_TASK[2], GR_TASK[3]
+    col = "#2ee88a" if done else "#e6ecf5"
+    s = [f'<rect width="{w}" height="{h}" rx="5" fill="{"#2ee88a" if done else "#ffffff"}" fill-opacity="{0.12 if done else 0.04}"/>',
+         text(8, 12, tr(f"tk.{k}", lang), 6.6, col, True)]
+    if done:
+        s.append(f'<path d="M{w-16} 9l3 3 6-6" fill="none" stroke="#2ee88a" stroke-width="1.6"/>')
+    else:
+        s.append(f'<circle cx="{w-12}" cy="9" r="3.4" fill="url(#gold)"/>' + text(w - 18, 11.5, "+50", 5.6, "#ffe27a", True, "end"))
+    return svg(w, h, "".join(s), lin("gold", "#ffe27a", "#f29a00"), res=HR), (0, 0)
+
+
+def bar(n, total, w, h, fill):
+    body = f'<rect width="{w}" height="{h}" rx="{h/2}" fill="#ffffff" fill-opacity="0.1"/>'
+    if n:
+        body += f'<rect width="{w*n/total:.2f}" height="{h}" rx="{h/2}" fill="{fill}"/>'
+    return svg(w, h, body, lin("xpg", ELITE, "#ff7ab8", vertical=False), res=HR), (0, h / 2)
+
+
+def garage_costumes():
+    out = []
+    for lang in LANGS:
+        out.append((f"garage_{lang}", *garage_screen(lang), 2))
+        for n in range(1, MAX_CMD + 1):
+            out.append((f"cmd_{n}_{lang}", *text_costume(tr("gr.cmd", lang).format(n=n), 10, "#ffe27a", True, "start")))
+        for i, k in enumerate(CHIP_KEYS):
+            out.append((f"cx_{k}_{lang}", *codex_cell(k, lang, True)))
+            if k in CHIP_UNLOCK:
+                out.append((f"cxl_{k}_{lang}", *codex_cell(k, lang, False)))
+                out.append((f"nx_{k}_{lang}", *text_costume(tr("gr.next", lang).format(chip=tr(f"chip.{k}", lang), n=CHIP_UNLOCK[k]), 6, "#d9b8ff", False, "start")))
+        out.append((f"nx_all_{lang}", *text_costume(tr("gr.next.all", lang), 6, "#d9b8ff", False, "start")))
+        for k in range(1, len(TASK_TARGETS) + 1):
+            for done in (0, 1):
+                out.append((f"tk_{k}_{done}_{lang}", *task_row(k, done, lang)))
+    for n in range(21):
+        out.append((f"xp_{n}", *bar(n, 20, 146, 5, "url(#xpg)")))
+    for n in range(11):
+        out.append((f"tp_{n}", *bar(n, 10, 60, 4, "#2ee88a" if n == 10 else ELITE)))
+    for i in range(len(SKINS)):
+        out.append((f"skp_{i}", tank_icon(SKINS[i], 70, 20), (35, 35)))
+        for st in ("sel", "own", "lock"):
+            out.append((f"sk_{i}_{st}", *skin_cell(i, st)))
+    return out
+
+
 def stage_xy(x, y):
     """SVG 坐标 -> 舞台坐标"""
     return x - W / 2, H / 2 - y
@@ -1127,6 +1265,7 @@ def build_hud():
     costumes += icon_costumes()
     costumes += [(f"ally_{p}_{lv}", *ally_costume(p, lv)) for p in (1, 2) for lv in range(1, 5)]
     costumes += chip_costumes()
+    costumes += garage_costumes()
     costumes += ed_widgets()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])
@@ -1161,6 +1300,7 @@ def main():
         write("sprites/Player/player_m.svg", tank_m(*TANKS["player"])),
         write("sprites/Player/player2_m.svg", tank_m(*TANKS["player2"])),
         write("sprites/Player/player2.svg", player2_classic()),
+        *[write(f"sprites/Player/player_s{i}_m.svg", tank_m(*SKINS[i])) for i in range(1, len(SKINS))],
         *[write(f"sprites/Enemy/{k}_m.svg", foe_m(k)) for k in FOE_KINDS],
         *[write(f"sprites/Enemy/{k}_e_m.svg", foe_m(k, ELITE)) for k in FOE_KINDS],
         *[write(f"sprites/Enemy/{k}.svg", foe_classic(k)) for k in FOE_KINDS],

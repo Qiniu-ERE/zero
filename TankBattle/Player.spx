@@ -1,3 +1,7 @@
+import (
+	"strconv"
+)
+
 // 玩家坦克。原型是 1P；双人合作时克隆出一个当 2P（用 isCloned 区分按键、颜色和出生点）。
 // 不另建 Player2 精灵、不加大字段：每出现一种新的“字段总大小”都会多占解释器的方法表（见 UI.spx）。
 // fireHeld 放在 dead 后面，正好占用对齐留下的空隙，字段总大小仍是 32 字节。
@@ -9,10 +13,13 @@ var (
 	engine   int  // 引擎声：0 无声，1 怠速，2 行驶
 )
 
-// 造型名：1P 黄色，2P 青绿色
+// 造型名：1P 黄色，2P 青绿色。1P 在现代画风下可以换车库里买的涂装（v6）；2P 一直是青绿色，方便分清
 func myLook() string {
 	if isCloned {
 		return look("player2")
+	}
+	if theme == 1 && skin > 0 {
+		return "player_s" + strconv.Itoa(skin) + "_m"
 	}
 	return look("player")
 }

@@ -1,0 +1,209 @@
+// 车库与存档（K01~K10），见 docs/v6/TEST_PLAN.md
+// 存档写在 run_spx.sh 指定的临时 HOME 里，不碰玩家自己的存档
+onStart => {
+	wait 3
+
+	// K01 第一次启动：新建存档（随机 ID、Lv1、0 金币、只有默认涂装），文件已经写好
+	tCheck "K01 存档路径在配置目录里", strings.HasSuffix(saveFile(), "/TankBattle/save.txt")
+	_, err := os.Stat(saveFile())
+	tCheck "K01 第一次启动就写好存档", err == nil
+	tInt "K01 ID 是 16 位", len(playerID), 16
+	tCheck "K01 ID 只有十六进制字符", strings.Trim(playerID, "0123456789abcdef") == ""
+	tInt "K01 指挥官 Lv1", cmdLevel, 1
+	tInt "K01 金币 0", wallet, 0
+	tCheck "K01 只有默认涂装", skinsOwned[0] && !skinsOwned[1]
+
+	// K02 存档读写：写进去的都能读回来；版本号不对当作新玩家；认不出的行跳过
+	id := playerID
+	cmdXP, wallet, skin = 700, 1234, 2
+	skinsOwned[2] = true
+	saveGame()
+	cmdXP, wallet, skin = 0, 0, 0
+	b, _ := os.ReadFile(saveFile())
+	tCheck "K02 读回存档", loadText(string(b))
+	tStr "K02 ID 不变", playerID, id
+	tInt "K02 经验", cmdXP, 700
+	tInt "K02 金币", wallet, 1234
+	tInt "K02 涂装", skin, 2
+	tCheck "K02 拥有的涂装", skinsOwned[2]
+	tInt "K02 等级按经验算", cmdLevel, levelForXP(700)
+	tCheck "K02 版本号不对：当作新玩家", !loadText("v=99\nxp=5\n")
+	tCheck "K02 认不出的行跳过", loadText("v=1\nhello\nxp=abc\ncoins=-5\nfoo=bar\nskin=4\n")
+	tInt "K02 负的金币按 0", wallet, 0
+	tInt "K02 没拥有的涂装不能用", skin, 0
+	tCheck "K02 读回原来的存档", loadText(string(b))
+
+	// K03 指挥官等级：每级要 100 + 50 ×（等级 - 1）经验；解锁芯片
+	tInt "K03 99 经验还是 Lv1", levelForXP(99), 1
+	tInt "K03 100 经验 Lv2", levelForXP(100), 2
+	tInt "K03 250 经验 Lv3", levelForXP(250), 3
+	tInt "K03 最高 Lv30", levelForXP(999999), maxCmdLevel
+	cmdXP = 240
+	cmdLevel = levelForXP(cmdXP)
+	have, need := xpInLevel()
+	tInt "K03 Lv2 里已有 140 经验", have, 140
+	tInt "K03 Lv2 升 Lv3 要 150", need, 150
+	tCheck "K03 Lv2 时浮桥履带没解锁", !chipUnlocked(cFloat)
+	tInt "K03 下一个解锁是浮桥履带", nextUnlock(), cFloat
+	toastKey = ""
+	gainXP 10
+	tInt "K03 升到 Lv3", cmdLevel, 3
+	tCheck "K03 浮桥履带解锁了", chipUnlocked(cFloat)
+	tStr "K03 提示解锁了浮桥履带", toastKey, "msg.unlock.float"
+	gainXP 200
+	tStr "K03 普通升级提示", toastKey, "msg.cmd.up"
+	autopilot = true
+	x0 := cmdXP
+	gainXP 50
+	tInt "K03 路演演示不加经验", cmdXP, x0
+	autopilot = false
+	cmdXP = 999999
+	cmdLevel = levelForXP(cmdXP)
+	tInt "K03 全部解锁后没有下一个", nextUnlock(), 0
+
+	// K04 经验来源：击毁 +2，精英再 +10，过关 +50
+	cmdXP = 0
+	cmdLevel = 1
+	tQuiet
+	enemiesAlive = 3
+	enemyKilled 100
+	tInt "K04 击毁一辆 +2 经验", cmdXP, 2
+	eliteDown cellX(6), cellY(6)
+	tInt "K04 精英再 +10", cmdXP, 12
+	dropLeft = 0
+	tQuiet
+	cmdXP = 0
+	stageScore, score = 0, 0
+	endGame true
+	tInt "K04 过关 +50 经验", cmdXP, 50
+
+	// K05 金币：结算的金币存进钱包；看视频翻倍时多出来的也存进去；路演演示不存
+	wallet = 0
+	tQuiet
+	stageScore, score = 0, 1000
+	endGame false
+	tInt "K05 结算金币存进钱包（1000 分 = 20 金币）", wallet, 20
+	resultReady = true
+	confirm
+	tCheck "K05 看视频翻倍", tWaitState(stResult, 8) && doubled
+	tInt "K05 翻倍多出来的也存进钱包", wallet, 40
+	b, _ = os.ReadFile(saveFile())
+	tCheck "K05 金币写进存档", strings.Contains(string(b), "coins=40")
+	tQuiet
+	autopilot = true
+	score = 5000
+	endGame true
+	tInt "K05 路演演示的金币不存", wallet, 40
+	autopilot = false
+
+	// K06 涂装：钱够就买下并换上，钱不够提示；已有的直接换；1P 现代画风换外观，2P 和经典画风不变
+	goHome
+	wallet = 1600
+	skin = 0
+	skinsOwned = make([]bool, skinCount)
+	skinsOwned[0] = true
+	buySkin 2
+	tStr "K06 钱不够买不了", toastKey, "msg.coins.short"
+	tCheck "K06 钱不够没买到", !skinsOwned[2]
+	buySkin 1
+	tCheck "K06 买下 1 号涂装", skinsOwned[1]
+	tInt "K06 买下后换上", skin, 1
+	tInt "K06 扣 1500 金币", wallet, 100
+	buySkin 0
+	tInt "K06 换回已有的默认涂装", skin, 0
+	tInt "K06 换已有的不扣钱", wallet, 100
+	buySkin 1
+	tStr "K06 1P 现代画风用涂装的造型", Player.myLook(), "player_s1_m"
+	switchTheme
+	tStr "K06 经典画风还是原来的 1P", Player.myLook(), "player"
+	switchTheme
+	buySkin 9
+	tInt "K06 不存在的涂装没有反应", skin, 1
+
+	// K07 每日任务：同一天三个不重复、大家一样；完成奖励 50 金币只给一次；换日重新抽
+	dayOverride = 20000
+	taskDay = 0
+	refreshTasks()
+	tInt "K07 每天 3 个任务", len(taskIDs), 3
+	tCheck "K07 三个任务不重复", taskIDs[0] != taskIDs[1] && taskIDs[1] != taskIDs[2] && taskIDs[0] != taskIDs[2]
+	t1 := joinInts(pickTasks(20000))
+	tStr "K07 同一天的任务固定", joinInts(taskIDs), t1
+	tCheck "K07 不同的天任务不一样（这两天）", joinInts(pickTasks(20001)) != t1 || joinInts(pickTasks(20002)) != t1
+	wallet = 0
+	k := taskIDs[0]
+	taskAdd k, taskTarget(k)
+	tInt "K07 完成任务 +50 金币", wallet, 50
+	tStr "K07 提示完成", toastKey, "msg.task.done"
+	taskAdd k, 5
+	tInt "K07 已完成的任务不再奖励", wallet, 50
+	tInt "K07 进度不超过目标", taskProg[0], taskTarget(k)
+	dayOverride = 20001
+	refreshTasks()
+	tInt "K07 换日后进度清零", taskProg[0]+taskProg[1]+taskProg[2], 0
+	tInt "K07 换日后是新一天的任务", taskDay, 20001
+
+	// K08 任务进度来自游戏：击毁、精英、过关、捡芯片、双人、连携、自制地图
+	for kind := 1; kind <= taskCount; kind++ {
+		taskIDs = []int{kind, kind%taskCount + 1, (kind+1)%taskCount + 1} // 三个都是认识的任务
+		taskProg = []int{0, 0, 0}
+		taskDay = today()
+		switch kind {
+		case tkKill:
+			enemiesAlive = 2
+			enemyKilled 100
+		case tkElite:
+			eliteDown cellX(6), cellY(6)
+		case tkClear:
+			tQuiet
+			endGame true
+		case tkChip:
+			tQuiet
+			lvl[1] = maxLevel
+			pickChip 1
+		case tkCoop:
+			tQuiet
+			coop = true
+			endGame false
+			coop = false
+		case tkCombo:
+			chips[1] = []int{cPierce}
+			applyChip 1, cBounce
+		case tkCustom:
+			tQuiet
+			stage = customStage
+			endGame false
+			stage = 1
+		}
+		tInt "K08 任务 "+strconv.Itoa(kind)+" 有进度", taskProg[0], 1
+	}
+	lvl[1] = 1
+	chips[1] = nil
+	dropLeft = 0
+	taskIDs = []int{tkKill, 0, 0}
+	tCheck "K08 任务编号不认识：任务数据无效", !tasksValid()
+	refreshTasks()
+	tCheck "K08 无效的任务数据会重新抽", tasksValid()
+
+	// K09 车库画面：主页按 G 打开，Esc / H 回主页；对局中按 G 没反应
+	goHome
+	openGarage
+	tInt "K09 打开车库", state, stGarage
+	tStr "K09 车库画面", screen, "garage"
+	escKey
+	tInt "K09 Esc 回主页", state, stHome
+	openGarage
+	goHome
+	tQuiet
+	openGarage
+	tInt "K09 对局中打不开车库", state, stPlay
+
+	// K10 重新启动后存档还在（读的是同一个文件）
+	wallet = 777
+	saveGame()
+	wallet = 0
+	initSave
+	tInt "K10 重新读存档：金币还在", wallet, 777
+	tStr "K10 重新读存档：ID 不变", playerID, id
+
+	tDone "garage"
+}

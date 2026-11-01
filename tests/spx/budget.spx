@@ -1,0 +1,50 @@
+// 克隆预算（Q01~Q03），见 docs/v6/TEST_PLAN.md
+// spx 和 Scratch 一样：全部精灵的克隆加起来最多 300 个，超过时 clone 直接失败（地图格子、敌人出不来，也不报错）。
+// 所以常驻的 UI 克隆要给“最满的地图 169 格 + 坦克、子弹、爆炸约 30 个”留出位置；全屏画面的小部件按需创建
+onStart => {
+	wait 3
+
+	// Q01 常驻的 UI 克隆 + 最满的地图 + 坦克子弹爆炸 ≤ 300
+	base := uiClones
+	println("常驻 UI 克隆：", base)
+	tCheck "Q01 常驻 UI 克隆 "+strconv.Itoa(base)+" 个，加上 169 格地图和 30 个坦克子弹爆炸不超过 300", base+169+30 <= 300
+
+	// Q02 车库的小部件打开时才创建，离开时删掉（不会越积越多）
+	openGarage
+	tCheck "Q02 打开车库时创建小部件", uiClones > base
+	tStr "Q02 记下建好的是车库", panel, "garage"
+	n := uiClones
+	goHome
+	tInt "Q02 回主页后删掉", uiClones, base
+	tStr "Q02 回主页后没有小部件", panel, ""
+	openGarage
+	tInt "Q02 再打开一次数量一样（不会重复创建）", uiClones, n
+	goHome
+
+	// Q03 去过车库以后，地图格子和敌人照样能出来：砖墙最多的第 5 关，精英能被打掉（克隆存在）
+	playStage 5
+	wait 0.5
+	tiles := 0
+	for _, g := range grid {
+		if g != 0 {
+			tiles++
+		}
+	}
+	tCheck "Q03 第 5 关地图格子 + 常驻 UI 没有超过预算", tiles+uiClones+30 <= 300
+	tCalm
+	for _, w := range []int{tAt(5, 6), tAt(7, 6), tAt(6, 5), tAt(6, 7)} {
+		grid[w] = 4
+	}
+	grid[tAt(6, 6)] = 0
+	killed = 0
+	Enemy.spawn cellX(6), cellY(6), 10
+	enemiesAlive = 1
+	wait 0.3
+	for s := 0; s < 2; s++ {
+		PBullet.fire cellX(5), cellY(6), 90, 1
+		wait 0.6
+	}
+	tInt "Q03 敌人的克隆出来了（被打掉）", killed, 1
+
+	tDone "budget"
+}
