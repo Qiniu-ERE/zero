@@ -2,7 +2,9 @@
 
 安装包在 [Releases](https://github.com/Qiniu-ERE/zero/releases) 下载。每个版本对应一个 Git 标签。
 
-## v6.0.0（开发中，还没发布）
+## v6.0.0
+
+安装包：macOS、Linux、网页版、Android。Windows 和 iOS 没有新包，仍是 v3.0.1 的。排行榜服务还没上线，游戏里打开排行榜会提示，其他功能不需要联网。
 
 v6.0 让玩家**明天还想回来**：打精英升级、车库、每日挑战、赛季和排行榜；敌我一眼分清。全部不需要平台 SDK。详见 [v6.0 规划和实现](docs/v6/PLAN.md)。
 

@@ -8,37 +8,37 @@
 
 [![1024 HACKATHON 第五届](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![XBuilder · XGo · spx 4.0](https://img.shields.io/badge/XBuilder-XGo_·_spx_4.0-b4521e)](https://x.qiniu.com)
-[![版本 v5.0.1](https://img.shields.io/badge/版本-v5.0.1-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
-[![测试 587 通过](https://img.shields.io/badge/测试-587_通过-brightgreen)](docs/v4/TEST_PLAN.md)
-[![覆盖率 96%](https://img.shields.io/badge/覆盖率-96%25-brightgreen)](docs/v4/TEST_PLAN.md#四覆盖率怎么算)
+[![版本 v6.0.0](https://img.shields.io/badge/版本-v6.0.0-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
+[![测试 1063 通过](https://img.shields.io/badge/测试-1063_通过-brightgreen)](docs/v6/TEST_PLAN.md)
+[![覆盖率 99%](https://img.shields.io/badge/覆盖率-99%25-brightgreen)](docs/v6/TEST_PLAN.md#一要求和怎么检查)
 
-**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v5-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
+**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v5-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [v6.0 新内容](#v60-做了什么) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
 
 </div>
 
 > 🏆 **第五届 1024 HACKATHON 参赛项目** · 这是一个 Builder 的时代 —— AI 放大执行，我们撬动价值
 
-用 [XBuilder](https://x.qiniu.com) 把 1985 年的 FC 经典《坦克大战》重做成 2026 年的样子（XBuilder 复刻重铸版，英文名 **Brickline Tanks**）：保留“守住老鹰、打穿砖墙”的玩法内核，换上现代画风，支持中英文，并设计了一套**干净、不打扰玩家**的广告方案。
+用 [XBuilder](https://x.qiniu.com) 把 1985 年的 FC 经典《坦克大战》重做成 2026 年的样子（XBuilder 复刻重铸版，英文名 **Brickline Tanks**）：保留“守住老鹰、打穿砖墙”的玩法内核，换上现代画风，支持中英文，并设计了一套**干净、不打扰玩家**的广告方案。v6.0 让玩家**明天还想回来**：打精英坦克升级自己、车库、全球同图的每日挑战、赛季和排行榜。
 
 | 版本 | 做了什么 |
 |---|---|
-| **v6.0**（开发中） | **敌我区分、打精英升级、每日挑战、排行榜**：敌方统一枪灰车身 + 红色标识；击毁精英坦克掉芯片、三选一升级；车库（指挥官等级、涂装、每日任务）、每日挑战（全球同图）、赛季、分享战报、助战码；自建全球榜（服务端 + 客户端）；117 个用例 ID 全覆盖（[v6.0 规划和实现](#v60-做了什么)） |
-| **v5.0** | **商业化落地探索**：评估 Steam、Xbox、App Store、Google Play，定下盈利方案（免费 + 激励视频、$0.99 去广告，PC $0.99 买断）和回本测算（投入 ¥3350，基准半年回本）；主页加“选择关卡”，复活更有用，修了一批审查发现的问题 |
+| **v6.0** | **敌我区分、打精英升级、每日挑战、排行榜**：敌方统一枪灰车身 + 红色标识；击毁精英坦克掉芯片、三选一升级；车库（指挥官等级、涂装、每日任务）、每日挑战（全球同图）、赛季、分享战报、助战码，手机上都能点；自建全球榜（服务端 + 客户端 + 部署文件）；117 个用例 ID 全覆盖（[v6.0 做了什么](#v60-做了什么)） |
+| v5.0 | **商业化落地探索**：评估 Steam、Xbox、App Store、Google Play，定下盈利方案（免费 + 激励视频、$0.99 去广告，PC $0.99 买断）和回本测算（投入 ¥3350，基准半年回本）；主页加“选择关卡”，复活更有用，修了一批审查发现的问题 |
 | v4.0 | **测试与质量**：每条游戏规则都有自动化测试，合入前一条命令跑完 |
 | v3.0 | **8 个关卡、双人合作、自己做地图**，打包成六个平台的安装包 |
 | v2.0 | 现代画风、中英文、主页 / 复活 / 结算、不打扰玩家的广告设计 |
 
 ![坦克大战 2026 演示](docs/demo/tankbattle-v5.gif)
 
-> 动图：双人合作 → 暂停菜单 → 编辑器里画地图并试玩。截自 v5.0 的[完整演示视频](docs/demo/tankbattle-v5-demo.mp4)（约 1 分半，无声；以前的版本：[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)），由游戏内置的**路演演示模式**（主页按 P）在真实引擎里录制。
+> 动图：双人合作 → 暂停菜单 → 编辑器里画地图并试玩（v6 的新内容见下面的截图）。截自 v5.0 的[完整演示视频](docs/demo/tankbattle-v5-demo.mp4)（约 1 分半，无声；以前的版本：[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)），由游戏内置的**路演演示模式**（主页按 P）在真实引擎里录制。
 
-| 主页 | 选择关卡 | 对局 | 双人合作 |
+| 主页 | 对局：敌我区分、精英、芯片 | 打精英后三选一 | 车库 |
 |---|---|---|---|
-| ![](docs/v5/screens/home-zh.png) | ![](docs/v5/screens/levels-zh.png) | ![](docs/v5/screens/battle-zh.png) | ![](docs/v5/screens/coop-zh.png) |
-| **自己做地图** | **English** | **English 选关** | **1985 像素风（按 T）** |
-| ![](docs/v5/screens/editor-zh.png) | ![](docs/v5/screens/home-en.png) | ![](docs/v5/screens/levels-en.png) | ![](docs/v5/screens/classic-zh.png) |
+| ![](docs/v6/screens/v6-home.png) | ![](docs/v6/screens/v6-battle.png) | ![](docs/v6/screens/v6-pick.png) | ![](docs/v6/screens/v6-garage.png) |
+| **每日挑战结算** | **排行榜** | **English** | **1985 像素风（按 T）** |
+| ![](docs/v6/screens/v6-daily.png) | ![](docs/v6/screens/v6-ranks.png) | ![](docs/v6/screens/v6-home-en.png) | ![](docs/v6/screens/v6-classic.png) |
 
-> 以上都是 v5.0 的实机截图（2026-10-25）。右侧面板和主页底部的广告是**模拟广告位**，只在路演版里展示；以后手机和微信小游戏的免费版换成真实的激励视频和战场外横幅（$0.99 可去掉），PC 买断版没有广告（见 [v5.0 盈利方案](docs/v5/MONETIZATION.md)）。
+> 以上都是 v6.0 的实机截图（2026-11-01；排行榜是本机临时起的排行榜服务的真实数据）。v5.0 的截图（选关、双人、编辑器等）见 [docs/v5/screens](docs/v5/screens/)。右侧面板和主页底部的广告是**模拟广告位**，只在路演版里展示；以后手机和微信小游戏的免费版换成真实的激励视频和战场外横幅（$0.99 可去掉），PC 买断版没有广告（见 [v5.0 盈利方案](docs/v5/MONETIZATION.md)）。
 
 ## 下载安装
 
@@ -55,7 +55,9 @@
 
 安装包从 v3.0.2 起在一台 Mac 上本机打包（现在用 `tools/export/build_local.sh` + `release_local.sh`），GitHub Actions 只能手动触发，详见[跨平台文档](docs/v3/CROSS_PLATFORM.md#七实现结果)。
 
-> **Windows 和 iOS 暂时没有新包**：这台 Mac 打不了这两个平台，最新的包还是 [v3.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.1)（最新版的下载说明里也指向它）。v3.0.1 **不含**之后的修复和 v5.0 的新功能（选择关卡等）。想玩最新版可以用网页版。
+> **Windows 和 iOS 暂时没有新包**：这台 Mac 打不了这两个平台，最新的包还是 [v3.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v3.0.1)（最新版的下载说明里也指向它）。v3.0.1 **不含**之后的修复、v5.0 和 v6.0 的新功能（选择关卡、芯片、车库、每日挑战等）。想玩最新版可以用网页版。
+
+> **v6 的存档**是本机的 `TankBattle/save.txt`，在系统的用户配置目录里（例如 macOS 的 `~/Library/Application Support`）；**网页版没有文件系统，进度只在这次打开时有效**。**排行榜还没上线**：游戏里打开排行榜会显示“排行榜服务还没上线”，其他功能都不需要联网。
 
 ## 快速开始
 
@@ -131,7 +133,8 @@ spx run .
 | 三选一（v6） | 1 / 2 / 3 选芯片，R 刷新（每关一次） |
 | 车库（v6） | 1 ~ 6 换 / 买涂装，Esc 回主页 |
 | 排行榜（v6） | 1 每日挑战，2 全球周榜，Esc 回主页 |
-| 每日挑战结算（v6） | S 分享战报（手机上点“正式成绩”标签） |
+| 每日挑战结算（v6） | S 分享战报（手机上点“正式成绩”标签），分享战报里 Esc 或点一下回到结算 |
+| 助战码（v6） | 数字键或屏幕数字键盘输入，Backspace 删除，Enter 确认，Esc 返回 |
 
 - **目标**：每关消灭 20 辆敌方坦克，保护好底部的老鹰。共 **8 关**，得分带到下一关；战败后重打本关。
 - **失败**：基地被击中（自己的子弹也算），或者生命用完。**每关第一次战败**可以看视频复活一次。
@@ -251,7 +254,7 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、状态机、解释器限制、分工 |
 | [v6.0 规划和实现](docs/v6/PLAN.md) | 敌我区分、精英与芯片、车库、每日挑战、赛季、分享战报、排行榜：规则、截图、和路演商业路线对照、还没做的部分；[v6 测试方案](docs/v6/TEST_PLAN.md)（117 个用例 ID）；[排行榜服务](server/README.md) |
 | [v5.0 规划](docs/v5/PLAN.md) | 平台、体验、盈利、推广、盈利周期、商店页、全面审查清单 |
-| [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x → v4.0.x → v5.0.0 |
+| [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x → v4.0.x → v5.0.x → v6.0.0 |
 | [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
 | [v4.0 规划](docs/v4/PLAN.md) | 测试与质量：自动化测试、覆盖率、本地检查，[测试方案](docs/v4/TEST_PLAN.md)（测试分层、用例清单、覆盖率、测试发现的问题） |
 | [跨平台](docs/v3/CROSS_PLATFORM.md) | 打包方法、实测截图、限制 |
@@ -314,13 +317,14 @@ cd TankBattle && spx run .
 ./tools/package_xbp.sh
 
 # 自动化测试（见 docs/v4/TEST_PLAN.md；需要什么见下面的“跑测试需要什么”）
-tools/test/run_all.sh               # 全部：构建工具 + 网页外壳 + 引擎内测试（约 6 分钟）
+tools/test/run_all.sh               # 全部：构建工具 + 网页外壳 + 引擎内测试（约 11 分钟）
 tools/test/run_spx.sh tests/spx/flow_revive.spx   # 只跑一组引擎内测试
 tools/test/pr_check.sh --coverage   # PR 合入前：和 check.yml 相同的检查 + 全部测试 + 覆盖率，生成报告贴到 PR 里
 tools/test/xbuilder_check.sh        # 用 XBuilder 线上的 spx v3.3.0 编译检查
 tools/test/package_boot.sh          # 打出桌面安装包并运行启动测试
 tools/test/dist_boot.sh dist/TankBattle-版本-macos-arm64.zip   # 直接运行要发出去的安装包（B14）
-tools/test/update_baseline.sh       # 覆盖率提高后更新基线（有测试失败就停下）
+tools/test/update_baseline.sh       # 覆盖率提高后更新基线（约 25 分钟；有测试失败就停下）
+python3 server/leaderboard.py       # v6 排行榜服务在本机运行（部署见 server/README.md）
 tools/dev/clean.sh                  # 磁盘紧时：先列出测试和打包留下的临时文件，加 --yes 才删
 
 # 打安装包：全部在本地，不用 GitHub Actions（见 docs/v3/CROSS_PLATFORM.md「本地打包」）
@@ -328,10 +332,11 @@ tools/export/setup_spx.sh android   # 第一次：spx、xgo、运行时、安卓
 tools/export/linux_vm.sh setup      # 第一次：Linux 打包用的 OrbStack 虚拟机
 tools/export/build_local.sh         # 打本机能打的全部平台并逐个检查（macOS、网页版、Android、Linux；Windows、iOS 暂时空着）
 tools/export/build.sh desktop --store   # 商店版（还有 --demo 试玩版），包放在 dist/store/ 等子目录，不会被发布
+LB_URL=https://lb.example.com tools/export/build_local.sh   # 排行榜上线后：把服务地址打进包里（国内的包再加 LB_REGION=cn）
 
 # 发布：先在 CHANGELOG.md 写好这个版本，在 main 上打标签并推送，在这个提交上打包，再用 dist/ 发布
 # 标签推上去以后不能修改（仓库规则），所以一律用附注标签，推之前确认提交没错
-git tag -a v5.1.0 -m "v5.1.0" && git push origin v5.1.0
+git tag -a v6.1.0 -m "v6.1.0" && git push origin v6.1.0
 DRY_RUN=1 tools/export/release_local.sh   # 先看发布说明和检查结果（不发布）
 tools/export/release_local.sh             # 版本号或提交号不对、打包时工作区不干净、表里有 ❌，都会停下
 tools/export/release_local.sh --append    # 以后给已有的 Release 补包（例如 Windows / iOS）
@@ -350,7 +355,7 @@ tools/export/release_local.sh --append    # 以后给已有的 Release 补包（
 | XBuilder 兼容检查（`xbuilder_check.sh`，T09） | Go 1.25 以上和网络（第一次要下载 spx v3.3.0 和 xgo） | 没有 Go 时跳过；有 Go 但没网络会失败 |
 | 安装包启动测试（`package_boot.sh`） | 先运行一次 `tools/export/setup_spx.sh` | — |
 
-- **版本标签**：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的；`v1.0.0` 是 v0 之后当天上午的第一批改动（直接提交到 main，见[更新记录](CHANGELOG.md#v100)）；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1`、`v5.0.0` 是发布版本。`v4.0.0` 只有标签、没有安装包，安装包见 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1)。
+- **版本标签**：`v0` 是导入的基础版本（初版坦克大战），之后的提交都是在它之上新增的；`v1.0.0` 是 v0 之后当天上午的第一批改动（直接提交到 main，见[更新记录](CHANGELOG.md#v100)）；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1`、`v5.0.0`、`v5.0.1`、`v6.0.0` 是发布版本。`v4.0.0` 只有标签、没有安装包，安装包见 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1)。
 - **GitHub 上的红叉**：main 上有几次 Actions 运行显示失败（#22、#23、#50 合入时，还有 v3.0.2、v4.0.0 的标签），都是组织的 Actions 额度用完、任务没启动（3~5 秒就结束），不是代码问题。现在工作流都只能手动触发，检查以 PR 里贴的本地检查报告（`pr_check.sh`）为准。
 - **Android 调试证书**：在仓库外的 `~/.config/tankbattle/debug.keystore`。证书换了，玩家就没法覆盖升级，**请备份**；换电脑打包时拷过去。见[跨平台文档](docs/v3/CROSS_PLATFORM.md#71-发布了哪些包)。
 - **开发规范**：v2.0 起每次改动都通过 Pull Request 合入（v1.0.0 的 5 个提交是例外），详见[架构文档](docs/ARCHITECTURE.md#11-开发流程与分工)。
@@ -368,6 +373,11 @@ tools/export/release_local.sh --append    # 以后给已有的 Release 补包（
 | 简单 AI | `pickFace`、`autopilotDir` | 敌人偏向基地，自动驾驶追最近的敌人 |
 | 搜索 | `reachable()` | 广度优先搜索：能不能开到基地 |
 | 表现分离 | `look()`、`langCode()` | 画风、语言只是一个变量 |
+| 伪随机数（v6） | `dailyRand`、`tools/levels/daily.py` | 线性同余：同一个种子（日期）在所有设备上得到同一张图，Python 版逐格相同 |
+| 加权抽取（v6） | `pickRoll`、`chipRarity` | 三选一按稀有度 6 : 3 : 1 抽卡，不重复 |
+| 后台任务（v6） | `lbFlush` → `go lbSendAll(...)` | 上传成绩放在 goroutine 里，不卡画面；没网时排队 |
+| 资源上限（v6） | `panelOff` | spx 最多 300 个克隆：画面的小部件用时才创建，离开就删 |
+| 服务端（v6） | `server/leaderboard.py` | 只用 Python 标准库：HTTP 接口、sqlite、校验和限频 |
 
 ## 素材与版权说明
 
