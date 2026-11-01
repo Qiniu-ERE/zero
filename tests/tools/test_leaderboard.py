@@ -116,7 +116,7 @@ class Leaderboard(Base):
     def test_R10_health_cors_and_preflight(self):
         code, resp, data = self.request("GET", "/v1/health")
         self.assertEqual(code, 200)
-        self.assertEqual(data, {"ok": True, "version": "1"})
+        self.assertEqual(data, {"ok": True, "version": "1", "day": DAY, "week": WEEK})  # 网页版靠它拿到今天的日期
         self.assertTrue(resp.getheader("Content-Type").startswith("application/json"))
         self.assertEqual(resp.getheader("Access-Control-Allow-Origin"), "*")
         # 浏览器跨域预检
@@ -245,12 +245,18 @@ class Leaderboard(Base):
         self.assertEqual(self.board(period=WEEK)[1]["total"], 0)
 
     def test_R18_score_range(self):
-        for s in [0, 30000]:
+        # 每日挑战只有一关：最多 11000 分
+        for s in [0, 11000]:
             with self.subTest(score=s):
                 self.assertEqual(self.post(entry(player=pid(s + 1), score=s))[0], 200)
-        for s in [-1, 30001, 10 ** 9, 12.5, "100", True, None]:
+        for s in [-1, 11001, 10 ** 9, 12.5, "100", True, None]:
             with self.subTest(score=s):
                 self.assertRejected(entry(score=s), "分数")
+        # 周榜是战役的累计分：打到第几关最多就是几关的分
+        w = dict(entry(), board="weekly", period=WEEK)
+        self.assertEqual(self.post(dict(w, player=pid(7), stage=3, score=33000))[0], 200)
+        self.assertRejected(dict(w, player=pid(8), stage=3, score=33001), "分数")
+        self.assertEqual(self.post(dict(w, player=pid(9), stage=8, score=88000))[0], 200)
 
     def test_R19_secs_range(self):
         for s in [20, 3600]:
@@ -260,16 +266,16 @@ class Leaderboard(Base):
             with self.subTest(secs=s):
                 self.assertRejected(entry(secs=s), "用时")
 
-    def test_R20_stage_range_and_daily_must_clear(self):
-        for s in [0, 11, -1, "10", 10.0, None]:
+    def test_R20_stage_daily_is_10_weekly_is_campaign(self):
+        for s in [0, 1, 9, 11, -1, "10", 10.0, None]:   # 每日挑战的关卡编号只能是 10
             with self.subTest(stage=s):
                 self.assertRejected(entry(stage=s), "关卡")
-        for s in [1, 9]:
+        for s in [1, 8]:   # 周榜：战役打到第几关
             with self.subTest(stage=s):
-                self.assertRejected(entry(stage=s), "打通")
-        for s in [1, 10]:   # 周榜不要求打通
+                self.assertEqual(self.post(entry(player=pid(s), board="weekly", period=WEEK, stage=s, score=100))[0], 200)
+        for s in [0, 9, 10, "3", None]:
             with self.subTest(stage=s):
-                self.assertEqual(self.post(entry(player=pid(s), board="weekly", period=WEEK, stage=s))[0], 200)
+                self.assertRejected(entry(board="weekly", period=WEEK, stage=s), "关卡")
 
     def test_R21_chips_and_level(self):
         ok = [([], 1), (["float"], 2), (["pierce", "bounce", "stealth"], 4), (["double", "engine"], 3)]
@@ -443,7 +449,9 @@ class Cli(unittest.TestCase):
                 for _ in range(50):
                     try:
                         with urllib.request.urlopen(f"http://127.0.0.1:{port}/v1/health", timeout=2) as r:
-                            self.assertEqual(json.loads(r.read()), {"ok": True, "version": "1"})
+                            got = json.loads(r.read())
+                            self.assertEqual((got["ok"], got["version"]), (True, "1"))
+                            self.assertEqual(got["day"], lb.day_of(time.time()))
                         break
                     except OSError:
                         time.sleep(0.1)

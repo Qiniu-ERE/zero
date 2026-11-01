@@ -25,9 +25,10 @@ PLAYER_RE = re.compile(r"^[0-9a-f]{16}$")
 REGIONS = {"global", "cn"}
 BOARDS = {"weekly", "daily"}
 CHIPS = {"rapid", "double", "pierce", "bounce", "shield", "engine", "float", "stealth", "magnet"}
-MAX_SCORE = 30000
+STAGE_MAX_SCORE = 11000         # 一关最多能拿多少分（17 辆重型 + 3 辆重型精英 + 3 次满级换分，约 10400），留一点余量
 SECS = (20, 3600)               # 一局用时的合理范围（秒）
-STAGES = 10                     # 一共 10 关；每日挑战必须打通
+CAMPAIGN = 8                    # 战役 8 关：周榜的 stage 是打到第几关，分数是累计的
+DAILY_STAGE = 10                # 游戏里每日挑战的关卡编号（main.spx 的 dailyStage）
 MAX_CHIPS = 3                   # 最多 3 块芯片，等级 = 芯片数 + 1（Lv1~Lv4）
 MAX_VERSION = 16
 LIMIT_DEFAULT, LIMIT_MAX = 10, 50
@@ -74,17 +75,19 @@ def check_score(body, t):
     now = day_of(t) if board == "daily" else week_of(t)
     if period not in (now, now - 1):
         return "期数不对：只能上传本期或上一期"
-    score = body.get("score")
-    if not is_int(score) or not 0 <= score <= MAX_SCORE:
-        return f"分数应该是 0~{MAX_SCORE} 的整数"
     secs = body.get("secs")
     if not is_int(secs) or not SECS[0] <= secs <= SECS[1]:
         return f"用时应该是 {SECS[0]}~{SECS[1]} 秒"
     stage = body.get("stage")
-    if not is_int(stage) or not 1 <= stage <= STAGES:
-        return f"关卡应该是 1~{STAGES}"
-    if board == "daily" and stage != STAGES:
-        return "每日挑战要打通全部关卡才能上榜"
+    if board == "daily" and (not is_int(stage) or stage != DAILY_STAGE):
+        return f"每日挑战的关卡编号应该是 {DAILY_STAGE}"
+    if board == "weekly" and (not is_int(stage) or not 1 <= stage <= CAMPAIGN):
+        return f"周榜的关卡应该是 1~{CAMPAIGN}"
+    # 合理性检查：周榜是战役的累计分，打到第几关最多就是几关的分；每日挑战只有一关
+    cap = STAGE_MAX_SCORE * (stage if board == "weekly" else 1)
+    score = body.get("score")
+    if not is_int(score) or not 0 <= score <= cap:
+        return f"分数应该是 0~{cap} 的整数"
     chips = body.get("chips")
     if not isinstance(chips, list) or len(chips) > MAX_CHIPS:
         return f"芯片最多 {MAX_CHIPS} 块"
@@ -233,7 +236,9 @@ class Handler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         q = {k: v[-1] for k, v in parse_qs(url.query).items()}
         if url.path == "/v1/health":
-            return self.send_json(200, {"ok": True, "version": API_VERSION})
+            # 顺便告诉客户端今天是第几天：网页版的游戏拿不到本机时间，每日挑战靠它
+            t = self.server.now()
+            return self.send_json(200, {"ok": True, "version": API_VERSION, "day": day_of(t), "week": week_of(t)})
         if url.path not in ("/v1/board", "/v1/rank"):
             return self.fail(404, "没有这个接口")
         region, board = q.get("region"), q.get("board")

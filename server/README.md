@@ -10,7 +10,7 @@ v6 自建的**全球榜（周榜）**和**每日挑战榜**的后端（规划见
 
 ```bash
 python3 server/leaderboard.py --host 127.0.0.1 --port 8787 --db lb.sqlite
-curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1"}
+curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1", "day": 20758, "week": 2964}
 ```
 
 | 参数 | 默认 | 说明 |
@@ -37,7 +37,7 @@ curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1"}
 
 | 接口 | 说明 | 成功返回 |
 |---|---|---|
-| `GET /v1/health` | 健康检查 | `{"ok":true,"version":"1"}` |
+| `GET /v1/health` | 健康检查，顺便返回服务器的日期（网页版拿不到本机时间，每日挑战靠它） | `{"ok":true,"version":"1","day":20758,"week":2964}` |
 | `POST /v1/score` | 上传一局成绩 | `{"ok":true,"rank":名次,"total":本榜人数,"best":这个玩家的最好成绩}` |
 | `GET /v1/board?region=&board=&period=&limit=` | 读榜单前几名；`limit` 默认 10，最多 50 | `{"ok":true,"total":N,"rows":[{"rank","player","tag","score","chips","level"}]}` |
 | `GET /v1/rank?region=&board=&period=&player=` | 查某个玩家的名次 | `{"ok":true,"rank":名次（不在榜上是 0）,"total":N,"score":分数（没有是 0）}` |
@@ -60,9 +60,9 @@ curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1"}
 | `region` | `global`（海外）或 `cn`（国内） |
 | `board` | `weekly`（周榜）或 `daily`（每日挑战） |
 | `period` | 整数；只能是本期或上一期（过了零点 / 周一还能补传上一期，离线成绩联网后补传靠这个） |
-| `score` | 0~30000 的整数 |
+| `score` | 整数，合理性检查：每日挑战 0~11000（一关）；周榜是战役累计分，0~11000 × 打到的关数 |
 | `secs` | 20~3600 秒 |
-| `stage` | 1~10；每日挑战必须是 10（打通才上榜） |
+| `stage` | 每日挑战是 10（游戏里每日挑战的关卡编号）；周榜是战役打到第几关，1~8 |
 | `chips` | 最多 3 块、不重复，只能是 `rapid` `double` `pierce` `bounce` `shield` `engine` `float` `stealth` `magnet` |
 | `level` | 1~4，并且等于芯片数 + 1 |
 | `version` | 1~16 个字符的字符串 |
