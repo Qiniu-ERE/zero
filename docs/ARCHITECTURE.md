@@ -69,12 +69,12 @@ flowchart LR
 | 暂停 | `pauseGame()`（`gameOver = true` 冻结战场）、`resumeGame()`、`quitFromPause()`（自制地图回编辑器，其他回主页） |
 | 流程 | `goHome()`、`openLevels()`（选关画面）、`newGame(n, two)`、`playStage(n)`、`startGame()`、`again()`（结算后：下一关 / 重打本关 / 全部通关后回到第 1 关）、`watchAd()`、`revive()`（清场、补护墙、基地保护，见[第 5 节](#5-游戏流程状态机)）、`showResult()`、`setScreen()`、`confirm()`、`escKey()`（Esc 在各个画面做什么） |
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头、`lifeLook(n, slot, p2)`（生命图标用哪个造型：超过 3 条显示“图标 ×N”） |
-| 触屏 | `touchZone(x, y)`：手指按在哪里做什么。方向键范围内返回方向（移动并开火），战场内返回 1（只开火），顶栏和右侧面板返回 -1（不开火，按钮都在这里） |
+| 触屏 | `touchZone(x, y)`：手指按在哪里做什么。方向键范围内返回方向（移动并开火），战场内返回 1（只开火），顶栏和右侧面板返回 -1（不开火，按钮都在这里）。全屏画面和弹窗的按钮由 `UI.clickAt(x, y)` 按画面判断（区域来自生成的 `hit()`），测试直接调用它模拟点击 |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
 | v6 局内升级 | 芯片规则 `chipKey` `chipRarity` `chipUnlocked` `hasChip`、效果 `bulletLimit` `bulletSpeed` `bounceLimit` `moveSpeed` `playerBlocked` `stealthed` `shieldBlock`、连携 `comboBarrage` `comboSalvo`；精英 `eliteSlot` `eliteDown`；三选一 `pickChip` `pickRoll` `pickChoose` `pickReroll`；等级 `resetRun` `snapRun` `clearRun` `loseLevel`；战术芯片 `fortify` `endFortify`（空袭广播 `bomb`、冰冻 `freezeLeft`）；每帧 `chipTick`（`chipLoop` 消息） |
 | v6 车库与存档 | `save.txt` 读写（`saveGame` `loadText` `initSave`）、指挥官等级（`gainXP` `levelForXP`）、钱包 `wallet`、涂装 `buySkin`、每日任务（`pickTasks` `taskAdd`）、`openGarage`；时间 `nowSec` / `today`（解释器里没有 `time.Now`，见 9.3） |
 | v6 每日挑战 | `dailyRows(day)`（按日期生成地图，和 `tools/levels/daily.py` 同一个算法）、`dailyRand`、`playDaily`、`dailyEnd`（一天一次正式成绩）；地图检查拆成纯函数 `mapProblem`，编辑器也用 |
-| v6 排行榜 | `lbRecord` `lbEnqueue` `lbFlush`（后台 goroutine 上传，离线排队）、`lbFetch` `lbHealth`、每帧 `lbPoll` 收结果、`openRanks` `lbShow` `lbText`；服务地址常量 `lbURL`（还没部署，是空的） |
+| v6 排行榜 | `lbRecord` `lbEnqueue` `lbFlush`（后台 goroutine 上传，离线排队）、`lbFetch` `lbHealth`、每帧 `lbPoll` 收结果、`openRanks` `lbShow` `lbText`；服务地址常量 `lbURL`（仓库里是空的，打包时用 `LB_URL` 填） |
 | v6 赛季与分享 | `seasonOf` `tierOf` `gainSeason`、连续打卡、`assistCode` / `assistDecode`、`openShare` `openAssist` `applyAssist`、`shareText` |
 | 画面小部件 | `panelOff` 和 `buildGarage` / `buildRanks` / `buildShare` / `buildAssist`：全屏画面的小部件打开时才创建（克隆上限，见 9.4） |
 | 路演演示 | `demoFlow` 消息处理（v2 内容之后调用 `demoV3()`：新关卡、双人合作、暂停菜单、编辑器里画地图并试玩；按 Esc 退出：`escKey` 设 `demoStop` 后重新广播 `demoFlow` 打断正在运行的演示，新的处理调用 `stopDemo()` 还原画风、语言和编辑器地图并回主页）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
@@ -124,13 +124,13 @@ flowchart LR
 | `assets/textpath.py` | 把文字转成 SVG 路径；字体固定到 google/fonts 的某个提交并校验 sha256；缺字直接报错 |
 | `assets/build.py` | 生成：两套背景、现代画风的所有造型、经典画风的水面和草丛、`UI` 精灵的全部造型和 `index.json`、`UI.spx` 里的 `GENERATED widths` / `GENERATED hit` 区块 |
 | `levels/daily.py` | v6 每日挑战的地图生成器（和 `main.spx` 的 `dailyRows` 同一个算法）：打印某一天的地图，`--write` 重新生成 `tests/data/daily_maps.txt`（365 天） |
-| `server/leaderboard.py` | v6 自建排行榜服务（Python 标准库）：上传成绩、榜单、查名次、合理性检查、限频，海外 / 国内分开；接口见 `server/README.md`。还没部署 |
+| `server/leaderboard.py` | v6 自建排行榜服务（Python 标准库）：上传成绩、榜单、查名次、合理性检查、限频，海外 / 国内分开；接口见 `server/README.md`。部署文件在 `server/deploy/`（Docker + Caddy、systemd、冒烟检查），还没上线 |
 | `test/py_coverage.py` | v6 Python 行覆盖率（标准库 `trace`）：新工具要求 100% |
 | `levels/check.py` | 检查 `levelMap()` 里的每一关：13×13、出生点和基地位置、从出生点能到达基地、玩家能到达出生点、基地旁边没有钢墙和水面，1P / 2P 出生点都要能开到敌人出生点。地图编辑器的实时检查（`edCheck`）用同一套规则 |
 | `package_xbp.sh` | 打包 `TankBattle.xbp` |
 | `export/setup_spx.sh` | 准备打包环境：固定提交的 spx 源码（每次先恢复干净，再按顺序打 `export/patches/` 里的补丁）、`patch_spx.py` 改模板（包名、版本、图标、iOS 不签名）、xgo、`buildctl setup`；Go 版本和 `env.sh` 不一样时提醒（`GO_STRICT=1` 报错） |
 | `export/patches/` | 给 spx 源码打的补丁（`*.patch`，按文件名顺序打，打不上就停下），说明见里面的 `README.md`；`build.sh` 核对补丁改了而 spx 没重装时报错。目前没有补丁 |
-| `export/build.sh` | `build.sh <desktop\|web\|android\|ios> [--store] [--demo]`：`desktop`（buildlauncher 单文件，macOS 包成 .app）、`web`（exportweb + 外壳页面）、`android`（APK，触屏模式；先核对模板版本号，`SPX_REPATCH=1` 自动重装；调试证书在 `~/.config/tankbattle/debug.keystore`；Godot 编辑器设置里的 SDK 路径每次改成当前的）、`ios`（不签名 IPA，触屏模式；MoltenVK 核对 sha256）。`--store` / `--demo` 在副本里把 `storeBuild` / `demoBuild` 改成 true，包放 `dist/store/`、`dist/demo/`、`dist/store-demo/` |
+| `export/build.sh` | `build.sh <desktop\|web\|android\|ios> [--store] [--demo]`：`desktop`（buildlauncher 单文件，macOS 包成 .app）、`web`（exportweb + 外壳页面）、`android`（APK，触屏模式；先核对模板版本号，`SPX_REPATCH=1` 自动重装；调试证书在 `~/.config/tankbattle/debug.keystore`；Godot 编辑器设置里的 SDK 路径每次改成当前的）、`ios`（不签名 IPA，触屏模式；MoltenVK 核对 sha256）。`--store` / `--demo` 在副本里把 `storeBuild` / `demoBuild` 改成 true，包放 `dist/store/`、`dist/demo/`、`dist/store-demo/`；环境变量 `LB_URL` / `LB_REGION`（v6）把排行榜地址和区域写进副本的 `lbURL` / `lbRegion` |
 | `export/web/` | 网页版外壳：自动启动、4:3 铺满、多点触控虚拟按键、PWA |
 | `.github/workflows/release.yml` | 在云端打包（v3.0.0、v3.0.1 用它发布）。2026-10-25 起只能手动触发；输入 `platforms`（只打几个平台）、`upload_to`（补进已有的 Release）、`create_release`（在标签上新建 Release），**都不选时不发布**；第三方 Action 锁定到提交 SHA。平时用下面的 `build_local.sh` + `release_local.sh` 本机打包发布 |
 | `export/build_local.sh` | 本地打本机能打的全部平台（macOS、网页版、Android、Linux），每个包都检查（启动测试、直接运行安装包、PWA 文件、APK 签名和版本号），打不了的平台空着并写明原因，结果写在 `dist/BUILD_LOCAL.md`（记下提交号和工作区是否干净）；打包前删掉这次要打的平台的同版本旧包 |
@@ -201,7 +201,7 @@ stateDiagram-v2
   结算 --> 主页: H / 点击主页
 ```
 
-- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stEdit` `stPause` `stLevels`（选关画面，v5），v6 加了 `stPick`（三选一，战场冻结）、`stGarage`（车库，主页 G）、`stRanks`（排行榜，主页 B）、`stShare`（分享战报，每日挑战结算后 S）、`stAssist`（输入助战码，主页 A）。每日挑战是 `stage = dailyStage`（10），主页按 D。按键处理都先看 `state`，同一个键在不同画面有不同含义。
+- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stEdit` `stPause` `stLevels`（选关画面，v5），v6 加了 `stPick`（三选一，战场冻结）、`stGarage`（车库，主页 G）、`stRanks`（排行榜，主页 B）、`stShare`（分享战报，每日挑战结算后 S）、`stAssist`（输入助战码，主页 A 或“助战码”卡片，屏幕上有数字键盘）。每日挑战是 `stage = dailyStage`（10），主页按 D。按键处理都先看 `state`，同一个键在不同画面有不同含义。
 - `gameOver` 表示“战场冻结”，坦克和子弹在冻结时不动。除了 `stPlay` 以外的状态，战场都是冻结的。
 - **每关只能复活一次**：`reviveStage` 记下在哪一关复活过，`startGame` 里 `revived = reviveStage == stage`。暂停菜单的“重新开始本关”不清零（不会再给一次复活）；输了以后在结算画面重打本关、从主页或选关画面进关、过关进入下一关、试玩自制地图都会清零（可以再复活一次）。
 - **复活**（`revive()`）：修好基地、加命，广播 `reviveClear` 清掉敌人子弹和基地 3 格以内的敌人，按本关地图把基地四周碎了、裂了的护墙恢复成砖墙，广播 `baseGuard` 让基地 3 秒内打不掉。复活后如果敌人已经全灭，直接胜利结算。
@@ -441,7 +441,9 @@ v6.0 的 PR 依次叠在前一个上（#85 → #86 → … ），最后合入集
 | #88 | danielfeng | P3 每日挑战：全球同图同芯片、一天一次正式成绩（D01~D11） |
 | #89 | danielfeng | P3b 全球排行榜：服务端 `server/` + 客户端（R01~R29） |
 | #90 | danielfeng | P4 赛季、分享战报、助战码（S01~S09、Q04） |
-| #91 | danielfeng | v6 文档、截图、测试方案、Python 行覆盖、覆盖率基线（Q05~Q07） |
+| #91 | danielfeng | P4b 手机上也能用助战码和分享战报：主页卡片、屏幕数字键盘、点标签打开战报（S10~S11） |
+| #92 | danielfeng | P3c 排行榜部署准备：`server/deploy/`、打包时填 `LB_URL` / `LB_REGION`（R30~R32） |
+| #93 | danielfeng | v6 文档、截图、测试方案、Python 行覆盖、覆盖率基线（Q05~Q07） |
 
 ### 分工
 
@@ -458,7 +460,7 @@ v6.0 的 PR 依次叠在前一个上（#85 → #86 → … ），最后合入集
 | 演示视频与文档 | danielfeng | 实机截图、演示视频、README、架构文档、更新记录、v4.0 发布文档、v5.0 规划 |
 | v4.0.1 修复与本机打包 | danielfeng | 子弹迎面相撞的修复（#52）、本机打包和发布脚本（#51、#53） |
 | v5 第一批修复（P1） | danielfeng | 游戏修复和选关画面（#59~#76）、打包和测试工具（#65~#75）、难度模拟（#63）、文档 |
-| v6.0 功能与测试 | danielfeng | 敌我区分、精英与芯片、车库与存档、每日挑战、排行榜（服务端和客户端）、赛季与分享，以及每个功能的测试（#85~#91） |
+| v6.0 功能与测试 | danielfeng | 敌我区分、精英与芯片、车库与存档、每日挑战、排行榜（服务端和客户端）、赛季与分享、手机操作补齐、排行榜部署准备，以及每个功能的测试（#85~#93） |
 | 测试与覆盖率（v4.0） | zhangxunling | 测试方案、引擎内测试框架、全部测试用例（规则、流程、编辑器、双人、构建工具、网页外壳、XBuilder 兼容、安装包启动）、覆盖率统计和基线、本地检查 `pr_check.sh`、PR 模板 |
 
 测试与覆盖率的 PR 里，#24~#43 由 zhangxunling 的账号提交；#44~#47（网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板）由 danielfeng 的账号代为提交，内容同属测试与覆盖率。测试发现的游戏问题（例如子弹相撞）由 danielfeng 确认和修复：v4.0.1 的修复（#52）先提交能复现问题的测试，再提交修复，都由 danielfeng 的账号提交。

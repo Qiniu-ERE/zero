@@ -12,7 +12,7 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | 克隆预算 | 常驻的 UI 克隆 + 最满的地图（169 格）+ 坦克子弹爆炸（30 个）≤ 300 | `tests/spx/budget.spx`（Q01~Q03）、`tests/tools/test_daily.py`（Q04） |
 | XBuilder 兼容 | spx v3.3.0 能编译 | `tools/test/xbuilder_check.sh`（T09） |
 
-按键和点击的处理（`onKey`、`onClick`）在无界面测试里触发不了：处理里只调一个舞台函数（例如三选一的 1 / 2 / 3 都调 `pickChoose`），测这个函数。
+按键和点击的处理（`onKey`、`onClick`）在无界面测试里触发不了：处理里只调一个舞台函数（例如三选一的 1 / 2 / 3 都调 `pickChoose`），测这个函数。全屏画面上的按钮点击都走 `UI.clickAt(x, y)`，测试直接用舞台坐标调用它模拟点击（S10、S11）。
 
 ## 二、新增的测试文件
 
@@ -31,7 +31,9 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | `tests/spx/daily.spx` | D04~D11 | 每日挑战（游戏） |
 | `tests/spx/board.spx` | R01~R09 | 排行榜客户端（端到端：测试脚本在本机起一个排行榜服务） |
 | `tests/tools/test_leaderboard.py` | R10~R29 | 排行榜服务 |
-| `tests/spx/season.spx` | S01~S09 | 赛季、分享战报、助战码 |
+| `tests/tools/test_release_tools.py` | R30 | 打包时填排行榜地址和区域（`LB_URL` / `LB_REGION`） |
+| `tests/tools/test_deploy.py` | R31~R32 | 排行榜的部署文件、部署后的冒烟检查 |
+| `tests/spx/season.spx` | S01~S11 | 赛季、分享战报、助战码；手机上的助战码键盘和分享入口 |
 | `tests/spx/budget.spx` | Q01~Q03 | 克隆预算 |
 | `tests/tools/test_cli_coverage.py` | Q05~Q07 | 工具的命令行入口和少见的分支 |
 
@@ -159,6 +161,9 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | R27 | 服务：榜单的条数和参数 |
 | R28 | 服务：查名次 |
 | R29 | 服务：重启后数据还在，不存 IP |
+| R30 | 打包：`LB_URL` / `LB_REGION` 只改打包副本里的常量；不设置不改；只收 `https://`（本机测试可以 http）、区域只能 global / cn |
+| R31 | 部署文件：Dockerfile、systemd 的启动参数服务端都认识；Caddy 反向代理到服务的端口，请求体上限不小于服务端的 |
+| R32 | 冒烟检查脚本：对本机的服务通过（海外、国内）；路径不对、区域不对时失败 |
 
 ### 3.6 赛季、分享战报、助战码（S）
 
@@ -173,6 +178,8 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | S07 | 助战码编码、校验 |
 | S08 | 输入助战码、下一关送芯片、每日挑战不用 |
 | S09 | 分享战报的内容；Esc 回到结算 |
+| S10 | 手机 / 鼠标：主页的“助战码”卡片，屏幕数字键盘输入、删除、确认，返回按钮 |
+| S11 | 手机 / 鼠标：结算画面点“正式成绩”标签打开分享战报，点战报回到结算 |
 
 ### 3.7 质量（Q）
 
