@@ -100,6 +100,10 @@ onStart => {
 
 	// U24 连携提示：装上第二块时提示连携；卡片上标出能组成连携的芯片
 	tQuiet
+	refreshTasks // 今天的每日任务先都算完成：“组成一次连携”的任务刚好完成时，“任务完成”的提示会盖掉连携提示（任务按日期抽，测试结果会随日期变）
+	for i := 0; i < 3; i++ {
+		taskProg[i] = taskTarget(taskIDs[i])
+	}
 	chips[1] = []int{cPierce}
 	pickWho = 1
 	tCheck "U24 已有穿甲弹时，跳弹的卡片标出连携", pickCombo(cBounce)
