@@ -30,6 +30,7 @@ onStart => {
 	tStr "U09 画面关掉", screen, ""
 
 	// U10 抽芯片：只抽解锁了的、没装上的；按稀有度，传奇最少
+	chips[1] = nil // U09 可能正好装上了穿甲弹（装上的不会再抽到），先清空
 	cmdLevel = 1
 	counts := make([]int, chipCount+1)
 	bad := 0
