@@ -250,6 +250,15 @@ STRINGS = {
     "msg.skin.on": ("换上了这款涂装", "Skin equipped"),
     "msg.skin.bought": ("买下了这款涂装", "Skin unlocked"),
     "msg.coins.short": ("金币不够", "Not enough coins"),
+    # v6 每日挑战（游戏）
+    "home.daily": ("每日挑战", "Daily"),
+    "stage.daily": ("每日挑战", "Daily Challenge"),
+    "msg.daily": ("全世界今天同一张图、同一组芯片", "Same map and chips for everyone today"),
+    "msg.daily.noday": ("拿不到今天的日期，暂时不能挑战", "Can't tell today's date yet"),
+    "msg.daily.done": ("今天的正式成绩已记录", "Today's official score saved"),
+    "msg.daily.practice": ("练习局：今天的正式成绩已经有了", "Practice: today's official score is in"),
+    "dtag.off": ("每日挑战 · 正式成绩", "Daily · Official"),
+    "dtag.prac": ("每日挑战 · 练习", "Daily · Practice"),
 }
 
 

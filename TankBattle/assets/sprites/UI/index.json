@@ -113,6 +113,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "stage.daily_zh",
+      "path": "stage.daily_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "stage.daily_en",
+      "path": "stage.daily_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "stage.custom_zh",
       "path": "stage.custom_zh.svg",
       "x": 4.0,
@@ -1261,6 +1275,62 @@
       "bitmapResolution": 4
     },
     {
+      "name": "msg.daily_zh",
+      "path": "msg.daily_zh.svg",
+      "x": 318.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.daily_en",
+      "path": "msg.daily_en.svg",
+      "x": 407.44,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.daily.noday_zh",
+      "path": "msg.daily.noday_zh.svg",
+      "x": 318.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.daily.noday_en",
+      "path": "msg.daily.noday_en.svg",
+      "x": 279.86,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.daily.done_zh",
+      "path": "msg.daily.done_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.daily.done_en",
+      "path": "msg.daily.done_en.svg",
+      "x": 295.3,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.daily.practice_zh",
+      "path": "msg.daily.practice_zh.svg",
+      "x": 318.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.daily.practice_en",
+      "path": "msg.daily.practice_en.svg",
+      "x": 359.45,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "toggle_zh",
       "path": "toggle_zh.svg",
       "x": 80,
@@ -1762,6 +1832,34 @@
       "path": "pickwho_2.svg",
       "x": 50.97,
       "y": 30.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "dtag_off_zh",
+      "path": "dtag_off_zh.svg",
+      "x": 164.38,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "dtag_off_en",
+      "path": "dtag_off_en.svg",
+      "x": 138.79,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "dtag_prac_zh",
+      "path": "dtag_prac_zh.svg",
+      "x": 136.38,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "dtag_prac_en",
+      "path": "dtag_prac_en.svg",
+      "x": 145.74,
+      "y": 28,
       "bitmapResolution": 4
     },
     {

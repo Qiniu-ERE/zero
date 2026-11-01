@@ -143,7 +143,7 @@ onStart => {
 	tInt "K07 换日后是新一天的任务", taskDay, 20001
 
 	// K08 任务进度来自游戏：击毁、精英、过关、捡芯片、双人、连携、自制地图
-	for kind := 1; kind <= taskCount; kind++ {
+	for kind := 1; kind <= tkCustom; kind++ { // 第 8 种（完成每日挑战）见 daily.spx 的 D09
 		taskIDs = []int{kind, kind%taskCount + 1, (kind+1)%taskCount + 1} // 三个都是认识的任务
 		taskProg = []int{0, 0, 0}
 		taskDay = today()
