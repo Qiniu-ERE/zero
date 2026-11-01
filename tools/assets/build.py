@@ -344,6 +344,7 @@ def text_costume(s, size, fill, bold, anchor, pad=1.0):
 # 标签：key -> (字号, 颜色, 粗体, 对齐)
 LABELS = {
     **{f"stage.{n}": (10, "#ffffff", True, "start") for n in range(1, 9)},
+    "stage.daily": (10, "#d9b8ff", True, "start"),
     "stage.custom": (10, "#ffffff", True, "start"),
     "enemies": (7.5, MUTED, False, "end"),
     "score": (6.8, MUTED, True, "start"),
@@ -561,10 +562,14 @@ def banner(lang):
 # 主页上的其他模式：(文案 key, 按键)。v5 去掉了“每日挑战 · 即将推出”（需要服务器和排行榜，不会做）
 # 选择关卡（v5）放在原来每日挑战的位置；按键提示是“1-8”（主页直接按数字键进关）
 HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.levels", "1-8")]
-HOME_TILES = [("garage", "G", 308)]  # v6：(名字, 按键, x)
+HOME_TILES = [("daily", "D", 226), ("garage", "G", 308)]  # v6：(名字, 按键, x)
 
 
 def home_tile_icon(k, cx, cy):
+    if k == "daily":  # 日历
+        return (f'<rect x="{cx-8}" y="{cy-7}" width="16" height="14" rx="2.5" fill="{ELITE}" fill-opacity="0.25" stroke="{ELITE}" stroke-width="1.2"/>'
+                f'<path d="M{cx-8} {cy-3}h16M{cx-4} {cy-9}v4M{cx+4} {cy-9}v4" stroke="{ELITE}" stroke-width="1.2"/>'
+                + text(cx, cy + 5, "1", 6.5, "#f3dcff", True, "middle"))
     if k == "garage":
         defs, body = tank_body(*TANKS["player"])
         defs, body = defs.replace('id="sh"', 'id="shg"'), body.replace("url(#sh)", "url(#shg)")
@@ -1085,10 +1090,18 @@ def pick_who(p):
     return svg(tw, 15, body, res=HR), (tw / 2, 7.5)
 
 
+def daily_tag(key, lang):
+    s = tr(key, lang)
+    w = width(s, 7, True) + 16
+    body = f'<rect width="{w:.2f}" height="14" rx="7" fill="{ELITE}"/>' + text(w / 2, 9.8, s, 7, "#1a0b2b", True, "middle")
+    return svg(w, 14, body, res=HR), (w / 2, 7)
+
+
 def chip_costumes():
     out = [("drop", *chip_drop()), ("ci_empty", *chip_empty())]
     out += [(f"ci_{k}", *chip_badge(k)) for k in CHIP_KEYS]
     out += [(f"pickwho_{p}", *pick_who(p)) for p in (1, 2)]
+    out += [(f"dtag_{k}_{lang}", *daily_tag(f"dtag.{k}", lang)) for k in ("off", "prac") for lang in LANGS]
     for lang in LANGS:
         for k in CHIP_KEYS:
             out.append((f"pc_{k}_{lang}", *pick_card(k, lang), 2))

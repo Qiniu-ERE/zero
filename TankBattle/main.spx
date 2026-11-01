@@ -111,9 +111,18 @@ var (
 	taskDay     int    // 今日任务是哪一天的
 	taskIDs     []int  // 今天的 3 个任务
 	taskProg    []int  // 3 个任务的进度
-	dayOverride int    // 测试用：指定“今天”是第几天（0 表示按真实时间）
+	dayOverride int    // 测试用：指定“今天”是第几天（0 表示按真实时间，负数表示拿不到时间）
 	panel       string // 现在建好的是哪个画面的小部件（"" 表示没有，见 panelOff）
 	uiClones    int    // 现在有多少个 UI 克隆（测试克隆预算用）
+
+	// v6 每日挑战（docs/v6/PLAN.md 第四节）
+	dailyDayNow   int     // 正在打的是哪一天的每日挑战
+	dailySeed     int     // 每日挑战的随机数状态：敌人出场用（dailyRand）
+	dailyChipSeed int     // 每日挑战的随机数状态：三选一用（dailyChipRand），和敌人分开，抽到的芯片才不会受出兵快慢影响
+	dailySecs     float64 // 这一局用了多久（战场冻结时不算）
+	dailyDay      int     // 哪一天已经有了正式成绩（存档）
+	dailyScore    int     // 那天的正式成绩（存档）
+	dailyOfficial bool    // 刚结束的这一局是不是正式成绩
 )
 
 const (
@@ -148,6 +157,9 @@ const (
 	padY       = 8.0
 	padR       = 58.0 // 方向键的响应半径
 	customStage = 9     // 自制地图试玩时的关卡编号
+	dailyStage  = 10    // 每日挑战的关卡编号（v6）
+	dailyEpoch  = 20757 // 每日挑战第 1 期的前一天（2026-11-01 是第 20758 天）
+	xpDaily     = 100   // 完成每日挑战的经验
 	storeBuild  = false // 商店版（PC 买断，没有广告）：tools/export/build.sh --store 改成 true。v6 起三选一每局免费刷新 1 次
 )
 
@@ -181,7 +193,7 @@ const (
 	xpElite     = 10 // 击毁精英额外的经验
 	xpClear     = 50 // 过关的经验
 	skinCount   = 5
-	taskCount   = 7 // 每日任务的种类（第 8 种“完成每日挑战”在每日挑战上线后加入）
+	taskCount   = 8 // 每日任务的种类
 	taskReward  = 50
 
 	tkKill   = 1 // 每日任务：击毁 30 辆敌人
@@ -191,6 +203,7 @@ const (
 	tkCoop   = 5 // 打一局双人合作
 	tkCombo  = 6 // 凑出一个连携
 	tkCustom = 7 // 试玩一张自制地图
+	tkDaily  = 8 // 完成每日挑战
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
@@ -200,6 +213,9 @@ const (
 func levelMap() []string {
 	if stage == customStage {
 		return edRows()
+	}
+	if stage == dailyStage {
+		return dailyRows(dailyDayNow)
 	}
 	switch stage {
 	case 2: // 水乡迷宫：大片水面分割战场，坦克要绕路，子弹却能隔河对射
@@ -336,6 +352,8 @@ func levelMap() []string {
 // 本关的敌军配置：重型坦克占比（%）、快速坦克占比（%）、出兵间隔（秒）、场上最多几辆
 func stageTune() (int, int, float64, int) {
 	switch stage {
+	case dailyStage: // 每日挑战：和第 7 关差不多难
+		return 30, 45, 1.5, 5
 	case 2:
 		return 20, 30, 2.0, 4
 	case 3:
@@ -358,6 +376,9 @@ func stageTune() (int, int, float64, int) {
 func stageTip() string {
 	if stage == customStage {
 		return "msg.ed.play"
+	}
+	if stage == dailyStage {
+		return "msg.daily"
 	}
 	if stage == 1 {
 		return "msg.start"
@@ -576,7 +597,7 @@ func shieldBlock(who int) bool {
 
 // 本关第 n 辆（从 0 数）出场的敌人是不是精英：第 4、11 辆；第 4 关起还有第 18 辆
 func eliteSlot(n int) bool {
-	return n == 3 || n == 10 || (n == 17 && stage >= 4 && stage <= lastStage)
+	return n == 3 || n == 10 || (n == 17 && stage >= 4 && stage != customStage) // 每日挑战也是 3 辆
 }
 
 // 本关一共几辆精英
@@ -645,7 +666,7 @@ func loseLevel(who int) {
 func pickRoll() {
 	cand := []int{}
 	for id := 1; id <= chipCount; id++ {
-		if chipUnlocked(id) && !hasChip(pickWho, id) {
+		if (chipUnlocked(id) || stage == dailyStage) && !hasChip(pickWho, id) { // 每日挑战全部芯片都有，大家公平
 			cand = append(cand, id)
 		}
 	}
@@ -677,6 +698,9 @@ func pickRoll() {
 
 // 0 ~ n-1 的随机整数（三选一用）
 func chipRand(n int) int {
+	if stage == dailyStage {
+		return dailyChipRand(n) // 每日挑战：同一天大家抽到的一样
+	}
 	r := int(rand(0, n-1)) // XBuilder 的 spx v3.3.0 里 rand(int, int) 返回 float64
 	if r >= n {
 		r = n - 1
@@ -835,6 +859,9 @@ func chipTick(dt float64) {
 	if gameOver {
 		return
 	}
+	if stage == dailyStage {
+		dailySecs += dt // 每日挑战的用时（上传成绩时用）
+	}
 	for w := 1; w <= 2; w++ {
 		if shieldCD[w] > 0 {
 			shieldCD[w] -= dt
@@ -956,7 +983,8 @@ func saveText() string {
 	}
 	lines := []string{"v=1", "id=" + playerID, "xp=" + strconv.Itoa(cmdXP), "coins=" + strconv.Itoa(wallet),
 		"skin=" + strconv.Itoa(skin), "skins=" + joinInts(owned),
-		"task.day=" + strconv.Itoa(taskDay), "task.ids=" + joinInts(taskIDs), "task.prog=" + joinInts(taskProg)}
+		"task.day=" + strconv.Itoa(taskDay), "task.ids=" + joinInts(taskIDs), "task.prog=" + joinInts(taskProg),
+		"daily.day=" + strconv.Itoa(dailyDay), "daily.score=" + strconv.Itoa(dailyScore)}
 	return strings.Join(lines, "\n") + "\n"
 }
 
@@ -1006,6 +1034,10 @@ func loadText(text string) bool {
 			taskIDs = splitInts(v)
 		case "task.prog":
 			taskProg = splitInts(v)
+		case "daily.day":
+			dailyDay = n
+		case "daily.score":
+			dailyScore = n
 		}
 	}
 	if skin < 0 || skin >= skinCount || !skinsOwned[skin] {
@@ -1030,6 +1062,8 @@ func newSave() {
 	taskDay = 0
 	taskIDs = nil
 	taskProg = nil
+	dailyDay = 0
+	dailyScore = 0
 }
 
 // 16 位十六进制的随机 ID（只用来区分玩家，不含任何个人信息）
@@ -1162,6 +1196,9 @@ func nowSec() int {
 func today() int {
 	if dayOverride > 0 {
 		return dayOverride
+	}
+	if dayOverride < 0 {
+		return 0 // 测试用：模拟拿不到时间（网页版）
 	}
 	sec := nowSec()
 	if sec <= 0 {
@@ -1369,28 +1406,28 @@ func reachable(m []byte, start int) []bool {
 	return seen
 }
 
-// 检查地图（规则和 tools/levels/check.py 相同；锁定格保证了出生点和基地的位置）
-func edCheck() {
-	edProblem = 0
-	edMark = -1
+// 检查地图 m（169 个字符）：返回问题（0 可以玩，1 敌人到不了基地，2 坦克开不到敌人出生点）和出问题的格子。
+// 规则和 tools/levels/check.py 相同；锁定格保证了出生点和基地的位置。编辑器和每日挑战的地图生成都用它
+func mapProblem(m []byte) (int, int) {
 	for _, s := range []int{0, 6, 12} {
-		got := reachable(ed, s)
+		got := reachable(m, s)
 		if !got[11*cols+6] && !got[12*cols+5] && !got[12*cols+7] {
-			edProblem = 1
-			edMark = s
-			return
+			return 1, s
 		}
 	}
 	for _, p := range []int{12*cols + 4, 12*cols + 8} {
-		got := reachable(ed, p)
+		got := reachable(m, p)
 		for _, s := range []int{0, 6, 12} {
 			if !got[s] {
-				edProblem = 2
-				edMark = p
-				return
+				return 2, p
 			}
 		}
 	}
+	return 0, -1
+}
+
+func edCheck() {
+	edProblem, edMark = mapProblem(ed)
 }
 
 // 按 ed 重新摆好所有格子
@@ -1533,6 +1570,118 @@ func edRandom() {
 		}
 	}
 	edBlank()
+}
+
+// ---------- v6 每日挑战（docs/v6/PLAN.md 第四节） ----------
+
+// 第 d 天的每日挑战地图：和“随机起点”同样的五种风格，但随机数用线性同余（种子是日期），
+// 所以全世界同一天是同一张图。tools/levels/daily.py 是同一个算法的 Python 版（测试比对两边逐格相同）
+func dailyRows(d int) []string {
+	wb := []int{40, 45, 30, 90, 55}
+	ws := []int{10, 50, 5, 10, 30}
+	ww := []int{45, 0, 0, 0, 5}
+	dOdd := []int{45, 50, 55, 70, 25}
+	dEven := []int{25, 20, 35, 30, 5}
+	s := d*7919 + 12345
+	next := func(n int) int {
+		s = lcg(s)
+		return (s / 65536) % n
+	}
+	m := make([]byte, rows*cols)
+	for try := 0; try < 80; try++ {
+		t := next(5)
+		for i := range m {
+			m[i] = edLockedChar(i)
+		}
+		for r := 1; r <= 12; r++ {
+			for c := 0; c <= 6; c++ {
+				dens := dEven[t]
+				if c%2 == 1 {
+					dens = dOdd[t]
+				}
+				ch := byte('.')
+				if next(100) < dens {
+					n := next(100)
+					if n < wb[t] {
+						ch = 'B'
+					} else if n < wb[t]+ws[t] {
+						ch = 'S'
+					} else if n < wb[t]+ws[t]+ww[t] {
+						ch = 'W'
+					} else {
+						ch = 'G'
+					}
+				}
+				for _, cc := range []int{c, cols - 1 - c} {
+					if !edLocked(r*cols + cc) {
+						m[r*cols+cc] = ch
+					}
+				}
+			}
+		}
+		if p, _ := mapProblem(m); p == 0 {
+			break
+		}
+		if try == 79 {
+			for i := range m {
+				m[i] = edLockedChar(i) // 80 次都不合格（实际不会发生）：用空白地图
+			}
+		}
+	}
+	out := []string{}
+	for r := 0; r < rows; r++ {
+		out = append(out, string(m[r*cols:(r+1)*cols]))
+	}
+	return out
+}
+
+// 每日挑战的编号：2026-11-01 是第 1 期
+func dailyNo(d int) int {
+	return d - dailyEpoch
+}
+
+// 每日挑战用的随机数：每局开始时按日期重置，同一天每个人抽到的一样。
+// 敌人出场和三选一用两个独立的序列：共用一个时，第几次三选一抽到什么会受“捡芯片之前出了几辆敌人”影响
+func dailyRand(n int) int {
+	dailySeed = lcg(dailySeed)
+	return (dailySeed / 65536) % n
+}
+
+func dailyChipRand(n int) int {
+	dailyChipSeed = lcg(dailyChipSeed)
+	return (dailyChipSeed / 65536) % n
+}
+
+// 开始今天的每日挑战（单人）。拿不到日期（网页版暂时没有时钟）就不能开始
+func playDaily() {
+	d := today()
+	if d <= 0 {
+		toast "msg.daily.noday", 2
+		return
+	}
+	dailyDayNow = d
+	coop = false
+	stage = dailyStage
+	stageScore = 0
+	reviveStage = 0
+	clearRun()
+	startGame
+}
+
+// 每日挑战结束：今天第一次打完的是正式成绩（一天一次），之后都是练习
+func dailyEnd(win bool) {
+	if dailyDay == dailyDayNow {
+		dailyOfficial = false
+		toast "msg.daily.practice", 2.5
+		return
+	}
+	dailyOfficial = true
+	dailyDay = dailyDayNow
+	dailyScore = score
+	gainXP xpDaily
+	taskAdd tkDaily, 1
+	toast "msg.daily.done", 2.5
+	saveGame()
 }
 
 // 试玩自制地图，two 表示双人
@@ -1786,6 +1935,7 @@ func buildHud() {
 	UI.icon kEdCursor, 0, 0, 0
 	UI.icon kEdMark, 0, 0, 0
 	UI.number kCoin, -132, 35, 9
+	UI.icon kDailyTag, -72, 116, 0 // 每日挑战结算：正式成绩 / 练习
 	// 三选一（v6）：三张卡片、刷新按钮、谁在选
 	for i := 0; i < 3; i++ {
 		UI.icon kPick, -134+float64(i)*134, 13, i
@@ -2020,6 +2170,9 @@ func endGame(win bool) {
 	if stage == customStage {
 		taskAdd tkCustom, 1
 	}
+	if stage == dailyStage && !autopilot {
+		dailyEnd win
+	}
 	if coop {
 		taskAdd tkCoop, 1
 	}
@@ -2090,6 +2243,12 @@ func quitFromPause() {
 func again() {
 	if stage == customStage {
 		openEditor // 继续编辑
+		return
+	}
+	if stage == dailyStage {
+		reviveStage = 0
+		clearRun()
+		startGame // 每日挑战再来一局（今天的正式成绩已经有了，这局是练习）
 		return
 	}
 	if won && stage < lastStage {
@@ -2373,6 +2532,9 @@ func spawnEnemy() {
 	c := (spawned % 3) * 6
 	kind := 0 // 0 普通坦克，1 快速坦克，2 重型坦克
 	n := int(rand(1, 100))
+	if stage == dailyStage {
+		n = dailyRand(100) + 1 // 每日挑战：敌人的类型和出场顺序大家一样
+	}
 	if n <= heavy {
 		kind = 2
 	} else if n <= heavy+fast {
@@ -2441,6 +2603,9 @@ func startGame() {
 	won = false
 	baseSafe = 0
 	resetRun()
+	dailySeed = dailyDayNow*31 + 7
+	dailyChipSeed = dailyDayNow*97 + 3
+	dailySecs = 0
 	state = stPlay
 	setScreen ""
 	Camera.setZoom 1
@@ -2518,6 +2683,13 @@ onKey KeyC, => {
 		newGame 1, true
 	} else if state == stEdit {
 		edCommand "clear"
+	}
+}
+
+// 主页按 D：每日挑战（v6）
+onKey KeyD, => {
+	if state == stHome {
+		playDaily
 	}
 }
 

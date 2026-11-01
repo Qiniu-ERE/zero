@@ -1,0 +1,164 @@
+// 每日挑战（D04~D11），见 docs/v6/TEST_PLAN.md。地图生成器的 Python 版和 365 张图的合法性在 tests/tools/test_daily.py
+// timeout: 90
+onStart => {
+	wait 3
+
+	// D04 游戏里的生成器和 tools/levels/daily.py 逐格相同（365 天）
+	b, err := os.ReadFile(os.Getenv("TB_ROOT") + "/tests/data/daily_maps.txt")
+	tCheck "D04 读到每日挑战地图文件", err == nil
+	lines := strings.Split(strings.TrimSpace(string(b)), "\n")[1:]
+	same, total := 0, 0
+	for i := 0; i+13 < len(lines); i += 14 {
+		d, _ := strconv.Atoi(lines[i])
+		if strings.Join(dailyRows(d), "\n") == strings.Join(lines[i+1:i+14], "\n") {
+			same++
+		}
+		total++
+	}
+	tInt "D04 365 天都有", total, 365
+	tInt "D04 365 天都和 Python 版相同", same, total
+
+	// D05 开始每日挑战：单人、Lv1、今天的地图、3 辆精英；第 1 期是 2026-11-01
+	dayOverride = 20800
+	chips[1] = []int{cRapid}
+	snapChips[1] = []int{cRapid}
+	coop = true
+	playDaily
+	wait 0.5
+	tInt "D05 每日挑战的关卡编号", stage, dailyStage
+	tCheck "D05 每日挑战是单人", !coop
+	tInt "D05 从 Lv1 开始", lvl[1], 1
+	tStr "D05 地图是今天的", strings.Join(levelMap(), ""), strings.Join(dailyRows(20800), "")
+	tInt "D05 每日挑战 3 辆精英", eliteCount(), 3
+	tInt "D05 第 20758 天是第 1 期", dailyNo(20758), 1
+	tInt "D05 提示每日挑战", len(stageTip()), len("msg.daily")
+
+	// D06 同一天：敌人类型的顺序、三选一抽到的芯片，每局都一样（全部 12 块都在卡池里）。
+	// 开局后马上停止出兵（不让出兵协程先消耗随机数），再读两个序列
+	seq := func() string {
+		startGame
+		gameOver = true
+		spawned = totalEnemy
+		s := ""
+		for i := 0; i < 20; i++ {
+			s += strconv.Itoa(dailyRand(100)) + ","
+		}
+		pickWho = 1
+		chips[1] = nil
+		for i := 0; i < 5; i++ {
+			pickRoll()
+			s += joinInts(pickOpts) + ";"
+		}
+		gameOver = false
+		return s
+	}
+	cmdLevel = 1
+	a := seq()
+	cmdLevel = 30
+	b2 := seq()
+	tStr "D06 同一天两局的随机序列相同（和指挥官等级无关）", b2, a
+	// 三选一的序列不受出兵影响：先让出兵消耗几次随机数，三选一抽到的还是一样
+	startGame
+	gameOver = true
+	spawned = totalEnemy
+	for i := 0; i < 7; i++ {
+		dailyRand(100)
+	}
+	pickWho = 1
+	chips[1] = nil
+	pickRoll()
+	first := joinInts(pickOpts)
+	gameOver = false
+	fields := strings.Split(strings.Split(a, ";")[0], ",") // a 的前 20 个是敌人的随机数，后面是第一次三选一
+	tStr "D06 出了几辆敌人都不影响三选一抽到的芯片", first, strings.Join(fields[20:], ",")
+	seen := false
+	for t := 0; t < 200 && !seen; t++ {
+		pickRoll()
+		for _, id := range pickOpts {
+			if id == cMagnet {
+				seen = true
+			}
+		}
+	}
+	tCheck "D06 指挥官等级不够也能抽到磁吸（每日挑战全部芯片都有）", seen
+	dayOverride = 20801
+	playDaily
+	wait 0.2
+	c := seq()
+	tCheck "D06 换一天序列不同", c != a
+	dayOverride = 20800
+
+	// D07 敌人类型按每日挑战的随机数出场
+	startGame
+	wait 0.2
+	tCalm
+	dailySeed = 12345
+	n1 := dailyRand(100)
+	dailySeed = 12345
+	tInt "D07 同一个种子同一个结果", dailyRand(100), n1
+
+	// D08 一天只有一次正式成绩：第一次结束记成绩、加 100 经验；之后是练习；第二天又是正式的
+	dailyDay, dailyScore = 0, 0
+	playDaily
+	wait 0.3
+	tCalm
+	score = 4321
+	x0 := cmdXP
+	endGame false
+	tCheck "D08 今天第一局是正式成绩", dailyOfficial
+	tInt "D08 记下正式成绩", dailyScore, 4321
+	tInt "D08 记下是哪一天", dailyDay, 20800
+	tInt "D08 完成每日挑战 +100 经验", cmdXP-x0, 100
+	b, _ = os.ReadFile(saveFile())
+	tCheck "D08 正式成绩写进存档", strings.Contains(string(b), "daily.score=4321")
+	again
+	wait 0.3
+	tInt "D08 结算后再来一局还是每日挑战", stage, dailyStage
+	tCalm
+	score = 9999
+	endGame true
+	tCheck "D08 第二局是练习", !dailyOfficial
+	tInt "D08 练习不改正式成绩", dailyScore, 4321
+	dayOverride = 20801
+	playDaily
+	wait 0.3
+	tCalm
+	score = 100
+	endGame false
+	tCheck "D08 第二天又是正式成绩", dailyOfficial
+
+	// D09 每日任务“完成每日挑战”
+	dayOverride = 20802
+	taskDay = 0
+	refreshTasks()
+	taskIDs = []int{tkDaily, tkKill, tkElite}
+	taskProg = []int{0, 0, 0}
+	playDaily
+	wait 0.3
+	tCalm
+	endGame false
+	tInt "D09 完成每日挑战的任务", taskProg[0], 1
+
+	// D10 拿不到日期（网页版还没有时钟）：不能开始，提示
+	goHome
+	dayOverride = -1
+	toastKey = ""
+	playDaily
+	tInt "D10 拿不到日期不能开始", state, stHome
+	tStr "D10 提示拿不到日期", toastKey, "msg.daily.noday"
+	dayOverride = 20800
+
+	// D11 用时：战场运行时才计时
+	playDaily
+	wait 0.3
+	tCalm
+	t0 := dailySecs
+	wait 1
+	tCheck "D11 对局中计时", dailySecs-t0 > 0.8
+	pauseGame
+	t0 = dailySecs
+	wait 0.5
+	tNum "D11 暂停时不计时", dailySecs, t0
+
+	tDone "daily"
+}

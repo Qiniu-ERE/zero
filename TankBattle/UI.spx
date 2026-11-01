@@ -46,6 +46,7 @@ const (
 	kDrop     = 22 // v6 战场上掉落的芯片（精英被击毁后出现，每帧跟着舞台的 dropX / dropY）
 	kGarage   = 23 // v6 车库里会变的部分：slot 0 指挥官等级，1 经验条，2 下一个解锁，3 涂装预览，10~21 芯片图鉴，30~34 涂装，40~42 任务，43~45 任务进度
 	kWallet   = 24 // v6 车库里金币数的一个字符位（金色，左对齐）
+	kDailyTag = 25 // v6 每日挑战结算时弹窗上方的标签：正式成绩 / 练习
 )
 
 // ---------- 创建 ----------
@@ -137,6 +138,8 @@ func hit(name string, x, y float64) bool {
 		return x >= -224 && x <= -54 && y >= -46 && y <= -8
 	case "home.levels":
 		return x >= -224 && x <= -54 && y >= -90 && y <= -52
+	case "home.daily":
+		return x >= -14 && x <= 60 && y >= -126 && y <= -82
 	case "home.garage":
 		return x >= 68 && x <= 142 && y >= -126 && y <= -82
 	case "lv.1":
@@ -304,7 +307,9 @@ func refresh() {
 			hide // 触屏模式：按键说明的位置换成方向键（双人的按键说明也不显示）
 			return
 		}
-		if key == "stage" && stage == customStage {
+		if key == "stage" && stage == dailyStage {
+			k = "stage.daily"
+		} else if key == "stage" && stage == customStage {
 			k = "stage.custom"
 			if coop {
 				k += ".co"
@@ -342,6 +347,18 @@ func refresh() {
 		show
 	case kChip:
 		refreshChip
+	case kDailyTag:
+		if state != stResult || stage != dailyStage {
+			hide
+			return
+		}
+		if dailyOfficial {
+			setCostume "dtag_off_" + langCode()
+		} else {
+			setCostume "dtag_prac_" + langCode()
+		}
+		setLayer Front
+		show
 	case kPick:
 		refreshPick
 	case kLife:
@@ -652,6 +669,8 @@ func clickScreen() {
 			openLevels
 		} else if hit("home.garage", x, y) {
 			openGarage
+		} else if hit("home.daily", x, y) {
+			playDaily
 		}
 	case stGarage:
 		for n := 0; n < skinCount; n++ {
@@ -797,7 +816,7 @@ onMsg "edCursor", => {
 }
 
 onMsg "raise", => {
-	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet) {
+	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet || kind == kDailyTag) {
 		setLayer Front
 	}
 }
