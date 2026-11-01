@@ -32,7 +32,7 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | `tests/spx/board.spx` | R01~R09 | 排行榜客户端（端到端：测试脚本在本机起一个排行榜服务） |
 | `tests/tools/test_leaderboard.py` | R10~R29 | 排行榜服务 |
 | `tests/tools/test_release_tools.py` | R30 | 打包时填排行榜地址和区域（`LB_URL` / `LB_REGION`） |
-| `tests/tools/test_deploy.py` | R31~R32 | 排行榜的部署文件、部署后的冒烟检查 |
+| `tests/tools/test_deploy.py` | R31~R33 | 排行榜的部署文件、部署后的冒烟检查、本机模拟上线 |
 | `tests/spx/season.spx` | S01~S11 | 赛季、分享战报、助战码；手机上的助战码键盘和分享入口 |
 | `tests/spx/budget.spx` | Q01~Q03 | 克隆预算 |
 | `tests/tools/test_cli_coverage.py` | Q05~Q07 | 工具的命令行入口和少见的分支 |
@@ -164,6 +164,7 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | R30 | 打包：`LB_URL` / `LB_REGION` 只改打包副本里的常量；不设置不改；只收 `https://`（本机测试可以 http）、区域只能 global / cn |
 | R31 | 部署文件：Dockerfile、systemd 的启动参数服务端都认识；Caddy 反向代理到服务的端口，请求体上限不小于服务端的 |
 | R32 | 冒烟检查脚本：对本机的服务通过（海外、国内）；路径不对、区域不对时失败 |
+| R33 | 本机模拟上线（`local.sh`）：端口只开在本机；模拟玩家都合法、编号各不相同、按分数排好；60 秒内再填被限频；连不上时报错；游戏副本的 `lbURL` 指向本机服务，仓库里的不改 |
 
 ### 3.6 赛季、分享战报、助战码（S）
 

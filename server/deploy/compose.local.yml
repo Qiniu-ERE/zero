@@ -1,0 +1,6 @@
+# 本机模拟上线（server/deploy/local.sh 用）：叠加在 compose.yml 上，
+# 另外把服务端口开在 127.0.0.1:8787，给本机的游戏直接连（游戏不认 Caddy 本机自签的证书）
+services:
+  lb:
+    ports:
+      - "127.0.0.1:8787:8787"
