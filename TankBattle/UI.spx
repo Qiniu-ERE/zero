@@ -47,6 +47,8 @@ const (
 	kGarage   = 23 // v6 车库里会变的部分：slot 0 指挥官等级，1 经验条，2 下一个解锁，3 涂装预览，10~21 芯片图鉴，30~34 涂装，40~42 任务，43~45 任务进度
 	kWallet   = 24 // v6 车库里金币数的一个字符位（金色，左对齐）
 	kDailyTag = 25 // v6 每日挑战结算时弹窗上方的标签：正式成绩 / 练习
+	kRanks    = 26 // v6 排行榜画面：slot 0~1 选项卡，2 范围说明，3 状态（读取中 / 离线 / 没上线 / 没人上榜），10~33 每行的芯片，40~47 每行的底，48 “我的名次”
+	kLbNum    = 27 // v6 排行榜里数字的一个字符位：slot = 行 × 100 + 第几个数字 × 10 + 第几个字符（见舞台的 lbText）
 )
 
 // ---------- 创建 ----------
@@ -66,6 +68,17 @@ func number(k int, x, y float64, n int) {
 	baseY = y
 	for i := 0; i < n; i++ {
 		slot = i
+		clone
+	}
+}
+
+// 排行榜里的一个数字（v6）：n 个字符位，slot 从 base 开始（base = 行 × 100 + 第几个数字 × 10）
+func lbNum(x, y float64, base, n int) {
+	kind = kLbNum
+	baseX = x
+	baseY = y
+	for i := 0; i < n; i++ {
+		slot = base + i
 		clone
 	}
 }
@@ -130,6 +143,12 @@ func hit(name string, x, y float64) bool {
 		return x >= -88 && x <= -58 && y >= -66 && y <= -36
 	case "gr.back":
 		return x >= -224 && x <= -114 && y >= -160 && y <= -136
+	case "lb.tab.1":
+		return x >= -224 && x <= -132 && y >= 118 && y <= 138
+	case "lb.tab.2":
+		return x >= -126 && x <= -34 && y >= 118 && y <= 138
+	case "lb.back":
+		return x >= 114 && x <= 224 && y >= 118 && y <= 138
 	case "home.start":
 		return x >= -224 && x <= -54 && y >= 46 && y <= 96
 	case "home.coop":
@@ -142,6 +161,8 @@ func hit(name string, x, y float64) bool {
 		return x >= -14 && x <= 60 && y >= -126 && y <= -82
 	case "home.garage":
 		return x >= 68 && x <= 142 && y >= -126 && y <= -82
+	case "home.ranks":
+		return x >= 150 && x <= 224 && y >= -126 && y <= -82
 	case "lv.1":
 		return x >= -224 && x <= -120 && y >= 16 && y <= 100
 	case "lv.2":
@@ -229,6 +250,9 @@ func widths(st string) (float64, float64) {
 	if st == "C" {
 		return 8.386, 4.732
 	}
+	if st == "L" {
+		return 4.492, 2.535
+	}
 	// END GENERATED widths
 	return 0, 0
 }
@@ -249,7 +273,22 @@ func withCommas(n int) string {
 func refreshNumber() {
 	s := withCommas(score)
 	st := "S"
-	if kind == kBest {
+	idx := slot // 这是数字的第几个字符
+	right := kind == kBest
+	if kind == kLbNum {
+		if state != stRanks {
+			hide
+			return
+		}
+		field := (slot / 10) % 10
+		s = lbText(slot/100, field)
+		if n, err := strconv.Atoi(s); err == nil && field != 1 {
+			s = withCommas(n) // 指挥官编号不加千分位
+		}
+		st = "L"
+		idx = slot % 10
+		right = field != 1 // 指挥官编号左对齐，其余右对齐
+	} else if kind == kBest {
 		s = withCommas(best)
 		st = "B"
 	} else if kind == kCoin {
@@ -267,7 +306,7 @@ func refreshNumber() {
 			return
 		}
 	}
-	if slot >= len(s) {
+	if idx >= len(s) {
 		hide
 		return
 	}
@@ -279,16 +318,16 @@ func refreshNumber() {
 		if s[i:i+1] == "," {
 			w = cw
 		}
-		if i < slot {
+		if i < idx {
 			off += w
 		}
 		total += w
 	}
 	x := baseX + off
-	if kind == kBest {
-		x = baseX - total + off // 最高分右对齐
+	if right {
+		x = baseX - total + off // 右对齐（最高分、排行榜的名次和分数）
 	}
-	ch := s[slot : slot+1]
+	ch := s[idx : idx+1]
 	if ch == "," {
 		ch = "comma"
 	}
@@ -332,8 +371,10 @@ func refresh() {
 		}
 		setCostume k + "_" + langCode()
 		show
-	case kScore, kBest, kCoin, kWallet:
+	case kScore, kBest, kCoin, kWallet, kLbNum:
 		refreshNumber
+	case kRanks:
+		refreshRanks
 	case kGarage:
 		refreshGarage
 	case kPip:
@@ -504,6 +545,69 @@ func refreshChip() {
 	show
 }
 
+// 排行榜画面会变的部分（只在排行榜里显示）。图层在 "raise" / "raiseTop" 里调：每行的底在下，数字和芯片在上
+func refreshRanks() {
+	if state != stRanks {
+		hide
+		return
+	}
+	ok := lbStatus == lbOK
+	c := ""
+	switch {
+	case slot <= 1:
+		on := "off"
+		if slot == lbTab {
+			on = "on"
+		}
+		c = "lbtab_" + strconv.Itoa(slot) + "_" + on + "_" + langCode()
+	case slot == 2:
+		c = "lbscope_" + strconv.Itoa(lbTab) + "_" + langCode()
+	case slot == 3:
+		if ok && len(lbTags) > 0 {
+			hide
+			return
+		}
+		if ok {
+			c = "lbst_empty_" + langCode()
+		} else {
+			c = "lbst_" + strconv.Itoa(lbStatus) + "_" + langCode()
+		}
+	case slot >= 10 && slot < 40:
+		row, j := (slot-10)/3, (slot-10)%3
+		if !ok || row >= len(lbChips) || j >= len(lbChips[row]) {
+			hide
+			return
+		}
+		c = "ci_" + chipKey(lbChips[row][j])
+	case slot >= 40 && slot <= 47:
+		row := slot - 40
+		if !ok || row >= len(lbTags) {
+			hide
+			return
+		}
+		medal, me := 0, 0
+		if row < 3 {
+			medal = row + 1
+		}
+		if lbMine[row] {
+			me = 1
+		}
+		c = "lbrow_" + strconv.Itoa(medal) + "_" + strconv.Itoa(me) + "_" + langCode()
+	case slot == 48:
+		if !ok {
+			hide
+			return
+		}
+		if lbMyRank == 0 {
+			c = "lbme_none_" + langCode()
+		} else {
+			c = "lbme_" + langCode()
+		}
+	}
+	setCostume c
+	show
+}
+
 // 车库里会变的部分（只在车库里显示）
 func refreshGarage() {
 	if state != stGarage {
@@ -671,6 +775,16 @@ func clickScreen() {
 			openGarage
 		} else if hit("home.daily", x, y) {
 			playDaily
+		} else if hit("home.ranks", x, y) {
+			openRanks
+		}
+	case stRanks:
+		if hit("lb.tab.1", x, y) {
+			lbShow 0
+		} else if hit("lb.tab.2", x, y) {
+			lbShow 1
+		} else if hit("lb.back", x, y) {
+			goHome
 		}
 	case stGarage:
 		for n := 0; n < skinCount; n++ {
@@ -807,7 +921,14 @@ onMsg "edCursor", => {
 }
 
 onMsg "raise", => {
-	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet || kind == kDailyTag) {
+	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet || kind == kDailyTag || (kind == kRanks && (slot < 10 || slot >= 40))) {
+		setLayer Front
+	}
+}
+
+// 第二层：排行榜的数字和芯片要在每行的底上面（"raise" 之后再广播）
+onMsg "raiseTop", => {
+	if isCloned && (kind == kLbNum || (kind == kRanks && slot >= 10 && slot < 40)) {
 		setLayer Front
 	}
 }

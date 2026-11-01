@@ -1,5 +1,7 @@
 import (
+	"encoding/json"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -120,6 +122,37 @@ var (
 	dailyDay      int     // 哪一天已经有了正式成绩（存档）
 	dailyScore    int     // 那天的正式成绩（存档）
 	dailyOfficial bool    // 刚结束的这一局是不是正式成绩
+	runSecs       float64 // 从进关开始打了多久（战场冻结时不算；过关后接着算）：上传成绩时用
+
+	// v6 排行榜（docs/v6/PLAN.md 第五节）
+	lbBase    string   // 排行榜服务的地址，开始时等于常量 lbURL（测试里指向本机临时起的服务）；"" 表示不联网
+	lbQueue   []string // 还没传上去的成绩（JSON，存档里也有，联网后补传）
+	lbBusy    bool     // 后台正在上传
+	lbOnline  bool     // 最近一次联网成功了
+	lbTab     int      // 排行榜画面的选项卡：0 每日挑战，1 全球周榜
+	lbGen     int      // 读榜请求的编号：切换选项卡后，旧请求的结果作废
+	lbStatus  int      // lbLoading / lbOK / lbOffline / lbNoServer
+	lbTags    []int    // 榜上前 8 名的“指挥官 #编号”
+	lbScores  []int
+	lbMine    []bool   // 这一行是不是自己
+	lbChips   [][]int  // 每一行的芯片组合
+	lbMyRank  int      // 自己的名次（0 表示不在榜上）
+	lbTotal   int      // 这个榜一共多少人
+	lbMyBest  int      // 自己在这个榜上的最好成绩
+	serverDay int      // 服务器告诉的今天（网页版拿不到本机时间时用）
+
+	// 后台 goroutine 写、舞台每帧收（lbPoll）
+	lbDoneSend   bool
+	lbDoneLeft   []string
+	lbDoneFetch  int
+	lbDoneDay    int
+	lbNextTags   []int
+	lbNextScores []int
+	lbNextMine   []bool
+	lbNextChips  [][]int
+	lbNextRank   int
+	lbNextTotal  int
+	lbNextBest   int
 )
 
 const (
@@ -133,6 +166,7 @@ const (
 	stLevels = 7 // 选择关卡（v5：鼠标、触屏也能选关）
 	stPick   = 8 // v6：捡到芯片，三选一（战场冻结）
 	stGarage = 9 // v6：车库
+	stRanks  = 10 // v6：排行榜
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
@@ -157,6 +191,16 @@ const (
 	dailyStage  = 10    // 每日挑战的关卡编号（v6）
 	dailyEpoch  = 20757 // 每日挑战第 1 期的前一天（2026-11-01 是第 20758 天）
 	xpDaily     = 100   // 完成每日挑战的经验
+
+	// 排行榜：服务还没部署，lbURL 是空的（游戏里显示“排行榜服务还没上线”）。部署后填上，例如 "https://lb.example.com"
+	lbURL       = ""
+	lbRegion    = "global" // 海外榜；微信小游戏版改成 "cn"（国内榜，数据存境内）
+	gameVersion = "6.0.0"
+	lbQueueMax  = 20
+	lbLoading   = 0
+	lbOK        = 1
+	lbOffline   = 2
+	lbNoServer  = 3
 	storeBuild  = false // 商店版（PC 买断，没有广告）：tools/export/build.sh --store 改成 true。v6 起三选一每局免费刷新 1 次
 )
 
@@ -857,8 +901,9 @@ func chipTick(dt float64) {
 		return
 	}
 	if stage == dailyStage {
-		dailySecs += dt // 每日挑战的用时（上传成绩时用）
+		dailySecs += dt // 每日挑战的用时
 	}
+	runSecs += dt
 	for w := 1; w <= 2; w++ {
 		if shieldCD[w] > 0 {
 			shieldCD[w] -= dt
@@ -982,6 +1027,9 @@ func saveText() string {
 		"skin=" + strconv.Itoa(skin), "skins=" + joinInts(owned),
 		"task.day=" + strconv.Itoa(taskDay), "task.ids=" + joinInts(taskIDs), "task.prog=" + joinInts(taskProg),
 		"daily.day=" + strconv.Itoa(dailyDay), "daily.score=" + strconv.Itoa(dailyScore)}
+	for _, q := range lbQueue {
+		lines = append(lines, "lb.queue="+q) // 没传上去的成绩，一条一行
+	}
 	return strings.Join(lines, "\n") + "\n"
 }
 
@@ -1035,6 +1083,10 @@ func loadText(text string) bool {
 			dailyDay = n
 		case "daily.score":
 			dailyScore = n
+		case "lb.queue":
+			if strings.HasPrefix(v, "{") && len(lbQueue) < lbQueueMax {
+				lbQueue = append(lbQueue, v)
+			}
 		}
 	}
 	if skin < 0 || skin >= skinCount || !skinsOwned[skin] {
@@ -1061,6 +1113,7 @@ func newSave() {
 	taskProg = nil
 	dailyDay = 0
 	dailyScore = 0
+	lbQueue = nil
 }
 
 // 16 位十六进制的随机 ID（只用来区分玩家，不含任何个人信息）
@@ -1194,12 +1247,12 @@ func today() int {
 	if dayOverride > 0 {
 		return dayOverride
 	}
-	if dayOverride < 0 {
-		return 0 // 测试用：模拟拿不到时间（网页版）
+	sec := 0
+	if dayOverride == 0 { // 负数：测试用，模拟拿不到本机时间（网页版）
+		sec = nowSec()
 	}
-	sec := nowSec()
 	if sec <= 0 {
-		return 0
+		return serverDay // 网页版：用排行榜服务器告诉的日期（没联网是 0）
 	}
 	return (sec + 8*3600) / 86400
 }
@@ -1286,6 +1339,273 @@ func openGarage() {
 	refreshTasks()
 	state = stGarage
 	setScreen "garage"
+}
+
+// ---------- v6 排行榜（docs/v6/PLAN.md 第五节；服务端见 server/） ----------
+// 网络请求都在后台 goroutine 里做（不卡画面），结果只写进 lbDone* 变量；
+// 每帧在舞台上由 lbPoll 取走（游戏状态、广播、存档都只在舞台上改）
+
+// 第 d 天在第几周（周一开始，和服务端一样）
+func weekOf(d int) int {
+	return (d - 4) / 7
+}
+
+// 一条成绩的 JSON（字段见 server/README.md）
+func lbRecord(board string, period, sc, secs, stg int) string {
+	names := []string{}
+	for _, c := range chips[1] {
+		names = append(names, `"`+chipKey(c)+`"`)
+	}
+	return `{"player":"` + playerID + `","region":"` + lbRegion + `","board":"` + board + `","period":` + strconv.Itoa(period) +
+		`,"score":` + strconv.Itoa(sc) + `,"secs":` + strconv.Itoa(secs) + `,"stage":` + strconv.Itoa(stg) +
+		`,"chips":[` + strings.Join(names, ",") + `],"level":` + strconv.Itoa(1+len(chips[1])) + `,"version":"` + gameVersion + `"}`
+}
+
+// 成绩排进上传队列（存档里也记着，没联网时联网后补传）；最多留 20 条
+func lbEnqueue(rec string) {
+	if lbBase == "" {
+		return // 还没有部署排行榜服务
+	}
+	lbQueue = append(lbQueue, rec)
+	if len(lbQueue) > lbQueueMax {
+		lbQueue = lbQueue[len(lbQueue)-lbQueueMax:]
+	}
+	saveGame()
+	lbFlush()
+}
+
+// 一局结束：每日挑战的正式成绩进每日榜；单人战役进全球周榜（累计分、打到第几关）
+func lbAfterGame() {
+	if autopilot || coop || lbBase == "" {
+		return
+	}
+	secs := int(runSecs)
+	if secs < 20 {
+		return // 太短的不上传（服务端也会拒）
+	}
+	if stage == dailyStage && dailyOfficial {
+		lbEnqueue lbRecord("daily", dailyDayNow, score, secs, dailyStage)
+	} else if stage >= 1 && stage <= lastStage && score > 0 && today() > 0 {
+		lbEnqueue lbRecord("weekly", weekOf(today()), score, secs, stage)
+	}
+}
+
+// 后台上传队列里的成绩（一次只有一个后台任务）
+func lbFlush() {
+	if lbBusy || lbBase == "" || len(lbQueue) == 0 {
+		return
+	}
+	lbBusy = true
+	batch := lbQueue
+	lbQueue = nil
+	go lbSendAll(lbBase, batch)
+}
+
+// 后台：按顺序上传，遇到网络错误就停（剩下的放回队列）；服务端拒收的（400）丢掉，不再重试
+func lbSendAll(base string, batch []string) {
+	sent := 0
+	for _, rec := range batch {
+		code := lbPost(base+"/v1/score", rec)
+		if code == 0 || code == 429 || code >= 500 {
+			break
+		}
+		sent++
+	}
+	lbDoneLeft = batch[sent:]
+	lbDoneSend = true
+}
+
+// 发一个 POST，返回 HTTP 状态码（网络不通返回 0）
+func lbPost(url, body string) int {
+	c := &http.Client{Timeout: 4000000000} // 4 秒
+	resp, err := c.Post(url, "application/json", strings.NewReader(body))
+	if err != nil {
+		return 0
+	}
+	resp.Body.Close()
+	return resp.StatusCode
+}
+
+// 发一个 GET，读回 JSON（解释器里 io.ReadAll 不能用，自己循环读）；失败返回 nil
+func lbGet(url string) map[string]interface{} {
+	c := &http.Client{Timeout: 4000000000}
+	resp, err := c.Get(url)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil
+	}
+	data := []byte{}
+	buf := make([]byte, 4096)
+	for len(data) < 65536 {
+		n, e := resp.Body.Read(buf)
+		data = append(data, buf[:n]...)
+		if e != nil {
+			break
+		}
+	}
+	var m map[string]interface{}
+	if json.Unmarshal(data, &m) != nil {
+		return nil
+	}
+	return m
+}
+
+func jsonInt(m map[string]interface{}, k string) int {
+	if f, ok := m[k].(float64); ok {
+		return int(f)
+	}
+	return 0
+}
+
+// 后台：读一个榜（前 8 名）和自己的名次
+func lbFetch(gen int, base, board string, period int) {
+	q := "region=" + lbRegion + "&board=" + board + "&period=" + strconv.Itoa(period)
+	top := lbGet(base + "/v1/board?" + q + "&limit=8")
+	me := lbGet(base + "/v1/rank?" + q + "&player=" + playerID)
+	if top == nil || me == nil {
+		lbDoneFetch = -gen // 负数：这个编号的请求失败了
+		return
+	}
+	tags, scores, mine := []int{}, []int{}, []bool{}
+	rowChips := [][]int{}
+	if rows, ok := top["rows"].([]interface{}); ok {
+		for _, r := range rows {
+			row, _ := r.(map[string]interface{})
+			tags = append(tags, jsonInt(row, "tag"))
+			scores = append(scores, jsonInt(row, "score"))
+			p, _ := row["player"].(string)
+			mine = append(mine, p == playerID)
+			ids := []int{}
+			if cs, ok := row["chips"].([]interface{}); ok {
+				for _, c := range cs {
+					name, _ := c.(string)
+					for id := 1; id <= chipCount; id++ {
+						if chipKey(id) == name {
+							ids = append(ids, id)
+						}
+					}
+				}
+			}
+			rowChips = append(rowChips, ids)
+		}
+	}
+	lbNextTags, lbNextScores, lbNextMine, lbNextChips = tags, scores, mine, rowChips
+	lbNextRank, lbNextTotal, lbNextBest = jsonInt(me, "rank"), jsonInt(me, "total"), jsonInt(me, "score")
+	lbDoneFetch = gen
+}
+
+// 后台：问服务器今天是第几天（网页版拿不到本机时间时用）
+func lbHealth(base string) {
+	m := lbGet(base + "/v1/health")
+	if m != nil {
+		lbDoneDay = jsonInt(m, "day")
+	}
+}
+
+// 每帧在舞台上收后台任务的结果
+func lbPoll() {
+	if lbDoneSend {
+		lbDoneSend = false
+		lbQueue = append(append([]string{}, lbDoneLeft...), lbQueue...)
+		lbOnline = len(lbDoneLeft) == 0
+		lbBusy = false
+		saveGame()
+	}
+	if lbDoneDay > 0 {
+		serverDay = lbDoneDay
+		lbDoneDay = 0
+	}
+	if lbDoneFetch != 0 {
+		if lbDoneFetch == lbGen {
+			lbTags, lbScores, lbMine, lbChips = lbNextTags, lbNextScores, lbNextMine, lbNextChips
+			lbMyRank, lbTotal, lbMyBest = lbNextRank, lbNextTotal, lbNextBest
+			lbStatus = lbOK
+			lbOnline = true
+		} else if lbDoneFetch == -lbGen {
+			lbStatus = lbOffline
+			lbOnline = false
+		}
+		lbDoneFetch = 0
+		if state == stRanks {
+			broadcast "hud"
+		}
+	}
+}
+
+// 打开排行榜画面（主页按 B 或点“排行榜”）
+func openRanks() {
+	if state != stHome {
+		return
+	}
+	state = stRanks
+	lbShow lbTab
+	setScreen "ranks"
+}
+
+// 排行榜切换到第 t 个选项卡：0 每日挑战（今天），1 全球周榜（本周）
+func lbShow(t int) {
+	lbTab = t
+	lbGen++
+	lbTags, lbScores, lbMine, lbChips = nil, nil, nil, nil
+	lbMyRank, lbTotal, lbMyBest = 0, 0, 0
+	d := today()
+	if lbBase == "" {
+		lbStatus = lbNoServer
+	} else if d <= 0 {
+		lbStatus = lbOffline
+	} else {
+		lbStatus = lbLoading
+		lbFlush() // 顺便把排队的成绩传上去
+		if t == 0 {
+			go lbFetch(lbGen, lbBase, "daily", d)
+		} else {
+			go lbFetch(lbGen, lbBase, "weekly", weekOf(d))
+		}
+	}
+	broadcast "hud"
+}
+
+// 排行榜第 row 行（0~7；8 是“我的名次”那一行）第 field 个数字（0 名次，1 指挥官编号，2 分数，3 总人数），
+// 没有就返回 ""（不显示）
+func lbText(row, field int) string {
+	if lbStatus != lbOK {
+		return ""
+	}
+	if row == 8 {
+		switch field {
+		case 0:
+			if lbMyRank == 0 {
+				return "-"
+			}
+			return strconv.Itoa(lbMyRank)
+		case 2:
+			return strconv.Itoa(lbMyBest)
+		case 3:
+			return strconv.Itoa(lbTotal)
+		}
+		return ""
+	}
+	if row >= len(lbTags) {
+		return ""
+	}
+	switch field {
+	case 0:
+		return strconv.Itoa(row + 1)
+	case 1:
+		return strconv.Itoa(lbTags[row])
+	case 2:
+		return strconv.Itoa(lbScores[row])
+	}
+	return ""
+}
+
+// 自己在排行榜上显示成“指挥官 #编号”（和服务端的 tag 算法一样：ID 前 4 位十六进制 % 10000）
+func myTag() int {
+	n, _ := strconv.ParseInt(playerID[:4], 16, 64)
+	return int(n) % 10000
 }
 
 // ---------- 自己做地图 ----------
@@ -1650,6 +1970,7 @@ func playDaily() {
 		return
 	}
 	dailyDayNow = d
+	runSecs = 0
 	coop = false
 	stage = dailyStage
 	stageScore = 0
@@ -1911,6 +2232,25 @@ func buildHud() {
 	}
 	UI.number kWallet, -209, -105, 9
 	UI.icon kDailyTag, -72, 116, 0 // 每日挑战结算：正式成绩 / 练习
+	// 排行榜（v6）：坐标和 tools/assets/build.py 的 LB_* 布局一致
+	UI.icon kRanks, -178, 128, 0 // 选项卡
+	UI.icon kRanks, -80, 128, 1
+	UI.icon kRanks, -224, 98, 2 // 范围说明
+	UI.icon kRanks, 0, -20, 3   // 状态
+	for r := 0; r < 8; r++ {
+		y := 180 - 106 - float64(r)*26 // 这一行的上边
+		UI.icon kRanks, -224, y, 40+r
+		for j := 0; j < 3; j++ {
+			UI.icon kRanks, 17+float64(j)*18, y-11, 10+r*3+j
+		}
+		lbNumber r, 0, -209, y-15, 1
+		lbNumber r, 1, -140, y-15, 4
+		lbNumber r, 2, 216, y-15, 7
+	}
+	UI.icon kRanks, -224, 180-326, 48 // 我的名次
+	lbNumber 8, 0, -120, 180-341, 7
+	lbNumber 8, 3, 0, 180-341, 7
+	lbNumber 8, 2, 216, 180-341, 7
 	// 三选一（v6）：三张卡片、刷新按钮、谁在选
 	for i := 0; i < 3; i++ {
 		UI.icon kPick, -134+float64(i)*134, 13, i
@@ -1919,6 +2259,11 @@ func buildHud() {
 	UI.icon kPick, 0, 150, 4
 	// 战场上方的提示条
 	UI.toastBar -72, 20
+}
+
+// 排行榜第 row 行第 field 个数字：n 个字符位，(x, y) 是锚点（右对齐的是右端）
+func lbNumber(row, field int, x, y float64, n int) {
+	UI.lbNum x, y, row*100+field*10, n
 }
 
 // 生命图标第 slot 个（0~2）的造型：有 n 条命，p2 表示 2P 的图标；"" 表示不显示。
@@ -2035,7 +2380,8 @@ func bulletHit(x, y float64, d int, byPlayer bool) bool {
 func setScreen(name string) {
 	screen = name
 	broadcastAndWait "screen"
-	broadcast "raise"
+	broadcastAndWait "raise"
+	broadcast "raiseTop" // 排行榜的数字和芯片在每行的底上面（v6）
 }
 
 func goHome() {
@@ -2147,6 +2493,7 @@ func endGame(win bool) {
 	if stage == dailyStage && !autopilot {
 		dailyEnd win
 	}
+	lbAfterGame()
 	if coop {
 		taskAdd tkCoop, 1
 	}
@@ -2222,6 +2569,7 @@ func again() {
 	if stage == dailyStage {
 		reviveStage = 0
 		clearRun()
+		runSecs = 0
 		startGame // 每日挑战再来一局（今天的正式成绩已经有了，这局是练习）
 		return
 	}
@@ -2260,6 +2608,7 @@ func playStage(n int) {
 	stageScore = 0
 	reviveStage = 0 // 从主页进关：可以重新复活一次
 	clearRun()      // 坦克等级从 Lv1 开始
+	runSecs = 0
 	startGame
 }
 
@@ -2305,7 +2654,7 @@ func escKey() {
 		pauseGame
 	} else if state == stPause {
 		resumeGame
-	} else if state == stLevels || state == stGarage {
+	} else if state == stLevels || state == stGarage || state == stRanks {
 		goHome
 	}
 }
@@ -2666,6 +3015,11 @@ onKey KeyD, => {
 	}
 }
 
+// 主页按 B：排行榜（v6）
+onKey KeyB, => {
+	openRanks
+}
+
 // 主页按 G：车库（v6）
 onKey KeyG, => {
 	openGarage
@@ -2697,6 +3051,8 @@ onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 		pickChoose(n - 1) // 三选一
 	} else if state == stGarage {
 		buySkin(n - 1) // 车库：换 / 买涂装
+	} else if state == stRanks && n <= 2 {
+		lbShow(n - 1) // 排行榜：切换选项卡
 	} else if state == stHome || state == stLevels {
 		newGame n, false
 	} else if state == stEdit && n <= 5 {
@@ -2730,7 +3086,7 @@ onKey KeyP, => {
 }
 
 onKey KeyH, => {
-	if state == stResult || state == stGarage {
+	if state == stResult || state == stGarage || state == stRanks {
 		goHome
 	} else if state == stPause {
 		quitFromPause
@@ -2903,12 +3259,20 @@ onMsg "chipLoop", => {
 			dt = 0.05
 		}
 		chipTick dt
+		lbPoll
 	}
 }
 
 onStart => {
 	stage = 1
 	initSave
+	lbBase = lbURL
+	if lbBase != "" {
+		lbFlush() // 上次没传上去的成绩
+		if nowSec() <= 0 {
+			go lbHealth(lbBase) // 网页版：问服务器今天是第几天
+		}
+	}
 	broadcast "chipLoop"
 	initTheme
 	buildHud

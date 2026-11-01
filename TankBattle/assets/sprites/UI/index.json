@@ -1576,6 +1576,83 @@
       "bitmapResolution": 4
     },
     {
+      "name": "L0",
+      "path": "L0.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L1",
+      "path": "L1.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L2",
+      "path": "L2.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L3",
+      "path": "L3.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L4",
+      "path": "L4.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L5",
+      "path": "L5.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L6",
+      "path": "L6.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L7",
+      "path": "L7.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L8",
+      "path": "L8.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "L9",
+      "path": "L9.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "Lcomma",
+      "path": "Lcomma.svg",
+      "x": 0,
+      "y": 33.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "pip_on",
       "path": "pip_on.svg",
       "x": 8,
@@ -3428,6 +3505,300 @@
       "path": "sk_4_lock.svg",
       "x": 60.0,
       "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ranks_zh",
+      "path": "ranks_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "lbtab_0_off_zh",
+      "path": "lbtab_0_off_zh.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbtab_0_on_zh",
+      "path": "lbtab_0_on_zh.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbscope_0_zh",
+      "path": "lbscope_0_zh.svg",
+      "x": 4.0,
+      "y": 28.16,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbtab_1_off_zh",
+      "path": "lbtab_1_off_zh.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbtab_1_on_zh",
+      "path": "lbtab_1_on_zh.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbscope_1_zh",
+      "path": "lbscope_1_zh.svg",
+      "x": 4.0,
+      "y": 28.16,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_0_0_zh",
+      "path": "lbrow_0_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_0_1_zh",
+      "path": "lbrow_0_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_1_0_zh",
+      "path": "lbrow_1_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_1_1_zh",
+      "path": "lbrow_1_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_2_0_zh",
+      "path": "lbrow_2_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_2_1_zh",
+      "path": "lbrow_2_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_3_0_zh",
+      "path": "lbrow_3_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_3_1_zh",
+      "path": "lbrow_3_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbme_zh",
+      "path": "lbme_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbme_none_zh",
+      "path": "lbme_none_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_0_zh",
+      "path": "lbst_0_zh.svg",
+      "x": 145.0,
+      "y": 52,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_2_zh",
+      "path": "lbst_2_zh.svg",
+      "x": 332.0,
+      "y": 52,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_3_zh",
+      "path": "lbst_3_zh.svg",
+      "x": 349.0,
+      "y": 52,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_empty_zh",
+      "path": "lbst_empty_zh.svg",
+      "x": 247.0,
+      "y": 52,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ranks_en",
+      "path": "ranks_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "lbtab_0_off_en",
+      "path": "lbtab_0_off_en.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbtab_0_on_en",
+      "path": "lbtab_0_on_en.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbscope_0_en",
+      "path": "lbscope_0_en.svg",
+      "x": 4.0,
+      "y": 28.16,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbtab_1_off_en",
+      "path": "lbtab_1_off_en.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbtab_1_on_en",
+      "path": "lbtab_1_on_en.svg",
+      "x": 184.0,
+      "y": 40.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbscope_1_en",
+      "path": "lbscope_1_en.svg",
+      "x": 4.0,
+      "y": 28.16,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_0_0_en",
+      "path": "lbrow_0_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_0_1_en",
+      "path": "lbrow_0_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_1_0_en",
+      "path": "lbrow_1_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_1_1_en",
+      "path": "lbrow_1_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_2_0_en",
+      "path": "lbrow_2_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_2_1_en",
+      "path": "lbrow_2_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_3_0_en",
+      "path": "lbrow_3_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbrow_3_1_en",
+      "path": "lbrow_3_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbme_en",
+      "path": "lbme_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbme_none_en",
+      "path": "lbme_none_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_0_en",
+      "path": "lbst_0_en.svg",
+      "x": 145.87,
+      "y": 52,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_2_en",
+      "path": "lbst_2_en.svg",
+      "x": 399.03,
+      "y": 52,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_3_en",
+      "path": "lbst_3_en.svg",
+      "x": 326.27,
+      "y": 52,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "lbst_empty_en",
+      "path": "lbst_empty_en.svg",
+      "x": 282.6,
+      "y": 52,
       "bitmapResolution": 4
     },
     {

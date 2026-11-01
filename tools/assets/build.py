@@ -387,7 +387,7 @@ def toggle_costume(lang):
 
 
 # 数字样式：名字 -> (字号, 颜色)
-NUM_STYLES = {"S": (18, "#ffffff"), "B": (8, "#ffe27a"), "C": (14, "#ffe27a")}
+NUM_STYLES = {"S": (18, "#ffffff"), "B": (8, "#ffe27a"), "C": (14, "#ffe27a"), "L": (7.5, "#ffffff")}  # L：排行榜（v6）
 DIGITS = "0123456789"
 
 
@@ -562,7 +562,7 @@ def banner(lang):
 # 主页上的其他模式：(文案 key, 按键)。v5 去掉了“每日挑战 · 即将推出”（需要服务器和排行榜，不会做）
 # 选择关卡（v5）放在原来每日挑战的位置；按键提示是“1-8”（主页直接按数字键进关）
 HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.levels", "1-8")]
-HOME_TILES = [("daily", "D", 226), ("garage", "G", 308)]  # v6：(名字, 按键, x)
+HOME_TILES = [("daily", "D", 226), ("garage", "G", 308), ("ranks", "B", 390)]  # v6：(名字, 按键, x)
 
 
 def home_tile_icon(k, cx, cy):
@@ -570,6 +570,9 @@ def home_tile_icon(k, cx, cy):
         return (f'<rect x="{cx-8}" y="{cy-7}" width="16" height="14" rx="2.5" fill="{ELITE}" fill-opacity="0.25" stroke="{ELITE}" stroke-width="1.2"/>'
                 f'<path d="M{cx-8} {cy-3}h16M{cx-4} {cy-9}v4M{cx+4} {cy-9}v4" stroke="{ELITE}" stroke-width="1.2"/>'
                 + text(cx, cy + 5, "1", 6.5, "#f3dcff", True, "middle"))
+    if k == "ranks":  # 领奖台
+        return "".join(f'<rect x="{cx-10+j*7}" y="{cy+6-hh}" width="6" height="{hh}" rx="1" fill="{col}"/>'
+                       for j, (hh, col) in enumerate(((9, "#c8d2e3"), (14, "#ffe27a"), (6, "#e0915a"))))
     if k == "garage":
         defs, body = tank_body(*TANKS["player"])
         defs, body = defs.replace('id="sh"', 'id="shg"'), body.replace("url(#sh)", "url(#shg)")
@@ -1233,6 +1236,98 @@ def garage_costumes():
     return out
 
 
+# ---------- v6 排行榜画面（docs/v6/PLAN.md 第五节） ----------
+# 会变的部分（选项卡、每行、数字、芯片）是 UI 的 kRanks / kLbNum 克隆，坐标和 main.spx 的 buildHud 一致
+LB_TABS = [(16, 42, 92, 20), (114, 42, 92, 20)]
+LB_ROW_Y, LB_ROW_H, LB_ROW_STEP = 106, 22, 26
+LB_ME_Y = 326
+LB_BACK = (354, 42, 110, 20)
+MEDALS = {1: "#ffd23a", 2: "#c8d2e3", 3: "#e0915a"}
+
+
+def ranks_screen(lang):
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    s.append(text(16, 30, tr("lb.title", lang), 16, "#ffffff", True))
+    for i, (x, y, w, h) in enumerate(LB_TABS):
+        button(f"lb.tab.{i+1}", x, y, w, h)
+    x, y, w, h = LB_BACK
+    button("lb.back", x, y, w, h)
+    s.append(f'<rect x="{x+0.3}" y="{y+0.3}" width="{w-0.6}" height="{h-0.6}" rx="{h/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>')
+    s.append(text(x + 12, y + 13.5, tr("lv.back", lang), 8, "#c8d2e3", True))
+    c, cw = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({x+w-8-cw:.2f},{y+5})">{c}</g>')
+    y = LB_ROW_Y - 6
+    s.append(text(28, y, tr("lb.col.rank", lang), 6, MUTED, True, "middle"))
+    s.append(text(48, y, tr("lb.col.player", lang), 6, MUTED, True))
+    s.append(text(250, y, tr("lb.col.build", lang), 6, MUTED, True))
+    s.append(text(456, y, tr("lb.col.score", lang), 6, MUTED, True, "end"))
+    s.append(text(W / 2, 318, tr("lb.foot", lang), 5.8, MUTED, False, "middle"))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def lb_tab(i, on, lang):
+    w, h = LB_TABS[i][2], LB_TABS[i][3]
+    lab = tr(f"lb.tab{i}", lang)
+    body = (f'<rect x="0.3" y="0.3" width="{w-0.6}" height="{h-0.6}" rx="{h/2}" fill="{"#3ee8ff" if on else "#ffffff"}" fill-opacity="{1 if on else 0.05}" stroke="{"none" if on else "#2c3850"}" stroke-width="0.6"/>'
+            + text(w / 2 - 6, 13.6, lab, 8, "#06232b" if on else "#c8d2e3", True, "middle"))
+    c, cw = chip(0, 0, str(i + 1), dark=on)
+    body += f'<g transform="translate({w-6-cw:.2f},5)">{c}</g>'
+    return svg(w, h, body, res=HR), (w / 2, h / 2)
+
+
+def lb_row(medal, me, lang):
+    """排行榜的一行（448 x 22，锚点左上角）：底色、名次的奖牌、“指挥官 #”（编号由数字克隆接在后面）"""
+    w, h = 448, LB_ROW_H
+    fill, op, stroke = ("#ffd23a", 0.1, "#ffd23a") if me else ("#ffffff", 0.035, "#263046")
+    s = [f'<rect x="0.35" y="0.35" width="{w-0.7}" height="{h-0.7}" rx="6" fill="{fill}" fill-opacity="{op}" stroke="{stroke}" stroke-opacity="{0.7 if me else 1}" stroke-width="0.7"/>']
+    if medal:
+        s.append(f'<circle cx="12" cy="{h/2}" r="7" fill="{MEDALS[medal]}" fill-opacity="0.35"/>')
+    lab = tr("lb.cmdr", lang)
+    if 32 + width(lab, 7.5, True) > 83:
+        sys.exit(f"排行榜里的“指挥官 #”太长：{lab}")
+    s.append(text(83, 15, lab, 7.5, "#ffd23a" if me else "#ffffff", True, "end"))  # 编号从 x = 84 起
+    return svg(w, h, "".join(s), res=HR), (0, 0)
+
+
+def lb_me(lang, none=False):
+    w, h = 448, LB_ROW_H
+    s = [f'<rect x="0.35" y="0.35" width="{w-0.7}" height="{h-0.7}" rx="6" fill="#3ee8ff" fill-opacity="0.08" stroke="#3ee8ff" stroke-opacity="0.5" stroke-width="0.7"/>']
+    if none:
+        s.append(text(12, 15, tr("lb.me.none", lang), 7.5, "#9fdcea", True))
+    else:
+        s.append(text(12, 15, tr("lb.me", lang), 7.5, "#9fdcea", True))
+        s.append(text(108, 15, tr("lb.me.rank", lang), 7, MUTED, True))     # 名次右对齐在 x = 104 前面
+        s.append(text(150, 15, tr("lb.me.of", lang), 7, MUTED, True))       # 总人数右对齐在 x = 224
+        s.append(text(228, 15, tr("lb.me.people", lang), 7, MUTED, True))
+        s.append(text(300, 15, tr("lb.me.best", lang), 7, MUTED, True))
+    return svg(w, h, "".join(s), res=HR), (0, 0)
+
+
+def lb_status(k, lang):
+    s = tr(f"lb.st.{k}", lang)
+    w = width(s, 8.5, True) + 30
+    body = f'<rect width="{w:.2f}" height="26" rx="13" fill="#0b0f18" fill-opacity="0.9" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>' + text(w / 2, 16.6, s, 8.5, "#c8d2e3", True, "middle")
+    return svg(w, 26, body, res=HR), (w / 2, 13)
+
+
+def ranks_costumes():
+    out = []
+    for lang in LANGS:
+        out.append((f"ranks_{lang}", *ranks_screen(lang), 2))
+        for i in range(2):
+            for on in (False, True):
+                out.append((f"lbtab_{i}_{'on' if on else 'off'}_{lang}", *lb_tab(i, on, lang)))
+            out.append((f"lbscope_{i}_{lang}", *text_costume(tr(f"lb.scope{i}", lang), 6.4, MUTED, False, "start")))
+        for medal in range(4):
+            for me in (0, 1):
+                out.append((f"lbrow_{medal}_{me}_{lang}", *lb_row(medal, me, lang)))
+        out.append((f"lbme_{lang}", *lb_me(lang)))
+        out.append((f"lbme_none_{lang}", *lb_me(lang, True)))
+        for k in ("0", "2", "3", "empty"):
+            out.append((f"lbst_{k}_{lang}", *lb_status(k, lang)))
+    return out
+
+
 def stage_xy(x, y):
     """SVG 坐标 -> 舞台坐标"""
     return x - W / 2, H / 2 - y
@@ -1279,6 +1374,7 @@ def build_hud():
     costumes += [(f"ally_{p}_{lv}", *ally_costume(p, lv)) for p in (1, 2) for lv in range(1, 5)]
     costumes += chip_costumes()
     costumes += garage_costumes()
+    costumes += ranks_costumes()
     costumes += ed_widgets()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])
