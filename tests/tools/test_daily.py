@@ -36,6 +36,12 @@ class Daily(unittest.TestCase):
             self.assertEqual(rows.split(), daily.daily_rows(int(d)),
                              f"tests/data/daily_maps.txt 过期了（第 {d} 天）：运行 python3 tools/levels/daily.py --write")
 
+    def test_Q04_daily_maps_leave_room_for_share_card(self):
+        # 分享战报是在每日挑战的结算画面上打开的（地图格子还在）：常驻 UI 约 95 个 + 战报 36 个 + 坦克子弹爆炸 30 个，
+        # 全部精灵最多 300 个克隆（见 tests/spx/budget.spx），所以每日挑战的地图不能超过 130 格
+        most = max(sum(ch != "." for ch in "".join(daily.daily_rows(d))) for d in range(daily.EPOCH + 1, daily.EPOCH + 1 + daily.DAYS))
+        self.assertLessEqual(most, 130)
+
     def test_D03_constants_match_game(self):
         with open(os.path.join(ROOT, "TankBattle", "main.spx"), encoding="utf-8") as f:
             src = f.read()
