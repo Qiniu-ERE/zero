@@ -1,4 +1,5 @@
 import (
+	"math"
 	"strconv"
 	"strings"
 )
@@ -48,7 +49,8 @@ const (
 	kWallet   = 24 // v6 车库里金币数的一个字符位（金色，左对齐）
 	kDailyTag = 25 // v6 每日挑战结算时弹窗上方的标签：正式成绩 / 练习
 	kRanks    = 26 // v6 排行榜画面：slot 0~1 选项卡，2 范围说明，3 状态（读取中 / 离线 / 没上线 / 没人上榜），10~33 每行的芯片，40~47 每行的底，48 “我的名次”
-	kLbNum    = 27 // v6 排行榜里数字的一个字符位：slot = 行 × 100 + 第几个数字 × 10 + 第几个字符（见舞台的 lbText）
+	kLbNum    = 27 // v6 排行榜里数字的一个字符位：slot = 行 × 100 + 第几个数字 × 10 + 第几个字符（见舞台的 lbText）；第 9 行是分享战报，第 10 行是助战码输入
+	kShare    = 28 // v6 分享战报：slot 0~2 芯片，3 全球名次那一行（联网了才有）
 )
 
 // ---------- 创建 ----------
@@ -132,15 +134,17 @@ func hit(name string, x, y float64) bool {
 	case "pick.reroll":
 		return x >= -95 && x <= 95 && y >= -110 && y <= -86
 	case "gr.sk.1":
-		return x >= -224 && x <= -194 && y >= -66 && y <= -36
+		return x >= -224 && x <= -198 && y >= -62 && y <= -36
 	case "gr.sk.2":
-		return x >= -190 && x <= -160 && y >= -66 && y <= -36
+		return x >= -196 && x <= -170 && y >= -62 && y <= -36
 	case "gr.sk.3":
-		return x >= -156 && x <= -126 && y >= -66 && y <= -36
+		return x >= -168 && x <= -142 && y >= -62 && y <= -36
 	case "gr.sk.4":
-		return x >= -122 && x <= -92 && y >= -66 && y <= -36
+		return x >= -140 && x <= -114 && y >= -62 && y <= -36
 	case "gr.sk.5":
-		return x >= -88 && x <= -58 && y >= -66 && y <= -36
+		return x >= -112 && x <= -86 && y >= -62 && y <= -36
+	case "gr.sk.6":
+		return x >= -84 && x <= -58 && y >= -62 && y <= -36
 	case "gr.back":
 		return x >= -224 && x <= -114 && y >= -160 && y <= -136
 	case "lb.tab.1":
@@ -276,18 +280,32 @@ func refreshNumber() {
 	idx := slot // 这是数字的第几个字符
 	right := kind == kBest
 	if kind == kLbNum {
-		if state != stRanks {
+		row, field := slot/100, (slot/10)%10
+		idx = slot % 10
+		st = "L"
+		if row <= 8 && state == stRanks {
+			s = lbText(row, field)
+			if n, err := strconv.Atoi(s); err == nil && field != 1 {
+				s = withCommas(n) // 指挥官编号不加千分位
+			}
+			right = field != 1 // 指挥官编号左对齐，其余右对齐
+		} else if row == 9 && state == stShare {
+			s = shareText(field) // 分享战报：左对齐；得分用大号金色
+			if field == 1 || field == 3 {
+				if n, err := strconv.Atoi(s); err == nil {
+					s = withCommas(n)
+				}
+			}
+			if field == 0 || field == 1 || field == 5 {
+				st = "C" // 期数、得分、助战码用大号金色
+			}
+		} else if row == 10 && state == stAssist {
+			s = assistInput // 助战码输入
+			st = "S"
+		} else {
 			hide
 			return
 		}
-		field := (slot / 10) % 10
-		s = lbText(slot/100, field)
-		if n, err := strconv.Atoi(s); err == nil && field != 1 {
-			s = withCommas(n) // 指挥官编号不加千分位
-		}
-		st = "L"
-		idx = slot % 10
-		right = field != 1 // 指挥官编号左对齐，其余右对齐
 	} else if kind == kBest {
 		s = withCommas(best)
 		st = "B"
@@ -375,6 +393,24 @@ func refresh() {
 		refreshNumber
 	case kRanks:
 		refreshRanks
+	case kShare:
+		if state != stShare {
+			hide
+			return
+		}
+		if slot == 3 {
+			if shareText(3) != "" {
+				hide // 有全球名次时显示数字
+				return
+			}
+			setCostume "sh_norank_" + langCode()
+		} else if slot >= len(dailyBuild) {
+			hide
+			return
+		} else {
+			setCostume "ci_" + chipKey(dailyBuild[slot])
+		}
+		show
 	case kGarage:
 		refreshGarage
 	case kPip:
@@ -636,7 +672,7 @@ func refreshGarage() {
 		} else {
 			c = "cxl_" + chipKey(id) + "_" + langCode()
 		}
-	case slot >= 30 && slot <= 34:
+	case slot >= 30 && slot <= 35:
 		i := slot - 30
 		if i == skin {
 			c = "sk_" + strconv.Itoa(i) + "_sel"
@@ -657,6 +693,17 @@ func refreshGarage() {
 		i := slot - 43
 		k := taskIDs[i]
 		c = "tp_" + strconv.Itoa(taskProg[i]*10/taskTarget(k))
+	case slot == 50: // 赛季和段位
+		c = "ssn_" + strconv.Itoa(int(math.Min(float64(seasonNo), 12))) + "_" + strconv.Itoa(tierOf(seasonPts)) + "_" + langCode()
+	case slot == 51:
+		have, need := tierProgress(seasonPts)
+		c = "sp_" + strconv.Itoa(have*20/need)
+	case slot == 52:
+		if today() <= 0 {
+			hide
+			return
+		}
+		c = "sd_" + strconv.Itoa(seasonLeft(today())) + "_" + langCode()
 	}
 	setCostume c
 	setLayer Front
@@ -796,6 +843,10 @@ func clickScreen() {
 		if hit("gr.back", x, y) {
 			goHome
 		}
+	case stShare:
+		panelOff()
+		state = stResult // 点一下回到结算
+		showResult
 	case stLevels:
 		for n := 1; n <= lastStage; n++ {
 			if hit("lv."+strconv.Itoa(n), x, y) {
@@ -888,7 +939,7 @@ onCloned => {
 
 // 离开车库、排行榜这些画面：它们的小部件删掉，把克隆的名额让给地图和敌人（全部精灵最多 300 个克隆）
 onMsg "panelOff", => {
-	if isCloned && (kind == kGarage || kind == kWallet || kind == kRanks || kind == kLbNum) {
+	if isCloned && (kind == kGarage || kind == kWallet || kind == kRanks || kind == kLbNum || kind == kShare) {
 		uiClones--
 		destroy
 	}
@@ -930,7 +981,7 @@ onMsg "edCursor", => {
 }
 
 onMsg "raise", => {
-	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet || kind == kDailyTag || (kind == kRanks && (slot < 10 || slot >= 40))) {
+	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet || kind == kDailyTag || kind == kShare || (kind == kRanks && (slot < 10 || slot >= 40))) {
 		setLayer Front
 	}
 }

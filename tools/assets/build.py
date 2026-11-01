@@ -1119,13 +1119,15 @@ def chip_costumes():
 # ---------- v6 车库：指挥官等级、芯片图鉴、涂装、今日任务（docs/v6/PLAN.md 第三节） ----------
 # 涂装（1P，只换现代画风的外观）：都是亮色，深灰和红色留给敌方（tests/tools/test_garage.py 检查）
 SKINS = [TANKS["player"], ("#ff9a3a", "#8a3d00", "#ffe0b8"), ("#eef4ff", "#7f8fb0", "#ffffff"),
-         ("#ff7ab8", "#8a1f55", "#ffd6ea"), ("#8fd14f", "#3f6e1a", "#e2ffc8")]
-SKIN_PRICES = [0, 1500, 2000, 2500, 3000]  # 和 main.spx 的 skinPrice 一致
+         ("#ff7ab8", "#8a1f55", "#ffd6ea"), ("#8fd14f", "#3f6e1a", "#e2ffc8"),
+         ("#5ab8ff", "#1c4f8f", "#d6ecff")]  # 最后一款是赛季涂装（S1 天空蓝，黄金段位送，不卖）
+SKIN_PRICES = [0, 1500, 2000, 2500, 3000, 0]  # 和 main.spx 的 skinPrice 一致
+SEASON_SKIN = 5
 CHIP_UNLOCK = {"float": 3, "stealth": 5, "magnet": 8}  # 和 main.spx 的 chipUnlockLv 一致
 TASK_TARGETS = [30, 3, 2, 3, 1, 1, 1, 1]  # 任务 1~8 的目标，和 main.spx 的 taskTarget 一致
 MAX_CMD = 30
 GR_CELL = (200, 74, 60, 46, 66, 52)   # 图鉴格子：左上角、宽高、横竖间距
-GR_SKIN = (16, 216, 30, 34)            # 涂装格子：左上角、边长、间距
+GR_SKIN = (16, 216, 26, 28)            # 涂装格子：左上角、边长、间距
 GR_TASK = (200, 250, 260, 18, 22)      # 任务行：左上角、宽高、行距
 GR_BACK = (16, 316, 110, 24)
 
@@ -1159,8 +1161,9 @@ def garage_screen(lang):
     s.append(text(x + 14, y + 15.5, tr("lv.back", lang), 8.5, "#c8d2e3", True))
     c, cw = chip(0, 0, "Esc")
     s.append(f'<g transform="translate({x+w-10-cw:.2f},{y+7})">{c}</g>')
-    c, cw = chip(0, 0, "1-5")
+    c, cw = chip(0, 0, "1-6")
     s.append(f'<g transform="translate({186-cw:.2f},203)">{c}</g>')
+    s.append('<rect x="200" y="324" width="264" height="22" rx="7" fill="#ffffff" fill-opacity="0.04" stroke="#263046" stroke-width="0.6"/>')
     return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 
@@ -1183,11 +1186,14 @@ def skin_cell(i, st):
     sel = st == "sel"
     s = [f'<rect x="0.6" y="0.6" width="{cs-1.2}" height="{cs-1.2}" rx="6" fill="#ffffff" fill-opacity="{0.1 if sel else 0.04}" stroke="{"#3ee8ff" if sel else "#263046"}" stroke-width="{1.2 if sel else 0.6}"/>']
     defs, body = tank_body(*SKINS[i])
-    s.append(f'<g transform="translate(3 3)">{body}</g>')
+    s.append(f'<g transform="translate(1 1)">{body}</g>')
     if st == "lock":
         s.append(f'<rect x="0.6" y="0.6" width="{cs-1.2}" height="{cs-1.2}" rx="6" fill="#07090f" fill-opacity="0.55"/>')
-        s.append(f'<circle cx="7" cy="38" r="3" fill="url(#gold)"/>')
-        s.append(text(12, 40.5, str(SKIN_PRICES[i]), 5.6, "#ffe27a", True))
+        if i == SEASON_SKIN:
+            s.append(text(cs / 2, 37, "S1", 5.6, "#ffb020", True, "middle"))
+        else:
+            s.append(f'<circle cx="4" cy="35" r="2.6" fill="url(#gold)"/>')
+            s.append(text(8, 37.2, str(SKIN_PRICES[i]), 5.4, "#ffe27a", True))
     return svg(cs + 2, 44, "".join(s), defs + lin("gold", "#ffe27a", "#f29a00"), res=HR), (cs / 2, cs / 2)
 
 
@@ -1328,6 +1334,71 @@ def ranks_costumes():
     return out
 
 
+# ---------- v6 赛季、分享战报、助战码（docs/v6/PLAN.md 第四节） ----------
+TIER_COL = ["#e0915a", "#c8d2e3", "#ffd23a", "#7ee0d0", "#8fb3ff", "#ff7ab8"]
+SEASON_DAYS = 42
+SH_VX = 236  # 分享卡片上数值的 x（和 main.spx 的 buildHud 一致）
+
+
+def season_label(n, t, lang):
+    s = tr("ss.name", lang).format(n=n)
+    tier = tr(f"tier.{t}", lang)
+    w1 = width(s, 8, True)
+    tw = width(tier, 6.5, True) + 10
+    body = (text(1, 9, s, 8, "#ffb020", True)
+            + f'<rect x="{w1+6:.2f}" y="1" width="{tw:.2f}" height="10" rx="5" fill="{TIER_COL[t]}"/>'
+            + text(w1 + 6 + tw / 2, 8.4, tier, 6.5, "#14100a", True, "middle"))
+    return svg(w1 + 8 + tw, 13, body, res=HR), (1, 9)
+
+
+def share_screen(lang):
+    """分享战报：竖版卡片（玩家截图发给朋友）。数值由 UI 克隆显示在 x = SH_VX"""
+    s = [f'<rect width="{W}" height="{H}" fill="#05070c"/>']
+    x0, y0, cw, ch = 150, 14, 180, 300
+    s.append(f'<rect x="{x0}" y="{y0}" width="{cw}" height="{ch}" rx="14" fill="url(#bgH)" stroke="{ELITE}" stroke-width="1"/>')
+    s.append(f'<rect x="{x0}" y="{y0}" width="{cw}" height="30" rx="14" fill="{ELITE}" fill-opacity="0.16"/>')
+    s.append(text(x0 + 14, y0 + 19, tr("title", lang) + " 2026 · " + tr("stage.daily", lang), 7.5, "#ffffff", True))
+    defs, body = tank_body(*TANKS["player"])
+    s.append(f'<defs>{defs}</defs><g transform="translate(296 40) rotate(20 12 12) scale(1.1)">{body}</g>')
+    for y, key in ((64, "sh.no"), (90, "sh.score"), (112, "sh.secs"), (136, "sh.rank"), (160, "sh.streak"), (184, "sh.build"), (214, "sh.code")):
+        lab = tr(key, lang)
+        if 164 + width(lab, 7, True) > SH_VX - 4:
+            sys.exit(f"分享卡片的标签太长：{lab}")
+        s.append(text(164, y, lab, 7, MUTED, True))
+    s.append(f'<path d="M164 {y0+212}H316" stroke="#2c3850" stroke-width="0.6"/>')
+    for i, line in enumerate(tr("sh.cta", lang).split("\n")):
+        s.append(text(W / 2, y0 + 230 + i * 11, line, 6, "#d9b8ff", False, "middle"))
+    s.append(text(W / 2, y0 + 268, tr("sh.shot", lang), 7, "#ffffff", True, "middle"))
+    c, cw2 = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({W/2-cw2/2:.2f},{y0+ch+12})">{c}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def assist_screen(lang):
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    s.append(text(W / 2, 110, tr("as.title", lang), 16, "#ffffff", True, "middle"))
+    s.append(text(W / 2, 128, tr("as.sub", lang), 7.5, "#9fdcea", False, "middle"))
+    s.append(f'<rect x="196" y="160" width="88" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#3ee8ff" stroke-width="1"/>')
+    s.append(text(W / 2, 222, tr("as.keys", lang), 7, MUTED, True, "middle"))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def season_costumes():
+    out = []
+    for lang in LANGS:
+        for n in range(1, 13):
+            for t in range(6):
+                out.append((f"ssn_{n}_{t}_{lang}", *season_label(n, t, lang)))
+        for d in range(1, SEASON_DAYS + 1):
+            out.append((f"sd_{d}_{lang}", *text_costume(tr("ss.left", lang).format(n=d), 6.4, MUTED, False, "end")))
+        out.append((f"share_{lang}", *share_screen(lang), 2))
+        out.append((f"assist_{lang}", *assist_screen(lang), 2))
+        out.append((f"sh_norank_{lang}", *text_costume(tr("sh.norank", lang), 6.4, "#9fdcea", False, "start")))
+    for n in range(21):
+        out.append((f"sp_{n}", *bar(n, 20, 60, 5, "url(#xpg)")))
+    return out
+
+
 def stage_xy(x, y):
     """SVG 坐标 -> 舞台坐标"""
     return x - W / 2, H / 2 - y
@@ -1375,6 +1446,7 @@ def build_hud():
     costumes += chip_costumes()
     costumes += garage_costumes()
     costumes += ranks_costumes()
+    costumes += season_costumes()
     costumes += ed_widgets()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])

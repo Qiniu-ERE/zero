@@ -28,6 +28,12 @@ onStart => {
 	goHome
 	tInt "Q02 离开排行榜后删掉", uiClones, base
 
+	// Q02 助战码输入也一样
+	openAssist
+	tStr "Q02 记下建好的是助战码输入", panel, "assist"
+	goHome
+	tInt "Q02 离开助战码输入后删掉", uiClones, base
+
 	// Q03 去过车库以后，地图格子和敌人照样能出来：砖墙最多的第 5 关，精英能被打掉（克隆存在）
 	playStage 5
 	wait 0.5
