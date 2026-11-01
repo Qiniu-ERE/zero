@@ -1,0 +1,110 @@
+// 机动、防护、辅助芯片（U25~U29），见 docs/v6/TEST_PLAN.md
+onStart => {
+	wait 3
+
+	// U25 涡轮引擎：开得快 25%（每次开 0.1 秒，普通 6 像素，引擎 7.5 像素）
+	for _, eng := range []bool{false, true} {
+		tQuiet
+		chips[1] = nil
+		if eng {
+			chips[1] = []int{cEngine}
+		}
+		Player.setXYpos cellX(2), cellY(6)
+		Player.setFace 90
+		x0 := Player.xpos
+		Player.drive 90, 0.1
+		if eng {
+			tNum "U25 涡轮引擎 0.1 秒开 7.5 像素", Player.xpos-x0, 7.5
+		} else {
+			tNum "U25 普通 0.1 秒开 6 像素", Player.xpos-x0, 6
+		}
+	}
+
+	// U26 浮桥履带：能开过水面；没有就开不进去
+	for _, fl := range []bool{false, true} {
+		tQuiet
+		chips[1] = nil
+		if fl {
+			chips[1] = []int{cFloat}
+		}
+		grid[tAt(6, 7)] = 4
+		Player.setXYpos cellX(6), cellY(6)
+		Player.setFace 90
+		for i := 0; i < 10; i++ {
+			Player.drive 90, 0.05
+		}
+		if fl {
+			tCheck "U26 浮桥履带开进水里", Player.xpos > cellX(6)+20
+			tCheck "U26 浮桥履带：水面不挡路", !playerBlocked(cellX(7), cellY(6), 1)
+		} else {
+			tCheck "U26 没有浮桥履带被水挡住", Player.xpos < cellX(6)+2
+			tCheck "U26 水面挡路", playerBlocked(cellX(7), cellY(6), 1)
+		}
+	}
+	tCheck "U26 浮桥履带也过不了钢墙", func() bool {
+		grid[tAt(5, 5)] = 2
+		return playerBlocked(cellX(5), cellY(5), 1)
+	}()
+
+	// U27 迷彩：坦克在草丛里，敌人子弹穿过去；不在草丛里照样被打中
+	names := []string{"U27 没有迷彩、在草丛里", "U27 迷彩、在草丛里", "U27 迷彩、不在草丛里"}
+	for k := 0; k < 3; k++ {
+		tQuiet
+		chips[1] = nil
+		if k > 0 {
+			chips[1] = []int{cStealth}
+		}
+		if k < 2 {
+			grid[tAt(8, 6)] = 5
+		}
+		Player.setXYpos cellX(6), cellY(8)
+		Player.shield = 0
+		wait 0.1
+		lives = 3
+		EBullet.fire cellX(6), cellY(4), 180
+		wait 1
+		if k == 1 {
+			tInt names[k]+"：没被打中", lives, 3
+			tCheck names[k]+"：判定在草丛里", stealthed(1)
+		} else {
+			tInt names[k]+"：被打中", lives, 2
+		}
+		wait 1.6 // 等重生
+	}
+
+	// U28 能量护盾：挡一发后 30 秒恢复；战场冻结（暂停）时不恢复
+	tQuiet
+	chips[1] = []int{cShield}
+	tCheck "U28 护盾一开始是好的", shieldBlock(1)
+	tCheck "U28 刚挡过一发，下一发挡不住", !shieldBlock(1)
+	shieldCD[1] = 0.5
+	pauseGame
+	wait 0.7
+	tCheck "U28 暂停时护盾不恢复", shieldCD[1] > 0.4
+	resumeGame
+	wait 0.7
+	tCheck "U28 时间到了护盾恢复", shieldBlock(1)
+	chips[1] = nil
+	tCheck "U28 没装护盾挡不住", !shieldBlock(1)
+
+	// U29 磁吸：芯片自动飞向坦克，飞到就捡到；没有磁吸芯片不动
+	for _, mg := range []bool{false, true} {
+		tQuiet
+		chips[1] = nil
+		if mg {
+			chips[1] = []int{cMagnet}
+		}
+		Player.setXYpos cellX(6), cellY(10)
+		dropX, dropY, dropLeft = cellX(6), cellY(4), 10
+		wait 1.3
+		if mg {
+			tInt "U29 磁吸把芯片吸过来，捡到 → 三选一", state, stPick
+			pickChoose 0
+		} else {
+			tNum "U29 没有磁吸，芯片不动", dropY, cellY(4)
+			tInt "U29 没有磁吸，不会捡到", state, stPlay
+		}
+	}
+
+	tDone "chips_move"
+}

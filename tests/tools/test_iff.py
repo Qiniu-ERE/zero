@@ -90,9 +90,9 @@ class Iff(unittest.TestCase):
         self.assertEqual(names, want, "Enemy 的造型表：三种 × 普通 / 精英 × 经典 / 现代")
         with open(os.path.join(SPRITES, "UI", "index.json"), encoding="utf-8") as f:
             ui = {c["name"] for c in json.load(f)["costumes"]}
-        self.assertTrue({"ally_1", "ally_2"} <= ui, "UI 里有 1P / 2P 的我方标识")
-        self.assertIn("#ffd23a", read("UI", "ally_1.svg"))
-        self.assertIn("#4fe3c1", read("UI", "ally_2.svg"))
+        self.assertTrue({"ally_1_1", "ally_2_4"} <= ui, "UI 里有 1P / 2P 的我方标识")
+        self.assertIn("#ffd23a", read("UI", "ally_1_1.svg"))
+        self.assertIn("#4fe3c1", read("UI", "ally_2_4.svg"))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 var (
-	kind   int     // 0 普通，1 快速，2 重型
+	kind   int     // 0 普通，1 快速，2 重型；精英再加 10（v6，不加字段：方法表上限）
 	hp     int     // 还能挨几发子弹
 	spd    float64 // 移动速度（像素/秒）
 	face   int     // 朝向：0 上，90 右，180 下，-90 左
@@ -26,15 +26,39 @@ func setFace(d int) {
 	}
 }
 
-// 按类型和当前画风换造型
-func applyLook() {
-	if kind == 1 {
-		setCostume look("fast")
-	} else if kind == 2 {
-		setCostume look("heavy")
-	} else {
-		setCostume look("basic")
+// 类型（0 普通，1 快速，2 重型），不管是不是精英
+func baseKind() int {
+	return kind % 10
+}
+
+func isElite() bool {
+	return kind >= 10
+}
+
+// 一共能挨几发：普通、快速 1 发，重型 3 发，精英多 1 发
+func maxHp() int {
+	n := 1
+	if baseKind() == 2 {
+		n = 3
 	}
+	if isElite() {
+		n++
+	}
+	return n
+}
+
+// 按类型和当前画风换造型（精英的造型名带 _e）
+func applyLook() {
+	name := "basic"
+	if baseKind() == 1 {
+		name = "fast"
+	} else if baseKind() == 2 {
+		name = "heavy"
+	}
+	if isElite() {
+		name += "_e"
+	}
+	setCostume look(name)
 }
 
 // 随机选一个方向，更喜欢往下（基地方向）走
@@ -75,33 +99,45 @@ func takeHit() {
 	hp--
 	if hp > 0 {
 		sfx "armor"
-		setGraphicEffect ColorEffect, float64((3-hp)*40)
+		setGraphicEffect ColorEffect, float64((maxHp()-hp)*40)
 		return
 	}
+	die
+}
+
+// 被击毁（挨够了子弹，或者空袭）：加分；精英掉一块芯片（v6）
+func die() {
 	alive = false
 	points := 100
-	if kind == 1 {
+	if baseKind() == 1 {
 		points = 200
-	} else if kind == 2 {
+	} else if baseKind() == 2 {
 		points = 400
+	}
+	if isElite() {
+		points += elitePoints
 	}
 	sfx "explode"
 	enemyKilled points
+	if isElite() {
+		eliteDown xpos, ypos
+	}
 	Boom.explodeAt xpos, ypos, 1.2
 	destroy
 }
 
 onCloned => {
 	alive = true
-	if kind == 1 {
-		hp = 1
+	hp = maxHp()
+	if baseKind() == 1 {
 		spd = 75
-	} else if kind == 2 {
-		hp = 3
+	} else if baseKind() == 2 {
 		spd = 30
 	} else {
-		hp = 1
 		spd = 40
+	}
+	if isElite() {
+		spd *= 1.15
 	}
 	applyLook
 	setFace 180
@@ -117,19 +153,21 @@ onCloned => {
 		if dt > 0.05 {
 			dt = 0.05
 		}
-		drive dt
 		if autopilot {
 			seeEnemy xpos, ypos // 路演演示：告诉自动驾驶自己在哪
 		}
-		turnCD -= dt
-		if turnCD <= 0 {
-			pickFace
-			turnCD = rand(1.2, 3.2)
-		}
-		fireCD -= dt
-		if fireCD <= 0 {
-			EBullet.fire xpos, ypos, face
-			fireCD = rand(1.0, 2.5)
+		if freezeLeft <= 0 { // 冰冻（v6 战术芯片）：原地不动、不开火，但照样能被打中
+			drive dt
+			turnCD -= dt
+			if turnCD <= 0 {
+				pickFace
+				turnCD = rand(1.2, 3.2)
+			}
+			fireCD -= dt
+			if fireCD <= 0 {
+				EBullet.fire xpos, ypos, face
+				fireCD = rand(1.0, 2.5)
+			}
 		}
 		if touching("PBullet") {
 			takeHit
@@ -151,6 +189,13 @@ onMsg "reviveClear", => {
 		spawned--
 		Boom.explodeAt xpos, ypos, 0.8
 		destroy
+	}
+}
+
+// 空袭（v6 战术芯片）：场上的敌人全部被击毁（照样加分，精英照样掉芯片）
+onMsg "bomb", => {
+	if alive {
+		die
 	}
 }
 
