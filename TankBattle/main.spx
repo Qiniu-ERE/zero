@@ -119,7 +119,8 @@ var (
 
 	// v6 每日挑战（docs/v6/PLAN.md 第四节）
 	dailyDayNow   int     // 正在打的是哪一天的每日挑战
-	dailySeed     int     // 每日挑战的随机数状态
+	dailySeed     int     // 每日挑战的随机数状态：敌人出场用（dailyRand）
+	dailyChipSeed int     // 每日挑战的随机数状态：三选一用（dailyChipRand），和敌人分开，抽到的芯片才不会受出兵快慢影响
 	dailySecs     float64 // 这一局用了多久（战场冻结时不算）
 	dailyDay      int     // 哪一天已经有了正式成绩（存档）
 	dailyScore    int     // 那天的正式成绩（存档）
@@ -742,7 +743,7 @@ func pickRoll() {
 // 0 ~ n-1 的随机整数（三选一用）
 func chipRand(n int) int {
 	if stage == dailyStage {
-		return dailyRand(n) // 每日挑战：同一天大家抽到的一样
+		return dailyChipRand(n) // 每日挑战：同一天大家抽到的一样
 	}
 	r := int(rand(0, n-1)) // XBuilder 的 spx v3.3.0 里 rand(int, int) 返回 float64
 	if r >= n {
@@ -1960,10 +1961,16 @@ func dailyNo(d int) int {
 	return d - dailyEpoch
 }
 
-// 每日挑战用的随机数（敌人类型、三选一）：每局开始时按日期重置，同一天每个人抽到的一样
+// 每日挑战用的随机数：每局开始时按日期重置，同一天每个人抽到的一样。
+// 敌人出场和三选一用两个独立的序列：共用一个时，第几次三选一抽到什么会受“捡芯片之前出了几辆敌人”影响
 func dailyRand(n int) int {
 	dailySeed = lcg(dailySeed)
 	return (dailySeed / 65536) % n
+}
+
+func dailyChipRand(n int) int {
+	dailyChipSeed = lcg(dailyChipSeed)
+	return (dailyChipSeed / 65536) % n
 }
 
 // 开始今天的每日挑战（单人）。拿不到日期（网页版暂时没有时钟）就不能开始
@@ -2952,6 +2959,7 @@ func startGame() {
 	baseSafe = 0
 	resetRun()
 	dailySeed = dailyDayNow*31 + 7
+	dailyChipSeed = dailyDayNow*97 + 3
 	dailySecs = 0
 	state = stPlay
 	setScreen ""
