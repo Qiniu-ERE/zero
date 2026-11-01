@@ -40,6 +40,7 @@ const (
 
 	kTouchPad = 17 // 触屏模式的方向键（手机 App 里替换右侧的按键说明）
 	kPauseBtn = 18 // 顶栏的暂停按钮
+	kAlly     = 19 // v6 敌我区分：我方坦克脚下的光圈和头顶的 1P / 2P 标签（slot 1 是 1P，2 是 2P），每帧跟着坦克走
 )
 
 // ---------- 创建 ----------
@@ -370,6 +371,26 @@ func refresh() {
 	}
 }
 
+// 我方标识：对局中（含暂停）跟着自己的坦克；坦克死了、2P 不在、不在对局里就隐藏。
+// 返回现在是否显示。刚出现时放到最前面（盖住草丛，玩家藏进草丛也知道自己在哪）；
+// 之后不再改图层，所以暂停、结算的弹窗出现时会盖住它
+func allyStep(shown bool) bool {
+	on, x, y := allyAt(slot)
+	if !on {
+		if shown {
+			hide
+		}
+		return false
+	}
+	setXYpos x, y
+	if !shown {
+		setCostume "ally_" + strconv.Itoa(slot)
+		setLayer Front
+		show
+	}
+	return true
+}
+
 // 编辑器小部件：位置和造型跟着舞台的编辑状态走
 func refreshEditor() {
 	if state != stEdit {
@@ -501,6 +522,13 @@ func clickScreen() {
 // ---------- 事件 ----------
 
 onCloned => {
+	if kind == kAlly {
+		shown := false
+		for {
+			waitNextFrame
+			shown = allyStep(shown)
+		}
+	}
 	refresh
 	if kind != kToast {
 		return

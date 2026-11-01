@@ -1184,6 +1184,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "ally_1",
+      "path": "ally_1.svg",
+      "x": 72.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "ally_2",
+      "path": "ally_2.svg",
+      "x": 72.0,
+      "y": 112,
+      "bitmapResolution": 4
+    },
+    {
       "name": "touchpad_zh",
       "path": "touchpad_zh.svg",
       "x": 240,

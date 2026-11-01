@@ -1,0 +1,54 @@
+// 敌我区分（V07~V10）：我方标识（光圈 + 1P / 2P 标签）什么时候显示、跟着谁；敌人的造型
+// 见 docs/v6/TEST_PLAN.md；造型本身的颜色规则在 tests/tools/test_iff.py（V01~V06）
+onStart => {
+	wait 3
+
+	// V07 主页不显示我方标识
+	on, _, _ := allyAt(1)
+	tCheck "V07 主页不显示 1P 标识", !on
+
+	// V08 单人对局：1P 标识跟着 1P，2P 标识不显示
+	tQuiet
+	wait 0.3
+	on, x, y := allyAt(1)
+	tCheck "V08 对局中显示 1P 标识", on
+	tNum "V08 1P 标识的 x 跟着坦克", x, Player.xpos
+	tNum "V08 1P 标识的 y 跟着坦克", y, Player.ypos
+	on2, _, _ := allyAt(2)
+	tCheck "V08 单人时不显示 2P 标识", !on2
+	Player.setXYpos cellX(6), cellY(6)
+	wait 0.2
+	_, x, y = allyAt(1)
+	tNum "V08 坦克移动后标识跟着走（x）", x, cellX(6)
+	tNum "V08 坦克移动后标识跟着走（y）", y, cellY(6)
+
+	// V09 暂停时还显示；坦克被击毁时不显示；回主页不显示
+	pauseGame
+	on, _, _ = allyAt(1)
+	tCheck "V09 暂停时还显示", on
+	resumeGame
+	Player.shield = 0
+	hitWho = 1
+	broadcast "playerHit"
+	wait 0.2
+	on, _, _ = allyAt(1)
+	tCheck "V09 1P 被击毁后不显示", !on
+	wait 2
+	on, _, _ = allyAt(1)
+	tCheck "V09 1P 重生后又显示", on
+
+	// V10 双人：2P 标识跟着 2P
+	newGame 1, true
+	wait 0.5
+	tCalm
+	wait 0.2
+	on2, x, y = allyAt(2)
+	tCheck "V10 双人时显示 2P 标识", on2
+	tNum "V10 2P 标识在 2P 的出生点（x）", x, cellX(8)
+	tNum "V10 2P 标识在 2P 的出生点（y）", y, cellY(12)
+	goHome
+	on2, _, _ = allyAt(2)
+	tCheck "V10 回主页后不显示", !on2
+
+	tDone "iff"
+}

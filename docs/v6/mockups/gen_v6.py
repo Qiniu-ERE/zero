@@ -757,7 +757,7 @@ def iff(lang):
     s.append(img(B.bullet_m("#ff8a80", FOE_RED), 440, 249, 9, 9))
     # 底部：以前 vs 现在
     s.append('<rect x="16" y="298" width="448" height="48" rx="9" fill="#ffffff" fill-opacity="0.04" stroke="#263046" stroke-width="0.6"/>')
-    s.append(tank_icon(P2, 26, 306, 16) + tank_icon(B.TANKS["heavy"], 44, 306, 16, heavy=True))
+    s.append(tank_icon(P2, 26, 306, 16) + tank_icon(("#6fd06a", "#2e6e2a", "#d2f5cf"), 44, 306, 16, heavy=True)  # v5 的重型敌人)
     s.append(text(66, 317.5, t["i_before"], 6.6, MUTED, True))
     s.append(tank_icon(P2, 26, 326, 16) + foe_icon(44, 326, 16, "heavy"))
     s.append(text(66, 337.5, t["i_after"], 6.6, GREEN, True))

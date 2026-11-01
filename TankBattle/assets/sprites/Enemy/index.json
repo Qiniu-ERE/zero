@@ -19,6 +19,24 @@
       "y": 12
     },
     {
+      "name": "basic_e",
+      "path": "basic_e.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "fast_e",
+      "path": "fast_e.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "heavy_e",
+      "path": "heavy_e.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
       "name": "basic_m",
       "path": "basic_m.svg",
       "x": 12,
@@ -33,6 +51,24 @@
     {
       "name": "heavy_m",
       "path": "heavy_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "basic_e_m",
+      "path": "basic_e_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "fast_e_m",
+      "path": "fast_e_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "heavy_e_m",
+      "path": "heavy_e_m.svg",
       "x": 12,
       "y": 12
     }

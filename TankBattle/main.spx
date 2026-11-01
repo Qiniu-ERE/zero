@@ -346,6 +346,17 @@ func touchZone(x, y float64) int {
 	return -1 // 顶栏、右侧面板（暂停、语言、广告卡等按钮都在这里）
 }
 
+// 我方标识（v6 敌我区分）：第 p 个玩家（1 或 2）的光圈和标签要不要显示、显示在哪。
+// 只在对局中（含暂停）显示；坦克死了（报的位置很远）或者 2P 不在就不显示
+func allyAt(p int) (bool, float64, float64) {
+	x, y := p1x, p1y
+	if p == 2 {
+		x, y = p2x, p2y
+	}
+	on := (state == stPlay || state == stPause) && x < 9000 && (p == 1 || (coop && p2Exists))
+	return on, x, y
+}
+
 // (x, y) 离哪辆玩家坦克更近：1 或 2
 func nearestPlayer(x, y float64) int {
 	if p2Exists && math.Abs(x-p2x)+math.Abs(y-p2y) < math.Abs(x-p1x)+math.Abs(y-p1y) {
@@ -813,6 +824,8 @@ func buildHud() {
 	}
 	UI.langButton 208, 164
 	UI.icon kPauseBtn, 176, 164, 0 // 暂停按钮（对局中显示；手机上没有 Esc 键，靠它暂停和退出）
+	UI.icon kAlly, 0, 0, 1 // 我方标识（v6 敌我区分）：1P、2P 脚下的光圈和头顶的标签
+	UI.icon kAlly, 0, 0, 2
 	// 右侧面板：得分、最高分、生命、按键提示
 	UI.label 104, 140, "score"
 	UI.number kScore, 104, 120, 9
