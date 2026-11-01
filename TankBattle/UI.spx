@@ -44,6 +44,8 @@ const (
 	kChip     = 20 // v6 右侧面板的芯片格：slot 0~2 是 1P 的三个位置，3~5 是 2P 的
 	kPick     = 21 // v6 三选一：slot 0~2 是三张卡片，3 是刷新按钮，4 是“1P / 2P”标签（双人时）
 	kDrop     = 22 // v6 战场上掉落的芯片（精英被击毁后出现，每帧跟着舞台的 dropX / dropY）
+	kGarage   = 23 // v6 车库里会变的部分：slot 0 指挥官等级，1 经验条，2 下一个解锁，3 涂装预览，10~21 芯片图鉴，30~34 涂装，40~42 任务，43~45 任务进度
+	kWallet   = 24 // v6 车库里金币数的一个字符位（金色，左对齐）
 )
 
 // ---------- 创建 ----------
@@ -115,6 +117,18 @@ func hit(name string, x, y float64) bool {
 		return x >= 74 && x <= 194 && y >= -62 && y <= 88
 	case "pick.reroll":
 		return x >= -95 && x <= 95 && y >= -110 && y <= -86
+	case "gr.sk.1":
+		return x >= -224 && x <= -194 && y >= -66 && y <= -36
+	case "gr.sk.2":
+		return x >= -190 && x <= -160 && y >= -66 && y <= -36
+	case "gr.sk.3":
+		return x >= -156 && x <= -126 && y >= -66 && y <= -36
+	case "gr.sk.4":
+		return x >= -122 && x <= -92 && y >= -66 && y <= -36
+	case "gr.sk.5":
+		return x >= -88 && x <= -58 && y >= -66 && y <= -36
+	case "gr.back":
+		return x >= -224 && x <= -114 && y >= -160 && y <= -136
 	case "home.start":
 		return x >= -224 && x <= -54 && y >= 46 && y <= 96
 	case "home.coop":
@@ -123,6 +137,8 @@ func hit(name string, x, y float64) bool {
 		return x >= -224 && x <= -54 && y >= -46 && y <= -8
 	case "home.levels":
 		return x >= -224 && x <= -54 && y >= -90 && y <= -52
+	case "home.garage":
+		return x >= 68 && x <= 142 && y >= -126 && y <= -82
 	case "lv.1":
 		return x >= -224 && x <= -120 && y >= 16 && y <= 100
 	case "lv.2":
@@ -240,6 +256,13 @@ func refreshNumber() {
 			hide
 			return
 		}
+	} else if kind == kWallet {
+		s = withCommas(wallet)
+		st = "C"
+		if state != stGarage {
+			hide
+			return
+		}
 	}
 	if slot >= len(s) {
 		hide
@@ -304,8 +327,10 @@ func refresh() {
 		}
 		setCostume k + "_" + langCode()
 		show
-	case kScore, kBest, kCoin:
+	case kScore, kBest, kCoin, kWallet:
 		refreshNumber
+	case kGarage:
+		refreshGarage
 	case kPip:
 		if slot < killed {
 			setCostume "pip_off"
@@ -462,6 +487,61 @@ func refreshChip() {
 	show
 }
 
+// 车库里会变的部分（只在车库里显示）
+func refreshGarage() {
+	if state != stGarage {
+		hide
+		return
+	}
+	c := ""
+	switch {
+	case slot == 0:
+		c = "cmd_" + strconv.Itoa(cmdLevel) + "_" + langCode()
+	case slot == 1:
+		have, need := xpInLevel()
+		c = "xp_" + strconv.Itoa(have*20/need)
+	case slot == 2:
+		if nextUnlock() == 0 {
+			c = "nx_all_" + langCode()
+		} else {
+			c = "nx_" + chipKey(nextUnlock()) + "_" + langCode()
+		}
+	case slot == 3:
+		c = "skp_" + strconv.Itoa(skin)
+	case slot >= 10 && slot <= 21:
+		id := slot - 9
+		if chipUnlocked(id) {
+			c = "cx_" + chipKey(id) + "_" + langCode()
+		} else {
+			c = "cxl_" + chipKey(id) + "_" + langCode()
+		}
+	case slot >= 30 && slot <= 34:
+		i := slot - 30
+		if i == skin {
+			c = "sk_" + strconv.Itoa(i) + "_sel"
+		} else if skinsOwned[i] {
+			c = "sk_" + strconv.Itoa(i) + "_own"
+		} else {
+			c = "sk_" + strconv.Itoa(i) + "_lock"
+		}
+	case slot >= 40 && slot <= 42:
+		i := slot - 40
+		k := taskIDs[i]
+		done := "0"
+		if taskProg[i] >= taskTarget(k) {
+			done = "1"
+		}
+		c = "tk_" + strconv.Itoa(k) + "_" + done + "_" + langCode()
+	case slot >= 43 && slot <= 45:
+		i := slot - 43
+		k := taskIDs[i]
+		c = "tp_" + strconv.Itoa(taskProg[i]*10/taskTarget(k))
+	}
+	setCostume c
+	setLayer Front
+	show
+}
+
 // 三选一的卡片、刷新按钮、谁在选（只在三选一时显示）
 func refreshPick() {
 	if state != stPick {
@@ -570,6 +650,18 @@ func clickScreen() {
 			openEditor
 		} else if hit("home.levels", x, y) {
 			openLevels
+		} else if hit("home.garage", x, y) {
+			openGarage
+		}
+	case stGarage:
+		for n := 0; n < skinCount; n++ {
+			if hit("gr.sk."+strconv.Itoa(n+1), x, y) {
+				buySkin n
+				return
+			}
+		}
+		if hit("gr.back", x, y) {
+			goHome
 		}
 	case stLevels:
 		for n := 1; n <= lastStage; n++ {
@@ -696,7 +788,7 @@ onMsg "edCursor", => {
 }
 
 onMsg "raise", => {
-	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick) {
+	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet) {
 		setLayer Front
 	}
 }

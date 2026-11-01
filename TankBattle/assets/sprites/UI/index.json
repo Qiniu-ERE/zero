@@ -1149,6 +1149,118 @@
       "bitmapResolution": 4
     },
     {
+      "name": "msg.cmd.up_zh",
+      "path": "msg.cmd.up_zh.svg",
+      "x": 156.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.cmd.up_en",
+      "path": "msg.cmd.up_en.svg",
+      "x": 241.09,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.unlock.float_zh",
+      "path": "msg.unlock.float_zh.svg",
+      "x": 228.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.unlock.float_en",
+      "path": "msg.unlock.float_en.svg",
+      "x": 371.68,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.unlock.stealth_zh",
+      "path": "msg.unlock.stealth_zh.svg",
+      "x": 192.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.unlock.stealth_en",
+      "path": "msg.unlock.stealth_en.svg",
+      "x": 336.77,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.unlock.magnet_zh",
+      "path": "msg.unlock.magnet_zh.svg",
+      "x": 192.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.unlock.magnet_en",
+      "path": "msg.unlock.magnet_en.svg",
+      "x": 295.88,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.task.done_zh",
+      "path": "msg.task.done_zh.svg",
+      "x": 246.45,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.task.done_en",
+      "path": "msg.task.done_en.svg",
+      "x": 280.02,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.skin.on_zh",
+      "path": "msg.skin.on_zh.svg",
+      "x": 174.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.skin.on_en",
+      "path": "msg.skin.on_en.svg",
+      "x": 177.22,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.skin.bought_zh",
+      "path": "msg.skin.bought_zh.svg",
+      "x": 174.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.skin.bought_en",
+      "path": "msg.skin.bought_en.svg",
+      "x": 175.42,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.coins.short_zh",
+      "path": "msg.coins.short_zh.svg",
+      "x": 120.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "msg.coins.short_en",
+      "path": "msg.coins.short_en.svg",
+      "x": 204.13,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
       "name": "toggle_zh",
       "path": "toggle_zh.svg",
       "x": 80,
@@ -1930,6 +2042,1294 @@
       "path": "reroll_used_en.svg",
       "x": 380.0,
       "y": 48.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "garage_zh",
+      "path": "garage_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "cmd_1_zh",
+      "path": "cmd_1_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_2_zh",
+      "path": "cmd_2_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_3_zh",
+      "path": "cmd_3_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_4_zh",
+      "path": "cmd_4_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_5_zh",
+      "path": "cmd_5_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_6_zh",
+      "path": "cmd_6_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_7_zh",
+      "path": "cmd_7_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_8_zh",
+      "path": "cmd_8_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_9_zh",
+      "path": "cmd_9_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_10_zh",
+      "path": "cmd_10_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_11_zh",
+      "path": "cmd_11_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_12_zh",
+      "path": "cmd_12_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_13_zh",
+      "path": "cmd_13_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_14_zh",
+      "path": "cmd_14_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_15_zh",
+      "path": "cmd_15_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_16_zh",
+      "path": "cmd_16_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_17_zh",
+      "path": "cmd_17_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_18_zh",
+      "path": "cmd_18_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_19_zh",
+      "path": "cmd_19_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_20_zh",
+      "path": "cmd_20_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_21_zh",
+      "path": "cmd_21_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_22_zh",
+      "path": "cmd_22_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_23_zh",
+      "path": "cmd_23_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_24_zh",
+      "path": "cmd_24_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_25_zh",
+      "path": "cmd_25_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_26_zh",
+      "path": "cmd_26_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_27_zh",
+      "path": "cmd_27_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_28_zh",
+      "path": "cmd_28_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_29_zh",
+      "path": "cmd_29_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_30_zh",
+      "path": "cmd_30_zh.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_rapid_zh",
+      "path": "cx_rapid_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_double_zh",
+      "path": "cx_double_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_pierce_zh",
+      "path": "cx_pierce_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_bounce_zh",
+      "path": "cx_bounce_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_shield_zh",
+      "path": "cx_shield_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_engine_zh",
+      "path": "cx_engine_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_float_zh",
+      "path": "cx_float_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cxl_float_zh",
+      "path": "cxl_float_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_float_zh",
+      "path": "nx_float_zh.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_stealth_zh",
+      "path": "cx_stealth_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cxl_stealth_zh",
+      "path": "cxl_stealth_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_stealth_zh",
+      "path": "nx_stealth_zh.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_magnet_zh",
+      "path": "cx_magnet_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cxl_magnet_zh",
+      "path": "cxl_magnet_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_magnet_zh",
+      "path": "nx_magnet_zh.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_fortify_zh",
+      "path": "cx_fortify_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_bomb_zh",
+      "path": "cx_bomb_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_freeze_zh",
+      "path": "cx_freeze_zh.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_all_zh",
+      "path": "nx_all_zh.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_1_0_zh",
+      "path": "tk_1_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_1_1_zh",
+      "path": "tk_1_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_2_0_zh",
+      "path": "tk_2_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_2_1_zh",
+      "path": "tk_2_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_3_0_zh",
+      "path": "tk_3_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_3_1_zh",
+      "path": "tk_3_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_4_0_zh",
+      "path": "tk_4_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_4_1_zh",
+      "path": "tk_4_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_5_0_zh",
+      "path": "tk_5_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_5_1_zh",
+      "path": "tk_5_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_6_0_zh",
+      "path": "tk_6_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_6_1_zh",
+      "path": "tk_6_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_7_0_zh",
+      "path": "tk_7_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_7_1_zh",
+      "path": "tk_7_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_8_0_zh",
+      "path": "tk_8_0_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_8_1_zh",
+      "path": "tk_8_1_zh.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "garage_en",
+      "path": "garage_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "cmd_1_en",
+      "path": "cmd_1_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_2_en",
+      "path": "cmd_2_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_3_en",
+      "path": "cmd_3_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_4_en",
+      "path": "cmd_4_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_5_en",
+      "path": "cmd_5_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_6_en",
+      "path": "cmd_6_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_7_en",
+      "path": "cmd_7_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_8_en",
+      "path": "cmd_8_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_9_en",
+      "path": "cmd_9_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_10_en",
+      "path": "cmd_10_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_11_en",
+      "path": "cmd_11_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_12_en",
+      "path": "cmd_12_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_13_en",
+      "path": "cmd_13_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_14_en",
+      "path": "cmd_14_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_15_en",
+      "path": "cmd_15_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_16_en",
+      "path": "cmd_16_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_17_en",
+      "path": "cmd_17_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_18_en",
+      "path": "cmd_18_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_19_en",
+      "path": "cmd_19_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_20_en",
+      "path": "cmd_20_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_21_en",
+      "path": "cmd_21_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_22_en",
+      "path": "cmd_22_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_23_en",
+      "path": "cmd_23_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_24_en",
+      "path": "cmd_24_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_25_en",
+      "path": "cmd_25_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_26_en",
+      "path": "cmd_26_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_27_en",
+      "path": "cmd_27_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_28_en",
+      "path": "cmd_28_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_29_en",
+      "path": "cmd_29_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cmd_30_en",
+      "path": "cmd_30_en.svg",
+      "x": 4.0,
+      "y": 44.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_rapid_en",
+      "path": "cx_rapid_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_double_en",
+      "path": "cx_double_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_pierce_en",
+      "path": "cx_pierce_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_bounce_en",
+      "path": "cx_bounce_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_shield_en",
+      "path": "cx_shield_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_engine_en",
+      "path": "cx_engine_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_float_en",
+      "path": "cx_float_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cxl_float_en",
+      "path": "cxl_float_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_float_en",
+      "path": "nx_float_en.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_stealth_en",
+      "path": "cx_stealth_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cxl_stealth_en",
+      "path": "cxl_stealth_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_stealth_en",
+      "path": "nx_stealth_en.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_magnet_en",
+      "path": "cx_magnet_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cxl_magnet_en",
+      "path": "cxl_magnet_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_magnet_en",
+      "path": "nx_magnet_en.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_fortify_en",
+      "path": "cx_fortify_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_bomb_en",
+      "path": "cx_bomb_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "cx_freeze_en",
+      "path": "cx_freeze_en.svg",
+      "x": 120.0,
+      "y": 92.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "nx_all_en",
+      "path": "nx_all_en.svg",
+      "x": 4.0,
+      "y": 26.4,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_1_0_en",
+      "path": "tk_1_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_1_1_en",
+      "path": "tk_1_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_2_0_en",
+      "path": "tk_2_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_2_1_en",
+      "path": "tk_2_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_3_0_en",
+      "path": "tk_3_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_3_1_en",
+      "path": "tk_3_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_4_0_en",
+      "path": "tk_4_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_4_1_en",
+      "path": "tk_4_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_5_0_en",
+      "path": "tk_5_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_5_1_en",
+      "path": "tk_5_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_6_0_en",
+      "path": "tk_6_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_6_1_en",
+      "path": "tk_6_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_7_0_en",
+      "path": "tk_7_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_7_1_en",
+      "path": "tk_7_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_8_0_en",
+      "path": "tk_8_0_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tk_8_1_en",
+      "path": "tk_8_1_en.svg",
+      "x": 0,
+      "y": 0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_0",
+      "path": "xp_0.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_1",
+      "path": "xp_1.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_2",
+      "path": "xp_2.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_3",
+      "path": "xp_3.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_4",
+      "path": "xp_4.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_5",
+      "path": "xp_5.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_6",
+      "path": "xp_6.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_7",
+      "path": "xp_7.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_8",
+      "path": "xp_8.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_9",
+      "path": "xp_9.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_10",
+      "path": "xp_10.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_11",
+      "path": "xp_11.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_12",
+      "path": "xp_12.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_13",
+      "path": "xp_13.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_14",
+      "path": "xp_14.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_15",
+      "path": "xp_15.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_16",
+      "path": "xp_16.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_17",
+      "path": "xp_17.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_18",
+      "path": "xp_18.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_19",
+      "path": "xp_19.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "xp_20",
+      "path": "xp_20.svg",
+      "x": 0,
+      "y": 10.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_0",
+      "path": "tp_0.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_1",
+      "path": "tp_1.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_2",
+      "path": "tp_2.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_3",
+      "path": "tp_3.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_4",
+      "path": "tp_4.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_5",
+      "path": "tp_5.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_6",
+      "path": "tp_6.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_7",
+      "path": "tp_7.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_8",
+      "path": "tp_8.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_9",
+      "path": "tp_9.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "tp_10",
+      "path": "tp_10.svg",
+      "x": 0,
+      "y": 8.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "skp_0",
+      "path": "skp_0.svg",
+      "x": 140,
+      "y": 140,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_0_sel",
+      "path": "sk_0_sel.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_0_own",
+      "path": "sk_0_own.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_0_lock",
+      "path": "sk_0_lock.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "skp_1",
+      "path": "skp_1.svg",
+      "x": 140,
+      "y": 140,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_1_sel",
+      "path": "sk_1_sel.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_1_own",
+      "path": "sk_1_own.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_1_lock",
+      "path": "sk_1_lock.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "skp_2",
+      "path": "skp_2.svg",
+      "x": 140,
+      "y": 140,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_2_sel",
+      "path": "sk_2_sel.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_2_own",
+      "path": "sk_2_own.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_2_lock",
+      "path": "sk_2_lock.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "skp_3",
+      "path": "skp_3.svg",
+      "x": 140,
+      "y": 140,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_3_sel",
+      "path": "sk_3_sel.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_3_own",
+      "path": "sk_3_own.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_3_lock",
+      "path": "sk_3_lock.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "skp_4",
+      "path": "skp_4.svg",
+      "x": 140,
+      "y": 140,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_4_sel",
+      "path": "sk_4_sel.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_4_own",
+      "path": "sk_4_own.svg",
+      "x": 60.0,
+      "y": 60.0,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "sk_4_lock",
+      "path": "sk_4_lock.svg",
+      "x": 60.0,
+      "y": 60.0,
       "bitmapResolution": 4
     },
     {

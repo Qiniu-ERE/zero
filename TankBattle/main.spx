@@ -101,6 +101,17 @@ var (
 	freezeLeft   float64 // 冰冻：敌人还要停几秒
 	fortifyLeft  float64 // 钢铁堡垒：基地四周的钢墙还剩几秒
 	cmdLevel     int     // 指挥官等级（局外成长，车库里升级）：决定哪些芯片已经解锁
+
+	// v6 局外成长：车库与存档（docs/v6/PLAN.md 第三节），存在 save.txt
+	playerID    string // 随机的 16 位十六进制 ID（第一次启动时生成）：排行榜用它区分玩家，不收集个人信息
+	cmdXP       int    // 指挥官经验（累计）
+	wallet      int    // 金币：每局结算的金币存进来，用来买涂装
+	skinsOwned  []bool // 有哪些涂装（下标是涂装编号，0 是默认的金色）
+	skin        int    // 1P 现在用的涂装（只换现代画风的外观；2P 一直是青绿色，方便分清）
+	taskDay     int    // 今日任务是哪一天的
+	taskIDs     []int  // 今天的 3 个任务
+	taskProg    []int  // 3 个任务的进度
+	dayOverride int    // 测试用：指定“今天”是第几天（0 表示按真实时间）
 )
 
 const (
@@ -113,6 +124,7 @@ const (
 	stPause  = 6 // 对局暂停（Esc 或顶栏的暂停按钮）
 	stLevels = 7 // 选择关卡（v5：鼠标、触屏也能选关）
 	stPick   = 8 // v6：捡到芯片，三选一（战场冻结）
+	stGarage = 9 // v6：车库
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
@@ -160,6 +172,23 @@ const (
 	shieldSecs  = 30.0
 	freezeSecs  = 5.0
 	fortifySecs = 15.0
+
+	// 局外成长
+	maxCmdLevel = 30
+	xpKill      = 2  // 击毁一辆敌人的经验
+	xpElite     = 10 // 击毁精英额外的经验
+	xpClear     = 50 // 过关的经验
+	skinCount   = 5
+	taskCount   = 7 // 每日任务的种类（第 8 种“完成每日挑战”在每日挑战上线后加入）
+	taskReward  = 50
+
+	tkKill   = 1 // 每日任务：击毁 30 辆敌人
+	tkElite  = 2 // 击毁 3 辆精英
+	tkClear  = 3 // 通关 2 关
+	tkChip   = 4 // 捡到 3 块芯片
+	tkCoop   = 5 // 打一局双人合作
+	tkCombo  = 6 // 凑出一个连携
+	tkCustom = 7 // 试玩一张自制地图
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
@@ -562,6 +591,8 @@ func eliteCount() int {
 // 精英被击毁：在它的位置掉一块芯片（场上原来的芯片被替换），10 秒内去捡
 func eliteDown(x, y float64) {
 	elitesKilled++
+	gainXP xpElite
+	taskAdd tkElite, 1
 	dropX = x
 	dropY = y
 	dropLeft = dropSecs
@@ -654,6 +685,7 @@ func chipRand(n int) int {
 // 玩家 who 捡到了芯片：满级直接加分；否则战场冻结，弹出三选一（路演演示时直接装第一块）
 func pickChip(who int) {
 	dropLeft = 0
+	taskAdd tkChip, 1
 	if lvl[who] >= maxLevel {
 		score += maxBonus
 		if score > best && !autopilot {
@@ -749,8 +781,10 @@ func applyChip(who, id int) {
 	broadcast "hud"
 	if (id == cPierce || id == cBounce) && comboBarrage(who) {
 		toast "msg.combo.barrage", 2
+		taskAdd tkCombo, 1
 	} else if (id == cRapid || id == cDouble) && comboSalvo(who) {
 		toast "msg.combo.salvo", 2
+		taskAdd tkCombo, 1
 	} else {
 		toast "msg.chip."+chipKey(id), 1.5
 	}
@@ -879,6 +913,343 @@ func pbBounce(f int) int {
 		nd -= 360
 	}
 	return f - d + nd + 10000
+}
+
+// ---------- v6 局外成长：存档、指挥官等级、金币、涂装、每日任务（docs/v6/PLAN.md 第三节） ----------
+
+// 存档放在哪里（PC 版）：和自制地图同一个目录。网页版没有文件系统，返回 ""（进度只在这次运行里有效）
+func saveFile() string {
+	dir, err := os.UserConfigDir()
+	if err != nil || dir == "" {
+		return ""
+	}
+	return dir + "/TankBattle/save.txt"
+}
+
+func joinInts(a []int) string {
+	s := []string{}
+	for _, n := range a {
+		s = append(s, strconv.Itoa(n))
+	}
+	return strings.Join(s, ",")
+}
+
+func splitInts(s string) []int {
+	out := []int{}
+	for _, p := range strings.Split(s, ",") {
+		if n, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// 存档：纯文本 key=value，第一行是版本号
+func saveText() string {
+	owned := []int{}
+	for i, ok := range skinsOwned {
+		if ok {
+			owned = append(owned, i)
+		}
+	}
+	lines := []string{"v=1", "id=" + playerID, "xp=" + strconv.Itoa(cmdXP), "coins=" + strconv.Itoa(wallet),
+		"skin=" + strconv.Itoa(skin), "skins=" + joinInts(owned),
+		"task.day=" + strconv.Itoa(taskDay), "task.ids=" + joinInts(taskIDs), "task.prog=" + joinInts(taskProg)}
+	return strings.Join(lines, "\n") + "\n"
+}
+
+func saveGame() {
+	f := saveFile()
+	if f == "" {
+		return
+	}
+	os.MkdirAll(f[:len(f)-len("/save.txt")], 0755)
+	os.WriteFile(f, []byte(saveText()), 0644)
+}
+
+// 读存档文本：版本号不对或者读不出来返回 false（当作新玩家，不会崩溃）；认不出的行跳过
+func loadText(text string) bool {
+	lines := strings.Split(strings.TrimSpace(text), "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "v=1" {
+		return false
+	}
+	newSave()
+	for _, line := range lines[1:] {
+		kv := strings.SplitN(strings.TrimSpace(line), "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		k, v := kv[0], kv[1]
+		n, _ := strconv.Atoi(v)
+		switch k {
+		case "id":
+			if len(v) == 16 {
+				playerID = v
+			}
+		case "xp":
+			cmdXP = int(math.Max(0, float64(n)))
+		case "coins":
+			wallet = int(math.Max(0, float64(n)))
+		case "skin":
+			skin = n
+		case "skins":
+			for _, i := range splitInts(v) {
+				if i >= 0 && i < skinCount {
+					skinsOwned[i] = true
+				}
+			}
+		case "task.day":
+			taskDay = n
+		case "task.ids":
+			taskIDs = splitInts(v)
+		case "task.prog":
+			taskProg = splitInts(v)
+		}
+	}
+	if skin < 0 || skin >= skinCount || !skinsOwned[skin] {
+		skin = 0
+	}
+	if !tasksValid() {
+		taskDay = 0 // 任务数据不完整：重新抽今天的任务
+	}
+	cmdLevel = levelForXP(cmdXP)
+	return true
+}
+
+// 新玩家：随机 ID、默认涂装，其余从 0 开始
+func newSave() {
+	playerID = newID()
+	cmdXP = 0
+	cmdLevel = 1
+	wallet = 0
+	skinsOwned = make([]bool, skinCount)
+	skinsOwned[0] = true
+	skin = 0
+	taskDay = 0
+	taskIDs = nil
+	taskProg = nil
+}
+
+// 16 位十六进制的随机 ID（只用来区分玩家，不含任何个人信息）
+func newID() string {
+	s := ""
+	for i := 0; i < 16; i++ {
+		s += string("0123456789abcdef"[int(rand(0, 15))])
+	}
+	return s
+}
+
+// 启动时读存档；没有存档（或者网页版）就新建
+func initSave() {
+	f := saveFile()
+	ok := false
+	if f != "" {
+		if b, err := os.ReadFile(f); err == nil {
+			ok = loadText(string(b))
+		}
+	}
+	if !ok {
+		newSave()
+		saveGame()
+	}
+	refreshTasks()
+}
+
+// 指挥官从 l 级升到 l+1 级要多少经验
+func xpNeed(l int) int {
+	return 100 + 50*(l-1)
+}
+
+func levelForXP(xp int) int {
+	l := 1
+	for l < maxCmdLevel && xp >= xpNeed(l) {
+		xp -= xpNeed(l)
+		l++
+	}
+	return l
+}
+
+// 当前等级里已经有多少经验、这一级一共要多少（满级时返回 1, 1）
+func xpInLevel() (int, int) {
+	xp := cmdXP
+	l := 1
+	for l < maxCmdLevel && xp >= xpNeed(l) {
+		xp -= xpNeed(l)
+		l++
+	}
+	if l >= maxCmdLevel {
+		return 1, 1
+	}
+	return xp, xpNeed(l)
+}
+
+// 加经验（路演演示不算）。升级时提示，解锁了芯片就提示解锁了哪块
+func gainXP(n int) {
+	if autopilot {
+		return
+	}
+	old := cmdLevel
+	cmdXP += n
+	cmdLevel = levelForXP(cmdXP)
+	if cmdLevel <= old {
+		return
+	}
+	for id := 1; id <= chipCount; id++ {
+		if chipUnlockLv(id) > old && chipUnlockLv(id) <= cmdLevel {
+			toast "msg.unlock."+chipKey(id), 2.5
+			saveGame()
+			return
+		}
+	}
+	toast "msg.cmd.up", 2
+	saveGame()
+}
+
+// 下一块要解锁的芯片（0 表示全部解锁了）
+func nextUnlock() int {
+	best := 0
+	for id := 1; id <= chipCount; id++ {
+		if !chipUnlocked(id) && (best == 0 || chipUnlockLv(id) < chipUnlockLv(best)) {
+			best = id
+		}
+	}
+	return best
+}
+
+// 涂装的价格（金币），0 号是默认的金色
+func skinPrice(i int) int {
+	return []int{0, 1500, 2000, 2500, 3000}[i]
+}
+
+// 点了第 i 款涂装：有了就换上，没有就用金币买（钱不够提示）
+func buySkin(i int) {
+	if i < 0 || i >= skinCount {
+		return
+	}
+	if skinsOwned[i] {
+		skin = i
+		toast "msg.skin.on", 1.2
+	} else if wallet >= skinPrice(i) {
+		wallet -= skinPrice(i)
+		skinsOwned[i] = true
+		skin = i
+		toast "msg.skin.bought", 1.5
+	} else {
+		toast "msg.coins.short", 1.5
+		return
+	}
+	saveGame()
+	broadcast "hud"
+}
+
+// 现在的 Unix 时间（秒）。spx 的解释器里没有 time.Now（为了录制回放保持确定），
+// 所以写一个临时文件再读它的修改时间；没有文件系统（网页版）时返回 0
+func nowSec() int {
+	f := os.TempDir() + "/tankbattle_clock"
+	if os.WriteFile(f, []byte("t"), 0644) != nil {
+		return 0
+	}
+	st, err := os.Stat(f)
+	if err != nil {
+		return 0
+	}
+	return int(st.ModTime().Unix())
+}
+
+// 今天是第几天（按北京时间 UTC+8 换日）；拿不到时间时是 0。测试里可以用 dayOverride 指定
+func today() int {
+	if dayOverride > 0 {
+		return dayOverride
+	}
+	sec := nowSec()
+	if sec <= 0 {
+		return 0
+	}
+	return (sec + 8*3600) / 86400
+}
+
+// 线性同余随机数（每日任务、每日挑战用：同一个种子在所有设备上得到同样的结果）
+func lcg(s int) int {
+	return (s*1103515245 + 12345) % 2147483648
+}
+
+// 第 d 天的 3 个任务（同一天大家一样）
+func pickTasks(d int) []int {
+	out := []int{}
+	s := d
+	for len(out) < 3 {
+		s = lcg(s)
+		k := 1 + (s/65536)%taskCount
+		dup := false
+		for _, t := range out {
+			if t == k {
+				dup = true
+			}
+		}
+		if !dup {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// 每个任务的目标：击毁 30 辆、击毁 3 辆精英、通关 2 关、捡到 3 块芯片、打一局双人、凑出一个连携、试玩一张自制地图、完成每日挑战
+func taskTarget(k int) int {
+	return []int{0, 30, 3, 2, 3, 1, 1, 1, 1}[k]
+}
+
+// 任务数据完整吗：3 个任务、编号都认识（存档被改坏了也不会出错）
+func tasksValid() bool {
+	if len(taskIDs) != 3 || len(taskProg) != 3 {
+		return false
+	}
+	for _, k := range taskIDs {
+		if k < 1 || k >= len([]int{0, 30, 3, 2, 3, 1, 1, 1, 1}) {
+			return false
+		}
+	}
+	return true
+}
+
+// 换日了（或者任务数据不完整）就抽今天的任务
+func refreshTasks() {
+	d := today()
+	if d == taskDay && tasksValid() {
+		return
+	}
+	taskDay = d
+	taskIDs = pickTasks(d)
+	taskProg = []int{0, 0, 0}
+	saveGame()
+}
+
+// 任务进度：完成时奖励金币（每个任务只奖励一次）。路演演示不算
+func taskAdd(k, n int) {
+	if autopilot {
+		return
+	}
+	refreshTasks()
+	for i := 0; i < 3; i++ {
+		if taskIDs[i] != k || taskProg[i] >= taskTarget(k) {
+			continue
+		}
+		taskProg[i] = int(math.Min(float64(taskProg[i]+n), float64(taskTarget(k))))
+		if taskProg[i] >= taskTarget(k) {
+			wallet += taskReward
+			toast "msg.task.done", 2
+			saveGame()
+		}
+	}
+}
+
+// 打开车库（主页按 G 或点“车库”）
+func openGarage() {
+	if state != stHome {
+		return
+	}
+	refreshTasks()
+	state = stGarage
+	setScreen "garage"
 }
 
 // ---------- 自己做地图 ----------
@@ -1381,6 +1752,22 @@ func buildHud() {
 	UI.icon kEdCursor, 0, 0, 0
 	UI.icon kEdMark, 0, 0, 0
 	UI.number kCoin, -132, 35, 9
+	// 车库（v6）：坐标和 tools/assets/build.py 的 GR_* 布局一致（舞台 x = svgX - 240，y = 180 - svgY）
+	UI.icon kGarage, -212, 120, 0  // 指挥官等级
+	UI.icon kGarage, -212, 111.5, 1 // 经验条
+	UI.icon kGarage, -212, 99, 2   // 下一个解锁
+	UI.icon kGarage, -139, 40, 3   // 涂装预览
+	for i := 0; i < chipCount; i++ {
+		UI.icon kGarage, -10+float64(i%4)*66, 83-float64(i/4)*52, 10+i // 芯片图鉴
+	}
+	for i := 0; i < skinCount; i++ {
+		UI.icon kGarage, -209+float64(i)*34, -51, 30+i // 涂装
+	}
+	for i := 0; i < 3; i++ {
+		UI.icon kGarage, -40, -70-float64(i)*22, 40+i  // 今日任务
+		UI.icon kGarage, 90, -79-float64(i)*22, 43+i   // 任务进度
+	}
+	UI.number kWallet, -209, -105, 9
 	// 三选一（v6）：三张卡片、刷新按钮、谁在选
 	for i := 0; i < 3; i++ {
 		UI.icon kPick, -134+float64(i)*134, 13, i
@@ -1601,6 +1988,23 @@ func endGame(win bool) {
 	if win {
 		coins += 100
 	}
+	if autopilot {
+		coins = 0 // 路演演示的金币不进钱包
+	}
+	wallet += coins // v6：存进钱包，车库里买涂装
+	if win {
+		gainXP xpClear
+		if stage <= lastStage {
+			taskAdd tkClear, 1
+		}
+	}
+	if stage == customStage {
+		taskAdd tkCustom, 1
+	}
+	if coop {
+		taskAdd tkCoop, 1
+	}
+	saveGame()
 	doubled = false
 	resultReady = false
 	broadcast "resultArm"
@@ -1749,7 +2153,7 @@ func escKey() {
 		pauseGame
 	} else if state == stPause {
 		resumeGame
-	} else if state == stLevels {
+	} else if state == stLevels || state == stGarage {
 		goHome
 	}
 }
@@ -1933,6 +2337,8 @@ func enemyKilled(points int) {
 	score += points
 	killed++
 	enemiesAlive--
+	gainXP xpKill
+	taskAdd tkKill, 1
 	if score > best && !autopilot { // 路演演示（自动驾驶）的分数不算最高分
 		best = score
 	}
@@ -2096,6 +2502,11 @@ onKey KeyC, => {
 	}
 }
 
+// 主页按 G：车库（v6）
+onKey KeyG, => {
+	openGarage
+}
+
 // 主页按 E：自己做地图
 onKey KeyE, => {
 	if state == stHome {
@@ -2120,6 +2531,8 @@ onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 	n := int(key) - int(Key0)
 	if state == stPick {
 		pickChoose(n - 1) // 三选一
+	} else if state == stGarage {
+		buySkin(n - 1) // 车库：换 / 买涂装
 	} else if state == stHome || state == stLevels {
 		newGame n, false
 	} else if state == stEdit && n <= 5 {
@@ -2153,7 +2566,7 @@ onKey KeyP, => {
 }
 
 onKey KeyH, => {
-	if state == stResult {
+	if state == stResult || state == stGarage {
 		goHome
 	} else if state == stPause {
 		quitFromPause
@@ -2238,8 +2651,10 @@ onMsg "adFlow", => {
 		state = stPick
 		setScreen "pick"
 	} else {
+		wallet += coins // 翻倍多出来的那一份也存进钱包
 		coins *= 2
 		doubled = true
+		saveGame()
 		state = stResult
 		showResult
 	}
@@ -2329,7 +2744,7 @@ onMsg "chipLoop", => {
 
 onStart => {
 	stage = 1
-	cmdLevel = 1
+	initSave
 	broadcast "chipLoop"
 	initTheme
 	buildHud

@@ -43,6 +43,8 @@ def referenced_msg_keys():
                 keys |= {f"msg.ed.copy{n}" for n in range(1, LAST_STAGE + 1)}
             elif k == "msg.chip.":  # v6："msg.chip." + chipKey(id)，每块芯片一条
                 keys |= {f"msg.chip.{c}" for c in CHIP_KEYS}
+            elif k == "msg.unlock.":  # v6：解锁芯片的提示，只有要解锁的三块
+                keys |= {f"msg.unlock.{c}" for c in ("float", "stealth", "magnet")}
             else:
                 keys.add(k)
     return keys
