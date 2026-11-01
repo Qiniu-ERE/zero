@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v6.0 效果图：打精英升级、三选一芯片、车库（局外成长）、排行榜、每日挑战主页、分享战报。
+"""v6.0 效果图：敌我区分、打精英升级、三选一芯片、车库（局外成长）、排行榜、每日挑战主页、分享战报。
 
 和 v3 一样直接调用游戏的美术生成器（tools/assets/build.py）里的地形、坦克、按钮函数，风格和游戏一致。
 这些只是规划用的示意图，游戏里还没有这些画面。
@@ -22,8 +22,10 @@ PX, PW = 336, 132
 X0 = PX + 8
 MUTED = B.MUTED
 P1 = B.TANKS["player"]
-ELITE = ("#c46bff", "#5d2391", "#ecd2ff")  # 精英坦克：紫色，和玩家（黄、青绿）、三种敌人（红、蓝、绿）都区分开
-PURPLE = ELITE[0]
+P2 = B.TANKS["player2"]
+PURPLE = "#c46bff"  # 精英：敌方车身 + 紫色标识
+FOE_RED = "#ff3b30"  # 敌方标识色：警示条、炮塔“眼睛”、子弹
+HULL = ("#5b6271", "#2a2e37", "#8a93a6")  # 敌方统一的枪灰色车身
 CYAN = "#3ee8ff"
 GOLD = "#ffe27a"
 GREEN = "#2ee88a"
@@ -72,6 +74,68 @@ def tank_icon(colors, x, y, size, rot=0, heavy=False):
     defs, body = B.tank_body(*colors, heavy=heavy)
     icon = B.svg(24, 24, body, defs)
     return f'<g transform="translate({x + size / 2} {y + size / 2}) rotate({rot}) translate({-size / 2} {-size / 2})">{img(icon, 0, 0, size, size)}</g>'
+
+
+# ---------- 敌我区分：我方亮色圆炮塔 + 脚下光圈 + 1P/2P 标签；敌方枪灰切角车身 + 红色标识，种类靠外形 ----------
+def foe_body(accent=FOE_RED, kind="basic"):
+    """朝上的敌方坦克（24x24），返回 (defs, body)。kind: basic / fast / heavy"""
+    main, dark, light = HULL
+    defs = B.rad("sh", [(0, "#000", 0.45), (0.7, "#000", 0.2), (1, "#000", 0)])
+    s = ['<ellipse cx="12.8" cy="13.4" rx="11.2" ry="10.6" fill="url(#sh)"/>']
+    hx, hw = {"fast": (7.4, 9.2), "heavy": (5.2, 13.6)}.get(kind, (5.8, 12.4))
+    tw = 4.6 if kind == "fast" else 5.5
+    for x in (hx - tw + 0.4, hx + hw - 0.4):  # 履带
+        s.append(f'<rect x="{x:.1f}" y="2.5" width="{tw}" height="20" rx="1.2" fill="#141418"/>')
+        for i in range(7):
+            s.append(f'<rect x="{x + 0.5:.1f}" y="{3.4 + i * 2.8:.1f}" width="{tw - 1}" height="1.3" fill="{accent}" fill-opacity="0.35"/>')
+    c = 2.6  # 切角车身，和我方的圆角车身区分
+    x1, y1, x2, y2 = hx, 4.5, hx + hw, 21.5
+    pts = f"{x1 + c},{y1} {x2 - c},{y1} {x2},{y1 + c} {x2},{y2 - c} {x2 - c},{y2} {x1 + c},{y2} {x1},{y2 - c} {x1},{y1 + c}"
+    s.append(f'<polygon points="{pts}" fill="{dark}"/>')
+    s.append(f'<polygon points="{pts}" fill="{main}" transform="translate(0 -0.8)"/>')
+    s.append(f'<rect x="{x1 + 1.2}" y="5.6" width="{hw - 2.4}" height="1.8" fill="{accent}"/>')  # 车头警示条
+    if kind == "heavy":  # 重型：两侧装甲板 + 铆钉
+        for x in (x1 + 0.8, x2 - 3.4):
+            s.append(f'<rect x="{x:.1f}" y="9" width="2.6" height="10" rx="0.5" fill="{dark}"/>')
+            s.append(f'<circle cx="{x + 1.3:.1f}" cy="10.5" r="0.6" fill="{accent}"/><circle cx="{x + 1.3:.1f}" cy="17.5" r="0.6" fill="{accent}"/>')
+    if kind == "fast":  # 快速：车尾两道箭头
+        s.append(f'<path d="M9.4 18.6l2.6-1.8 2.6 1.8M9.4 21l2.6-1.8 2.6 1.8" stroke="{accent}" stroke-width="0.9" fill="none"/>')
+    bw = 4.6 if kind == "heavy" else 3.2
+    s.append(f'<rect x="{12 - bw / 2}" y="0.8" width="{bw}" height="11" fill="{dark}"/>')
+    s.append(f'<rect x="{12 - bw / 2 - 0.6}" y="0" width="{bw + 1.2}" height="2.2" fill="{accent}"/>')  # 红色炮口
+    s.append(hex_fill(12, 13, 5.4, dark) + hex_fill(12, 12.4, 4.8, main))  # 六角炮塔
+    s.append(f'<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="{accent}"/>')  # “眼睛”
+    s.append(f'<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="#ffffff" fill-opacity="0.35"/>')
+    return defs, "".join(s)
+
+
+def hex_fill(cx, cy, r, fill):
+    pts = " ".join(f"{cx + math.cos(math.radians(i * 60)) * r:.2f},{cy + math.sin(math.radians(i * 60)) * r:.2f}" for i in range(6))
+    return f'<polygon points="{pts}" fill="{fill}"/>'
+
+
+def foe(r, c, heading=0, kind="basic", accent=FOE_RED):
+    x, y = cell(r, c)
+    defs, body = foe_body(accent, kind)
+    return f'<g transform="rotate({heading} {x + 12} {y + 12})">{img(B.svg(24, 24, body, defs), x, y, C, C)}</g>'
+
+
+def foe_icon(x, y, size, kind="basic", accent=FOE_RED, rot=0):
+    defs, body = foe_body(accent, kind)
+    icon = B.svg(24, 24, body, defs)
+    return f'<g transform="translate({x + size / 2} {y + size / 2}) rotate({rot}) translate({-size / 2} {-size / 2})">{img(icon, 0, 0, size, size)}</g>'
+
+
+def ally_ring(cx, cy, col, r=13.5):
+    """我方脚下的光圈：画在造型里，坦克转向时不变"""
+    return (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{col}" fill-opacity="0.12" stroke="{col}" stroke-width="1.3"/>')
+
+
+def ally(colors, r, c, heading=0, tag="1P", extra=""):
+    x, y = cell(r, c)
+    s = ally_ring(x + 12, y + 12, colors[0]) + tank(colors, r, c, heading)
+    b, bw = pill(0, 0, tag + extra, 5.6, colors[0], "#1a1405", pad=6, h=9)
+    return s + f'<g transform="translate({x + 12 - bw / 2:.2f},{y - 10})">{b}</g>'
 
 
 def star(cx, cy, r, fill, op=1.0):
@@ -214,6 +278,10 @@ T = {
         sh_title="每日挑战 #301", sh_time="用时 3:42", sh_score="得分 12,800", sh_rank="全球第 1,204 名 · 前 8%",
         sh_friend="连续打卡 7 天", sh_build="我的芯片", sh_cta="长按识别，一起守老鹰", sh_btn="分享到微信", sh_btn2="保存图片",
         sh_chal="挑战我的分数", sh_help="点开链接，你的坦克会来给我助战一关",
+        i_title="敌我一眼分清", i_ally="我方", i_foe="敌方",
+        i_ally_r=("亮色车身：1P 黄、2P 青绿，涂装也只用亮色", "圆角车身、圆形炮塔", "脚下光圈 + 头顶 1P / 2P 标签", "黄色子弹"),
+        i_foe_r=("统一枪灰色车身、切角外形、六角炮塔", "红色警示条、红色炮口和“眼睛”", "种类看外形：快速窄、重型带装甲板", "红色子弹；精英换紫色并带光圈"),
+        i_kinds=("普通", "快速", "重型", "精英"), i_before="以前：只靠颜色区分，2P 的青绿和重型的绿很像", i_after="现在：颜色、外形、标识、子弹四重区分",
     ),
     "en": dict(
         stage="Stage 3 · Jungle Ambush", elite_toast="Elite incoming! Destroy it for an upgrade chip", enemies="Enemies", score="SCORE", level="TANK LEVEL",
@@ -235,6 +303,10 @@ T = {
         sh_title="Daily Challenge #301", sh_time="Time 3:42", sh_score="Score 12,800", sh_rank="#1,204 worldwide · top 8%",
         sh_friend="7-day streak", sh_build="My build", sh_cta="Scan to guard the eagle with me", sh_btn="Share", sh_btn2="Save image",
         sh_chal="Beat my score", sh_help="Open the link and your tank joins my next stage",
+        i_title="Friend or foe at a glance", i_ally="ALLIES", i_foe="ENEMIES",
+        i_ally_r=("Bright hulls: 1P yellow, 2P teal; skins stay bright", "Rounded hull, round turret", "Ground ring + 1P / 2P tag", "Yellow shells"),
+        i_foe_r=("Gunmetal hull, cut corners, hex turret", "Red stripe, red muzzle and red eye", "Type by shape: fast is slim, heavy has plates", "Red shells; elites are purple with a glow"),
+        i_kinds=("Basic", "Fast", "Heavy", "Elite"), i_before="Before: color only, 2P teal looked like the green heavy", i_after="Now: color, shape, markers and shells all differ",
     ),
 }
 
@@ -259,23 +331,23 @@ def battle(lang):
     t = T[lang]
     s = field(JUNGLE, grass=False)
     # 玩家（Lv3）在中路，刚击毁一辆精英；芯片掉在爆炸处
-    s.append(tank(P1, 9, 6, 0))
+    s.append(ally(P1, 9, 6, 0, "1P", " · Lv3"))
     px, py = cell(9, 6)
-    s.append(f'<circle cx="{px + 12}" cy="{py + 12}" r="15" fill="none" stroke="#5ad1ff" stroke-opacity="0.7" stroke-width="1.1" stroke-dasharray="3 2"/>')  # 能量护盾
-    b, bw = pill(px + 12 - 12, py - 9, "Lv3", 5.6, GOLD, "#2a1d00", pad=6, h=9)
-    s.append(b)
+    s.append(f'<circle cx="{px + 12}" cy="{py + 12}" r="16.5" fill="none" stroke="#5ad1ff" stroke-opacity="0.8" stroke-width="1" stroke-dasharray="3 2"/>')  # 能量护盾
     ex, ey = cell(5, 6)
     s.append(img(B.boom_m(2), ex - 8, ey - 8, 40, 40))
     s.append(chip_drop(ex + 12, ey + 12))
-    # 双联炮：两发子弹
+    # 双联炮：两发子弹（我方黄色）
     for r, dy in ((7, 6), (8, 2)):
         bx, by = cell(r, 6)
         s.append(img(B.bullet_m("#ffe27a", "#ffb000"), bx + 9, by + dy, 6, 6))
     # 另一辆精英从上方冲下来，带紫色光圈
     s.append(f'<circle cx="{cell(1, 9)[0] + 12}" cy="{cell(1, 9)[1] + 12}" r="18" fill="url(#eliteGlow)"/>')
-    s.append(tank(ELITE, 1, 9, 180, heavy=True))
-    s.append(tank(B.TANKS["fast"], 3, 2, 90))
-    s.append(tank(B.TANKS["basic"], 4, 11, 180))
+    s.append(foe(1, 9, 180, "heavy", PURPLE))
+    s.append(foe(3, 2, 90, "fast"))
+    s.append(foe(4, 11, 180, "basic"))
+    bx, by = cell(5, 11)  # 敌方子弹：红色
+    s.append(img(B.bullet_m("#ff8a80", FOE_RED), bx + 9, by + 4, 6, 6))
     s += grass_over(JUNGLE)
     # 提示气泡
     tw = width(t["elite_toast"], 7.5, True) + 22
@@ -301,7 +373,7 @@ def battle(lang):
     s.append(f'<rect x="{X0 + 78}" y="148" width="22" height="22" rx="4.8" fill="none" stroke="#3a4256" stroke-width="0.7" stroke-dasharray="2 2"/>')
     s.append(text(X0 + 89, 162, "+", 10, "#3a4256", True, "middle"))
     s.append(text(X0, 190, t["elite_left"], 6.8, MUTED, True))
-    s.append(tank_icon(ELITE, X0 - 2, 194, 18, heavy=True))
+    s.append(foe_icon(X0 - 2, 194, 18, "heavy", PURPLE))
     s.append(text(X0 + 20, 206, t["elite_n"], 8, "#d9b8ff", True))
     y = 222
     for k, lab in (("T", t["style"]), ("L", t["lang"])):
@@ -355,6 +427,8 @@ def pick(lang):
 
 
 # ---------- 3. 车库（局外成长） ----------
+# 涂装都是亮色：深灰和红色留给敌方
+SKINS = [P1, ("#ff9a3a", "#8a3d00", "#ffe0b8"), ("#eef4ff", "#7f8fb0", "#ffffff"), ("#ff7ab8", "#8a1f55", "#ffd6ea"), ("#8fd14f", "#3f6e1a", "#e2ffc8")]
 POOL = ["rapid", "double", "pierce", "bounce", "shield", "engine", "float", "fortify", "bomb", "freeze", "stealth", "magnet"]
 UNLOCKED = {"rapid", "double", "pierce", "bounce", "shield", "engine", "fortify", "bomb", "freeze"}
 
@@ -374,7 +448,7 @@ def garage(lang):
     s.append(tank_icon(("#ff9a3a", "#8a3d00", "#ffe0b8"), 66, 98, 70, rot=20))
     # 左下：涂装
     s.append(text(16, 210, t["g_skin"], 7, MUTED, True))
-    skins = [P1, ("#ff9a3a", "#8a3d00", "#ffe0b8"), ("#b0b8c8", "#4a5266", "#eef2f8"), ("#ff7ab8", "#8a1f55", "#ffd6ea"), ("#2b2f3a", "#0d0f14", "#7a8296")]
+    skins = SKINS
     for i, cols in enumerate(skins):
         x = 16 + i * 34
         sel = i == 1
@@ -501,7 +575,7 @@ def ranks(lang, tab=0):
             s.append(text(28, y + 17, str(n), 7.5, "#1a1205", True, "middle"))
         else:
             s.append(text(28, y + 17, f"{n:,}", 8 if n < 1000 else 6, "#c8d2e3", True, "middle"))
-        s.append(tank_icon(P1 if me else [B.TANKS["player2"], ("#ff9a3a", "#8a3d00", "#ffe0b8"), ("#b0b8c8", "#4a5266", "#eef2f8"), B.TANKS["fast"], B.TANKS["heavy"], ELITE][i], 44, y + 4, 20))
+        s.append(tank_icon(P1 if me else [P2, SKINS[1], SKINS[2], SKINS[3], SKINS[4], P2][i], 44, y + 4, 20))
         nm = t["you"] if me else name
         tx = 70
         if tab == 1:  # 全球榜：名字前面是玩家所在的平台
@@ -650,9 +724,50 @@ def share(lang):
     return B.svg(W, H, "".join(s), defs(), res=3)
 
 
+# ---------- 7. 敌我区分 ----------
+def iff(lang):
+    t = T[lang]
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    s.append(text(16, 30, t["i_title"], 16, "#ffffff", True))
+    s.append(toggle(428, 14, lang))
+    for x0, col, lab in ((16, GOLD, t["i_ally"]), (246, FOE_RED, t["i_foe"])):
+        s.append(f'<rect x="{x0}" y="44" width="218" height="244" rx="10" fill="{col}" fill-opacity="0.05" stroke="{col}" stroke-opacity="0.6" stroke-width="0.8"/>')
+        s.append(text(x0 + 12, 62, lab, 9, col, True))
+    # 我方：1P、2P
+    for i, (cols, tag) in enumerate(((P1, "1P"), (P2, "2P"))):
+        cx, cy = 70 + i * 110, 118
+        s.append(ally_ring(cx, cy, cols[0], 34))
+        s.append(tank_icon(cols, cx - 28, cy - 28, 56))
+        b, bw = pill(0, 0, tag, 9, cols[0], "#1a1405", pad=12, h=15)
+        s.append(f'<g transform="translate({cx - bw / 2:.2f},{cy - 54})">{b}</g>')
+    # 敌方：普通、快速、重型、精英
+    for i, (kind, acc) in enumerate((("basic", FOE_RED), ("fast", FOE_RED), ("heavy", FOE_RED), ("heavy", PURPLE))):
+        cx, cy = 275 + i * 53, 112
+        if acc == PURPLE:
+            s.append(f'<circle cx="{cx}" cy="{cy}" r="30" fill="url(#eliteGlow)"/>')
+        s.append(foe_icon(cx - 21, cy - 21, 42, kind, acc, rot=180))
+        s.append(text(cx, cy + 34, t["i_kinds"][i], 7, acc if acc == PURPLE else "#e6ecf5", True, "middle"))
+    for x0, col, rules in ((16, GOLD, t["i_ally_r"]), (246, FOE_RED, t["i_foe_r"])):
+        for j, r in enumerate(rules):
+            y = 182 + j * 24
+            s.append(f'<circle cx="{x0 + 16}" cy="{y - 2.4}" r="2.2" fill="{col}"/>')
+            s.append(text(x0 + 24, y, r, 6.8, "#e6ecf5", True))
+    # 子弹样例
+    s.append(img(B.bullet_m("#ffe27a", "#ffb000"), 210, 249, 9, 9))
+    s.append(img(B.bullet_m("#ff8a80", FOE_RED), 440, 249, 9, 9))
+    # 底部：以前 vs 现在
+    s.append('<rect x="16" y="298" width="448" height="48" rx="9" fill="#ffffff" fill-opacity="0.04" stroke="#263046" stroke-width="0.6"/>')
+    s.append(tank_icon(P2, 26, 306, 16) + tank_icon(B.TANKS["heavy"], 44, 306, 16, heavy=True))
+    s.append(text(66, 317.5, t["i_before"], 6.6, MUTED, True))
+    s.append(tank_icon(P2, 26, 326, 16) + foe_icon(44, 326, 16, "heavy"))
+    s.append(text(66, 337.5, t["i_after"], 6.6, GREEN, True))
+    return B.svg(W, H, "".join(s), defs(), res=3)
+
+
 def main():
     out = {}
     for lang in ("zh", "en"):
+        out[f"v6-iff-{lang}.svg"] = iff(lang)
         out[f"v6-battle-{lang}.svg"] = battle(lang)
         out[f"v6-pick-{lang}.svg"] = pick(lang)
         out[f"v6-garage-{lang}.svg"] = garage(lang)
