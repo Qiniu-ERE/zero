@@ -165,11 +165,15 @@ def broken_m():
 # ---------- 坦克（spx 和 Scratch 一样：造型按朝右画，heading 90 时不旋转） ----------
 TANKS = {
     "player": ("#ffd23a", "#b8860b", "#fff3b0"),
-    "player2": ("#4fe3c1", "#1f7a66", "#c9fff1"),  # 2P：青绿色，和三种敌人（红、蓝、绿）都区分开
-    "basic": ("#ff5a4a", "#9c1f16", "#ffc2b8"),
-    "fast": ("#4aa8ff", "#1c4f8f", "#c8e6ff"),
-    "heavy": ("#6fd06a", "#2e6e2a", "#d2f5cf"),
+    "player2": ("#4fe3c1", "#1f7a66", "#c9fff1"),  # 2P：青绿色
 }
+# v6 敌我区分（docs/v6/PLAN.md 第一节）：我方亮色、圆角车身、圆炮塔；敌方统一枪灰色切角车身、六角炮塔，
+# 标识色红色（警示条、炮口、“眼睛”），种类看外形（快速窄、重型带装甲板）；精英的标识色换成紫色。
+# 深灰和红色只留给敌方，我方的颜色和涂装都不能用
+FOE_RED = "#ff3b30"
+ELITE = "#c46bff"
+HULL = ("#5b6271", "#2a2e37", "#8a93a6")  # 敌方车身：主色、暗部、亮部
+FOE_KINDS = ("basic", "fast", "heavy")
 
 
 def tank_body(main, dark, light, heavy=False):
@@ -198,6 +202,74 @@ def tank_m(main, dark, light, heavy=False):
     return svg(C, C, f'<g transform="rotate(90 12 12)">{body}</g>', defs)
 
 
+def hex_fill(cx, cy, r, fill):
+    pts = " ".join(f"{cx + math.cos(math.radians(i * 60)) * r:.2f},{cy + math.sin(math.radians(i * 60)) * r:.2f}" for i in range(6))
+    return f'<polygon points="{pts}" fill="{fill}"/>'
+
+
+def foe_body(accent=FOE_RED, kind="basic"):
+    """朝上的敌方坦克（24x24），返回 (defs, body)。kind：basic / fast / heavy"""
+    main, dark, light = HULL
+    defs = rad("sh", [(0, "#000", 0.45), (0.7, "#000", 0.2), (1, "#000", 0)])
+    s = ['<ellipse cx="12.8" cy="13.4" rx="11.2" ry="10.6" fill="url(#sh)"/>']
+    hx, hw = {"fast": (7.4, 9.2), "heavy": (5.2, 13.6)}.get(kind, (5.8, 12.4))
+    tw = 4.6 if kind == "fast" else 5.5
+    for x in (hx - tw + 0.4, hx + hw - 0.4):  # 履带
+        s.append(f'<rect x="{x:.1f}" y="2.5" width="{tw}" height="20" rx="1.2" fill="#141418"/>')
+        for i in range(7):
+            s.append(f'<rect x="{x + 0.5:.1f}" y="{3.4 + i * 2.8:.1f}" width="{tw - 1}" height="1.3" fill="{accent}" fill-opacity="0.35"/>')
+    c = 2.6  # 切角车身，和我方的圆角车身区分
+    x1, y1, x2, y2 = hx, 4.5, hx + hw, 21.5
+    pts = f"{x1 + c},{y1} {x2 - c},{y1} {x2},{y1 + c} {x2},{y2 - c} {x2 - c},{y2} {x1 + c},{y2} {x1},{y2 - c} {x1},{y1 + c}"
+    s.append(f'<polygon points="{pts}" fill="{dark}"/>')
+    s.append(f'<polygon points="{pts}" fill="{main}" transform="translate(0 -0.8)"/>')
+    s.append(f'<rect x="{x1 + 1.2}" y="5.6" width="{hw - 2.4}" height="1.8" fill="{accent}"/>')  # 车头警示条
+    if kind == "heavy":  # 重型：两侧装甲板 + 铆钉
+        for x in (x1 + 0.8, x2 - 3.4):
+            s.append(f'<rect x="{x:.1f}" y="9" width="2.6" height="10" rx="0.5" fill="{dark}"/>')
+            s.append(f'<circle cx="{x + 1.3:.1f}" cy="10.5" r="0.6" fill="{accent}"/><circle cx="{x + 1.3:.1f}" cy="17.5" r="0.6" fill="{accent}"/>')
+    if kind == "fast":  # 快速：车尾两道箭头
+        s.append(f'<path d="M9.4 18.6l2.6-1.8 2.6 1.8M9.4 21l2.6-1.8 2.6 1.8" stroke="{accent}" stroke-width="0.9" fill="none"/>')
+    bw = 4.6 if kind == "heavy" else 3.2
+    s.append(f'<rect x="{12 - bw / 2}" y="0.8" width="{bw}" height="11" fill="{dark}"/>')
+    s.append(f'<rect x="{12 - bw / 2 - 0.6}" y="0" width="{bw + 1.2}" height="2.2" fill="{accent}"/>')  # 红色炮口
+    s.append(hex_fill(12, 13, 5.4, dark) + hex_fill(12, 12.4, 4.8, main))  # 六角炮塔
+    s.append(f'<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="{accent}"/>')  # “眼睛”
+    s.append('<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="#ffffff" fill-opacity="0.35"/>')
+    return defs, "".join(s)
+
+
+def foe_m(kind, accent=FOE_RED):
+    defs, body = foe_body(accent, kind)
+    return svg(C, C, f'<g transform="rotate(90 12 12)">{body}</g>', defs)
+
+
+# 经典画风（1985 像素风）的敌人：和玩家同一个像素坦克的外形，统一银灰色 + 红色“眼睛”；精英是紫色。
+# 种类看外形：快速坦克车身窄、车尾两道箭头，重型坦克炮管粗、车身两侧有装甲板
+PIXEL_FOE = ("#404048", "#9a9aa2", "#e0e0e6", FOE_RED)
+PIXEL_ELITE = ("#4a2070", "#9a5ad0", "#ecd2ff", "#ffffff")
+
+
+def foe_classic(kind, palette=PIXEL_FOE):
+    dark, mid, light, eye = palette
+    s = [f'<rect x="1" y="1" width="20" height="7" fill="{dark}"/>', f'<rect x="1" y="16" width="20" height="7" fill="{dark}"/>']
+    for x in (3, 7, 11, 15):
+        s.append(f'<rect x="{x}" y="2" width="2" height="5" fill="{light}"/><rect x="{x}" y="17" width="2" height="5" fill="{light}"/>')
+    if kind == "fast":
+        s.append(f'<rect x="4" y="8" width="15" height="8" fill="{mid}"/>')
+        s.append(f'<path d="M2 9.5l2 2.5-2 2.5M5 9.5l2 2.5-2 2.5" stroke="{eye}" stroke-width="1" fill="none"/>')
+    else:
+        s.append(f'<rect x="4" y="7" width="15" height="10" fill="{mid}"/>')
+    if kind == "heavy":
+        s.append(f'<rect x="5" y="7" width="10" height="2" fill="{dark}"/><rect x="5" y="15" width="10" height="2" fill="{dark}"/>')
+    s.append(f'<circle cx="11" cy="12" r="4.5" fill="{light}" stroke="{dark}" stroke-width="1.2"/>')
+    bh = 4 if kind == "heavy" else 3
+    s.append(f'<rect x="12" y="{12 - bh / 2}" width="11" height="{bh}" fill="{light}" stroke="{dark}" stroke-width="0.8"/>')
+    s.append(f'<rect x="21" y="{12 - bh / 2}" width="2" height="{bh}" fill="{eye}"/>')  # 炮口
+    s.append(f'<rect x="10" y="11" width="2.4" height="2" fill="{eye}"/>')  # “眼睛”
+    return svg(C, C, "".join(s))
+
+
 def player2_classic():
     """经典画风的 2P：把 1P 的像素坦克换成绿色（和 FC 原版一样）"""
     with open(os.path.join(ASSETS, "sprites", "Player", "player.svg"), encoding="utf-8") as f:
@@ -205,6 +277,17 @@ def player2_classic():
     for a, b in (("#8A6A00", "#1B6B2A"), ("#E8C020", "#3CB44B"), ("#FFE680", "#B8F5B0")):
         s = s.replace(a, b)
     return s
+
+
+def enemy_index():
+    """Enemy 精灵的造型表：三种敌人 × 普通 / 精英 × 经典 / 现代"""
+    p = os.path.join(ASSETS, "sprites", "Enemy", "index.json")
+    with open(p, encoding="utf-8") as f:
+        cfg = json.load(f)
+    names = [k + e + m for m in ("", "_m") for e in ("", "_e") for k in FOE_KINDS]
+    cfg["costumes"] = [{"name": n, "path": n + ".svg", "x": 12, "y": 12} for n in names]
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
 
 
 def player_index():
@@ -334,6 +417,19 @@ def icon_costumes():
         s = f"×{n}"
         out.append((f"lifex{n}", svg(width(s, 8, True) + 2, 12, text(1, 9.2, s, 8, "#ffffff", True), res=HR), (9, 6)))
     return out
+
+
+def ally_costume(p):
+    """我方标识（v6 敌我区分）：坦克脚下的光圈 + 头顶的 1P / 2P 标签。UI 克隆每帧跟着坦克走，
+    不画进坦克造型：造型变大会改变碰撞范围。锚点是光圈中心"""
+    col = TANKS["player" if p == 1 else "player2"][0]
+    w, h, cy, r = 36, 46, 28, 15
+    tag = f"{p}P"
+    tw = width(tag, 6.5, True) + 8
+    body = (f'<circle cx="{w/2}" cy="{cy}" r="{r}" fill="{col}" fill-opacity="0.1" stroke="{col}" stroke-width="1.3"/>'
+            f'<rect x="{(w-tw)/2:.2f}" y="1" width="{tw:.2f}" height="10" rx="5" fill="{col}"/>'
+            + text(w / 2, 8.6, tag, 6.5, "#1a1405", True, "middle"))
+    return svg(w, h, body, res=HR), (w / 2, cy)
 
 
 def stage_coop_costume(key, lang):
@@ -873,6 +969,7 @@ def build_hud():
     nums, widths = num_costumes()
     costumes += nums
     costumes += icon_costumes()
+    costumes += [(f"ally_{p}", *ally_costume(p)) for p in (1, 2)]
     costumes += ed_widgets()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])
@@ -907,15 +1004,17 @@ def main():
         write("sprites/Player/player_m.svg", tank_m(*TANKS["player"])),
         write("sprites/Player/player2_m.svg", tank_m(*TANKS["player2"])),
         write("sprites/Player/player2.svg", player2_classic()),
-        write("sprites/Enemy/basic_m.svg", tank_m(*TANKS["basic"])),
-        write("sprites/Enemy/fast_m.svg", tank_m(*TANKS["fast"])),
-        write("sprites/Enemy/heavy_m.svg", tank_m(*TANKS["heavy"], heavy=True)),
+        *[write(f"sprites/Enemy/{k}_m.svg", foe_m(k)) for k in FOE_KINDS],
+        *[write(f"sprites/Enemy/{k}_e_m.svg", foe_m(k, ELITE)) for k in FOE_KINDS],
+        *[write(f"sprites/Enemy/{k}.svg", foe_classic(k)) for k in FOE_KINDS],
+        *[write(f"sprites/Enemy/{k}_e.svg", foe_classic(k, PIXEL_ELITE)) for k in FOE_KINDS],
         write("sprites/PBullet/bullet_m.svg", bullet_m("#ffe27a", "#ffb000")),
         write("sprites/EBullet/bullet_m.svg", bullet_m("#ff8a7a", "#ff2a2a")),
     ]
     for i in range(3):
         out.append(write(f"sprites/Boom/b{i+1}_m.svg", boom_m(i)))
     player_index()
+    enemy_index()
     stage_index()
     hud = build_hud()
     print(f"generated {len(out)} art files, {hud} HUD costumes")

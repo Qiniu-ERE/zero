@@ -15,6 +15,9 @@ sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools", "assets"))
 import build as B  # noqa: E402
 from textpath import text, width  # noqa: E402
 
+# v3 时的敌人颜色（v6 起敌人统一成枪灰色车身，这里保留旧颜色，效果图和当时一致）
+OLD_FOES = {"basic": ("#ff5a4a", "#9c1f16", "#ffc2b8"), "fast": ("#4aa8ff", "#1c4f8f", "#c8e6ff"), "heavy": ("#6fd06a", "#2e6e2a", "#d2f5cf")}
+
 W, H, C, FX, FY = 480, 360, 24, 12, 30
 PX, PY, PW, PH = 336, 26, 132, 320
 MUTED = B.MUTED
@@ -207,9 +210,9 @@ def coop(lang):
     s = field(rows, skip_grass=True)
     s.append(tank(B.TANKS["player"], 10, 4, 0))
     s.append(tank(P2, 9, 8, 0))
-    s.append(tank(B.TANKS["basic"], 2, 6, 180))
-    s.append(tank(B.TANKS["fast"], 4, 10, -90))
-    s.append(tank(B.TANKS["heavy"], 1, 0, 180, heavy=True))
+    s.append(tank(OLD_FOES["basic"], 2, 6, 180))
+    s.append(tank(OLD_FOES["fast"], 4, 10, -90))
+    s.append(tank(OLD_FOES["heavy"], 1, 0, 180, heavy=True))
     # 子弹
     bx, by = cell(7, 8)
     s.append(img(B.bullet_m("#ffe27a", "#ffb000"), bx + 9, by + 9, 6, 6))
