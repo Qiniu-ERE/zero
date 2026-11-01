@@ -112,6 +112,8 @@ var (
 	taskIDs     []int  // 今天的 3 个任务
 	taskProg    []int  // 3 个任务的进度
 	dayOverride int    // 测试用：指定“今天”是第几天（0 表示按真实时间）
+	panel       string // 现在建好的是哪个画面的小部件（"" 表示没有，见 panelOff）
+	uiClones    int    // 现在有多少个 UI 克隆（测试克隆预算用）
 )
 
 const (
@@ -1249,6 +1251,7 @@ func openGarage() {
 	}
 	refreshTasks()
 	state = stGarage
+	buildGarage()
 	setScreen "garage"
 }
 
@@ -1702,6 +1705,37 @@ func toast(k string, secs float64) {
 	broadcast "toast"
 }
 
+// 画面小部件按需创建（v6）：spx 和 Scratch 一样，全部精灵的克隆加起来最多 300 个（超过时 clone 直接失败，
+// 地图格子和敌人就出不来）。车库、排行榜这些全屏画面的小部件只在打开时创建，离开时由 panelOff 删掉，
+// 平时常驻的只有对局要用的界面（见 tests/spx/budget.spx 的克隆预算）
+func panelOff() {
+	if panel != "" {
+		panel = ""
+		broadcastAndWait "panelOff"
+	}
+}
+
+// 车库的小部件：坐标和 tools/assets/build.py 的 GR_* 布局一致（舞台 x = svgX - 240，y = 180 - svgY）
+func buildGarage() {
+	panelOff()
+	panel = "garage"
+	UI.icon kGarage, -212, 120, 0  // 指挥官等级
+	UI.icon kGarage, -212, 111.5, 1 // 经验条
+	UI.icon kGarage, -212, 99, 2   // 下一个解锁
+	UI.icon kGarage, -139, 40, 3   // 涂装预览
+	for i := 0; i < chipCount; i++ {
+		UI.icon kGarage, -10+float64(i%4)*66, 83-float64(i/4)*52, 10+i // 芯片图鉴
+	}
+	for i := 0; i < skinCount; i++ {
+		UI.icon kGarage, -209+float64(i)*34, -51, 30+i // 涂装
+	}
+	for i := 0; i < 3; i++ {
+		UI.icon kGarage, -40, -70-float64(i)*22, 40+i  // 今日任务
+		UI.icon kGarage, 90, -79-float64(i)*22, 43+i   // 任务进度
+	}
+	UI.number kWallet, -209, -105, 9
+}
+
 // 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
 func buildHud() {
 	// 顶栏：关卡名、敌军剩余、语言按钮
@@ -1752,22 +1786,6 @@ func buildHud() {
 	UI.icon kEdCursor, 0, 0, 0
 	UI.icon kEdMark, 0, 0, 0
 	UI.number kCoin, -132, 35, 9
-	// 车库（v6）：坐标和 tools/assets/build.py 的 GR_* 布局一致（舞台 x = svgX - 240，y = 180 - svgY）
-	UI.icon kGarage, -212, 120, 0  // 指挥官等级
-	UI.icon kGarage, -212, 111.5, 1 // 经验条
-	UI.icon kGarage, -212, 99, 2   // 下一个解锁
-	UI.icon kGarage, -139, 40, 3   // 涂装预览
-	for i := 0; i < chipCount; i++ {
-		UI.icon kGarage, -10+float64(i%4)*66, 83-float64(i/4)*52, 10+i // 芯片图鉴
-	}
-	for i := 0; i < skinCount; i++ {
-		UI.icon kGarage, -209+float64(i)*34, -51, 30+i // 涂装
-	}
-	for i := 0; i < 3; i++ {
-		UI.icon kGarage, -40, -70-float64(i)*22, 40+i  // 今日任务
-		UI.icon kGarage, 90, -79-float64(i)*22, 43+i   // 任务进度
-	}
-	UI.number kWallet, -209, -105, 9
 	// 三选一（v6）：三张卡片、刷新按钮、谁在选
 	for i := 0; i < 3; i++ {
 		UI.icon kPick, -134+float64(i)*134, 13, i
@@ -1897,6 +1915,7 @@ func setScreen(name string) {
 
 func goHome() {
 	state = stHome
+	panelOff()
 	autopilot = false
 	gameOver = true
 	broadcastAndWait "clear"

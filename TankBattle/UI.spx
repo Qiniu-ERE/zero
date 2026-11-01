@@ -725,6 +725,7 @@ func clickScreen() {
 // ---------- 事件 ----------
 
 onCloned => {
+	uiClones++
 	if kind == kAlly || kind == kDrop {
 		shown := false
 		for {
@@ -749,6 +750,14 @@ onCloned => {
 				hide
 			}
 		}
+	}
+}
+
+// 离开车库、排行榜这些画面：它们的小部件删掉，把克隆的名额让给地图和敌人（全部精灵最多 300 个克隆）
+onMsg "panelOff", => {
+	if isCloned && (kind == kGarage || kind == kWallet) {
+		uiClones--
+		destroy
 	}
 }
 
