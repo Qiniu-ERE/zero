@@ -562,7 +562,8 @@ def banner(lang):
 # 主页上的其他模式：(文案 key, 按键)。v5 去掉了“每日挑战 · 即将推出”（需要服务器和排行榜，不会做）
 # 选择关卡（v5）放在原来每日挑战的位置；按键提示是“1-8”（主页直接按数字键进关）
 HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.levels", "1-8")]
-HOME_TILES = [("daily", "D", 226), ("garage", "G", 308), ("ranks", "B", 390)]  # v6：(名字, 按键, x)
+HOME_TILES = [("daily", "D", 200), ("garage", "G", 266), ("ranks", "B", 332), ("assist", "A", 398)]  # v6：(名字, 按键, x)
+HOME_TILE_W = 62
 
 
 def home_tile_icon(k, cx, cy):
@@ -577,6 +578,10 @@ def home_tile_icon(k, cx, cy):
         defs, body = tank_body(*TANKS["player"])
         defs, body = defs.replace('id="sh"', 'id="shg"'), body.replace("url(#sh)", "url(#shg)")
         return f'<defs>{defs}</defs><g transform="translate({cx-9} {cy-9}) scale(0.75)">{body}</g>'
+    if k == "assist":  # 礼物盒：好友送的芯片
+        return (f'<rect x="{cx-8}" y="{cy-3}" width="16" height="10" rx="1.5" fill="#3ee8ff" fill-opacity="0.25" stroke="#3ee8ff" stroke-width="1.2"/>'
+                f'<rect x="{cx-9}" y="{cy-7}" width="18" height="4" rx="1" fill="#3ee8ff" fill-opacity="0.5"/>'
+                f'<path d="M{cx} {cy-7}v14M{cx} {cy-7}c-3-4-7-2-4 0M{cx} {cy-7}c3-4 7-2 4 0" fill="none" stroke="#ffe27a" stroke-width="1.2"/>')
     return ""
 
 
@@ -608,14 +613,17 @@ def home(lang):
         s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
         s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
         s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
-    # v6 的入口：右下角的小卡片（每日挑战、车库、排行榜按顺序放在 x = 226、308、390）
+    # v6 的入口：右下角的小卡片（每日挑战、车库、排行榜、助战码，见 HOME_TILES）。手机上靠点卡片进入
+    tw = HOME_TILE_W
     for k, key, x in HOME_TILES:
-        button(f"home.{k}", x, 262, 74, 44)
-        s.append(f'<rect x="{x+0.4}" y="262.4" width="73.2" height="43.2" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.7"/>')
-        s.append(home_tile_icon(k, x + 37, 278))
-        s.append(text(x + 10, 298, tr(f"home.{k}", lang), 7.5, "#e6ecf5", True))
+        button(f"home.{k}", x, 262, tw, 44)
+        s.append(f'<rect x="{x+0.4}" y="262.4" width="{tw-0.8}" height="43.2" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.7"/>')
+        s.append(home_tile_icon(k, x + tw / 2, 278))
         c, cw = chip(0, 0, key, dark=True)
-        s.append(f'<g transform="translate({x+74-8-cw:.2f},290)">{c}</g>')
+        if 8 + width(tr(f"home.{k}", lang), 7.5, True) + 4 > tw - 6 - cw:
+            sys.exit(f"主页卡片的文字太长，会压到按键提示：{tr(f'home.{k}', lang)}")
+        s.append(text(x + 8, 298, tr(f"home.{k}", lang), 7.5, "#e6ecf5", True))
+        s.append(f'<g transform="translate({x+tw-6-cw:.2f},290)">{c}</g>')
     # 路演演示模式提示（选关的“1-8”已经在选择关卡卡片上）
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
@@ -1104,7 +1112,7 @@ def chip_costumes():
     out = [("drop", *chip_drop()), ("ci_empty", *chip_empty())]
     out += [(f"ci_{k}", *chip_badge(k)) for k in CHIP_KEYS]
     out += [(f"pickwho_{p}", *pick_who(p)) for p in (1, 2)]
-    out += [(f"dtag_{k}_{lang}", *daily_tag(f"dtag.{k}", lang)) for k in ("off", "prac") for lang in LANGS]
+    out += [(f"dtag_{k}_{lang}", *daily_tag(f"dtag.{k}", lang)) for k in ("off", "prac", "offt") for lang in LANGS]
     for lang in LANGS:
         for k in CHIP_KEYS:
             out.append((f"pc_{k}_{lang}", *pick_card(k, lang), 2))
@@ -1374,12 +1382,39 @@ def share_screen(lang):
     return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 
+AS_BOX_Y = 92                      # 助战码输入框的上边（数字由 UI 克隆显示，见 main.spx 的 buildAssist）
+AS_PAD = (183, 136, 36, 26, 6)     # 数字键盘：左上角 x、y，键宽、键高、间距（3 列 x 4 行）
+AS_PAD_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "del", "0", "ok"]
+
+
 def assist_screen(lang):
+    """输入助战码：键盘、鼠标、触屏都能用（手机上没有键盘，靠屏幕上的数字键盘）"""
     s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
-    s.append(text(W / 2, 110, tr("as.title", lang), 16, "#ffffff", True, "middle"))
-    s.append(text(W / 2, 128, tr("as.sub", lang), 7.5, "#9fdcea", False, "middle"))
-    s.append(f'<rect x="196" y="160" width="88" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#3ee8ff" stroke-width="1"/>')
-    s.append(text(W / 2, 222, tr("as.keys", lang), 7, MUTED, True, "middle"))
+    s.append(text(W / 2, 52, tr("as.title", lang), 16, "#ffffff", True, "middle"))
+    s.append(text(W / 2, 70, tr("as.sub", lang), 7.5, "#9fdcea", False, "middle"))
+    s.append(f'<rect x="196" y="{AS_BOX_Y}" width="88" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#3ee8ff" stroke-width="1"/>')
+    x0, y0, kw, kh, gap = AS_PAD
+    for i, k in enumerate(AS_PAD_KEYS):
+        x, y = x0 + (i % 3) * (kw + gap), y0 + (i // 3) * (kh + gap)
+        button(f"as.{k}", x, y, kw, kh)
+        if k == "ok":
+            s.append(f'<rect x="{x}" y="{y}" width="{kw}" height="{kh}" rx="7" fill="url(#cta)"/>')
+            s.append(f'<path d="M{x+kw/2-6} {y+kh/2}l4 4 8-8" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')
+            continue
+        s.append(f'<rect x="{x+0.4}" y="{y+0.4}" width="{kw-0.8}" height="{kh-0.8}" rx="7" fill="#ffffff" fill-opacity="0.07" stroke="#2c3850" stroke-width="0.8"/>')
+        if k == "del":  # 退格
+            cx, cy = x + kw / 2, y + kh / 2
+            s.append(f'<path d="M{cx-9} {cy}l5-6h12v12h-12z" fill="none" stroke="#c8d2e3" stroke-width="1.2" stroke-linejoin="round"/>'
+                     f'<path d="M{cx-1} {cy-3}l6 6M{cx+5} {cy-3}l-6 6" stroke="#c8d2e3" stroke-width="1.2"/>')
+        else:
+            s.append(text(x + kw / 2, y + kh / 2 + 4, k, 12, "#ffffff", True, "middle"))
+    s.append(text(W / 2, y0 + 4 * (kh + gap) + 6, tr("as.keys", lang), 6.5, MUTED, True, "middle"))
+    bx, by, bw, bh = W / 2 - 55, 290, 110, 26
+    button("as.back", bx, by, bw, bh)
+    s.append(f'<rect x="{bx+0.3}" y="{by+0.3}" width="{bw-0.6}" height="{bh-0.6}" rx="{bh/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>')
+    s.append(text(bx + 14, by + 16.5, tr("lv.back", lang), 8.5, "#c8d2e3", True))
+    c, cw = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({bx+bw-10-cw:.2f},{by+8})">{c}</g>')
     return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
 
 

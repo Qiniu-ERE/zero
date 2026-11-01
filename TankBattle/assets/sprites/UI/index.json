@@ -2024,6 +2024,20 @@
       "bitmapResolution": 4
     },
     {
+      "name": "dtag_offt_zh",
+      "path": "dtag_offt_zh.svg",
+      "x": 282.77,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
+      "name": "dtag_offt_en",
+      "path": "dtag_offt_en.svg",
+      "x": 245.82,
+      "y": 28,
+      "bitmapResolution": 4
+    },
+    {
       "name": "pc_rapid_zh",
       "path": "pc_rapid_zh.svg",
       "x": 120.0,

@@ -2515,7 +2515,7 @@ func buildShare() {
 func buildAssist() {
 	panelOff()
 	panel = "assist"
-	UI.lbNum -30, -8, 1000, 5
+	UI.lbNum -30, 180-120, 1000, 5 // 输入框在 build.py 的 AS_BOX_Y（下面是数字键盘）
 }
 
 // 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
