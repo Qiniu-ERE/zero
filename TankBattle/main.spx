@@ -114,6 +114,8 @@ var (
 	taskIDs     []int  // 今天的 3 个任务
 	taskProg    []int  // 3 个任务的进度
 	dayOverride int    // 测试用：指定“今天”是第几天（0 表示按真实时间，负数表示拿不到时间）
+	panel       string // 现在建好的是哪个画面的小部件（"" 表示没有，见 panelOff）
+	uiClones    int    // 现在有多少个 UI 克隆（测试克隆预算用）
 
 	// v6 每日挑战（docs/v6/PLAN.md 第四节）
 	dailyDayNow   int     // 正在打的是哪一天的每日挑战
@@ -1376,6 +1378,7 @@ func openGarage() {
 	}
 	refreshTasks()
 	state = stGarage
+	buildGarage()
 	setScreen "garage"
 }
 
@@ -1579,6 +1582,7 @@ func openRanks() {
 		return
 	}
 	state = stRanks
+	buildRanks()
 	lbShow lbTab
 	setScreen "ranks"
 }
@@ -1777,6 +1781,7 @@ func openShare() {
 		return // 今天还没有正式成绩
 	}
 	state = stShare
+	buildShare()
 	setScreen "share"
 	if lbBase != "" && today() > 0 { // 联网时顺便查一下全球名次
 		lbTab = 0
@@ -1793,6 +1798,7 @@ func openAssist() {
 	}
 	assistInput = ""
 	state = stAssist
+	buildAssist()
 	setScreen "assist"
 }
 
@@ -2424,6 +2430,87 @@ func toast(k string, secs float64) {
 	broadcast "toast"
 }
 
+// 画面小部件按需创建（v6）：spx 和 Scratch 一样，全部精灵的克隆加起来最多 300 个（超过时 clone 直接失败，
+// 地图格子和敌人就出不来）。车库、排行榜这些全屏画面的小部件只在打开时创建，离开时由 panelOff 删掉，
+// 平时常驻的只有对局要用的界面（见 tests/spx/budget.spx 的克隆预算）
+func panelOff() {
+	if panel != "" {
+		panel = ""
+		broadcastAndWait "panelOff"
+	}
+}
+
+// 车库的小部件：坐标和 tools/assets/build.py 的 GR_* 布局一致（舞台 x = svgX - 240，y = 180 - svgY）
+func buildGarage() {
+	panelOff()
+	panel = "garage"
+	UI.icon kGarage, -212, 120, 0  // 指挥官等级
+	UI.icon kGarage, -212, 111.5, 1 // 经验条
+	UI.icon kGarage, -212, 99, 2   // 下一个解锁
+	UI.icon kGarage, -139, 40, 3   // 涂装预览
+	for i := 0; i < chipCount; i++ {
+		UI.icon kGarage, -10+float64(i%4)*66, 83-float64(i/4)*52, 10+i // 芯片图鉴
+	}
+	for i := 0; i < skinCount; i++ {
+		UI.icon kGarage, -211+float64(i)*28, -49, 30+i // 涂装
+	}
+	UI.icon kGarage, -30, -158, 50 // 赛季和段位
+	UI.icon kGarage, 90, -154, 51  // 离下一个段位
+	UI.icon kGarage, 216, -158, 52 // 赛季还剩几天
+	for i := 0; i < 3; i++ {
+		UI.icon kGarage, -40, -70-float64(i)*22, 40+i  // 今日任务
+		UI.icon kGarage, 90, -79-float64(i)*22, 43+i   // 任务进度
+	}
+	UI.number kWallet, -209, -105, 9
+}
+
+// 排行榜的小部件（打开排行榜时创建）：坐标和 tools/assets/build.py 的 LB_* 布局一致
+func buildRanks() {
+	panelOff()
+	panel = "ranks"
+	UI.icon kRanks, -178, 128, 0 // 选项卡
+	UI.icon kRanks, -80, 128, 1
+	UI.icon kRanks, -224, 98, 2 // 范围说明
+	UI.icon kRanks, 0, -20, 3   // 状态
+	for r := 0; r < 8; r++ {
+		y := 180 - 106 - float64(r)*26 // 这一行的上边
+		UI.icon kRanks, -224, y, 40+r
+		for j := 0; j < 3; j++ {
+			UI.icon kRanks, 17+float64(j)*18, y-11, 10+r*3+j
+		}
+		lbNumber r, 0, -209, y-15, 1
+		lbNumber r, 1, -140, y-15, 4
+		lbNumber r, 2, 216, y-15, 7
+	}
+	UI.icon kRanks, -224, 180-326, 48 // 我的名次
+	lbNumber 8, 0, -120, 180-341, 7
+	lbNumber 8, 3, 0, 180-341, 7
+	lbNumber 8, 2, 216, 180-341, 7
+}
+
+// 分享战报的小部件（打开分享战报时创建）：坐标和 build.py 的 share_screen 一致（数值都从 x = 236 开始）
+func buildShare() {
+	panelOff()
+	panel = "share"
+	UI.lbNum -4, 180-64, 900, 4  // 第几期
+	UI.lbNum -4, 180-90, 910, 7  // 得分
+	UI.lbNum -4, 180-112, 920, 5 // 用时
+	UI.lbNum -4, 180-136, 930, 7 // 全球名次
+	UI.lbNum -4, 180-160, 940, 4 // 连续天数
+	UI.lbNum -4, 180-214, 950, 5 // 助战码
+	for i := 0; i < 3; i++ {
+		UI.icon kShare, 3+float64(i)*20, 0, i
+	}
+	UI.icon kShare, -4, 180-136, 3 // 还不知道全球名次时显示“联网后显示”
+}
+
+// 助战码输入框里的数字（打开输入画面时创建）
+func buildAssist() {
+	panelOff()
+	panel = "assist"
+	UI.lbNum -30, -8, 1000, 5
+}
+
 // 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
 func buildHud() {
 	// 顶栏：关卡名、敌军剩余、语言按钮
@@ -2474,57 +2561,7 @@ func buildHud() {
 	UI.icon kEdCursor, 0, 0, 0
 	UI.icon kEdMark, 0, 0, 0
 	UI.number kCoin, -132, 35, 9
-	// 车库（v6）：坐标和 tools/assets/build.py 的 GR_* 布局一致（舞台 x = svgX - 240，y = 180 - svgY）
-	UI.icon kGarage, -212, 120, 0  // 指挥官等级
-	UI.icon kGarage, -212, 111.5, 1 // 经验条
-	UI.icon kGarage, -212, 99, 2   // 下一个解锁
-	UI.icon kGarage, -139, 40, 3   // 涂装预览
-	for i := 0; i < chipCount; i++ {
-		UI.icon kGarage, -10+float64(i%4)*66, 83-float64(i/4)*52, 10+i // 芯片图鉴
-	}
-	for i := 0; i < skinCount; i++ {
-		UI.icon kGarage, -211+float64(i)*28, -49, 30+i // 涂装
-	}
-	UI.icon kGarage, -30, -158, 50 // 赛季和段位
-	UI.icon kGarage, 90, -154, 51  // 离下一个段位
-	UI.icon kGarage, 216, -158, 52 // 赛季还剩几天
-	for i := 0; i < 3; i++ {
-		UI.icon kGarage, -40, -70-float64(i)*22, 40+i  // 今日任务
-		UI.icon kGarage, 90, -79-float64(i)*22, 43+i   // 任务进度
-	}
-	UI.number kWallet, -209, -105, 9
 	UI.icon kDailyTag, -72, 116, 0 // 每日挑战结算：正式成绩 / 练习
-	// 排行榜（v6）：坐标和 tools/assets/build.py 的 LB_* 布局一致
-	UI.icon kRanks, -178, 128, 0 // 选项卡
-	UI.icon kRanks, -80, 128, 1
-	UI.icon kRanks, -224, 98, 2 // 范围说明
-	UI.icon kRanks, 0, -20, 3   // 状态
-	for r := 0; r < 8; r++ {
-		y := 180 - 106 - float64(r)*26 // 这一行的上边
-		UI.icon kRanks, -224, y, 40+r
-		for j := 0; j < 3; j++ {
-			UI.icon kRanks, 17+float64(j)*18, y-11, 10+r*3+j
-		}
-		lbNumber r, 0, -209, y-15, 1
-		lbNumber r, 1, -140, y-15, 4
-		lbNumber r, 2, 216, y-15, 7
-	}
-	UI.icon kRanks, -224, 180-326, 48 // 我的名次
-	// 分享战报（v6）：坐标和 build.py 的 share_screen 一致（数值都从 x = 236 开始）
-	UI.lbNum -4, 180-64, 900, 4  // 第几期
-	UI.lbNum -4, 180-90, 910, 7  // 得分
-	UI.lbNum -4, 180-112, 920, 5 // 用时
-	UI.lbNum -4, 180-136, 930, 7 // 全球名次
-	UI.lbNum -4, 180-160, 940, 4 // 连续天数
-	UI.lbNum -4, 180-214, 950, 5 // 助战码
-	for i := 0; i < 3; i++ {
-		UI.icon kShare, 3+float64(i)*20, 0, i
-	}
-	UI.icon kShare, -4, 180-136, 3 // 还不知道全球名次时显示“联网后显示”
-	UI.lbNum -30, -8, 1000, 5 // 助战码输入
-	lbNumber 8, 0, -120, 180-341, 7
-	lbNumber 8, 3, 0, 180-341, 7
-	lbNumber 8, 2, 216, 180-341, 7
 	// 三选一（v6）：三张卡片、刷新按钮、谁在选
 	for i := 0; i < 3; i++ {
 		UI.icon kPick, -134+float64(i)*134, 13, i
@@ -2660,6 +2697,7 @@ func setScreen(name string) {
 
 func goHome() {
 	state = stHome
+	panelOff()
 	autopilot = false
 	gameOver = true
 	broadcastAndWait "clear"
@@ -2893,6 +2931,7 @@ func confirm() {
 	case stAssist:
 		assistConfirm
 	case stShare:
+		panelOff()
 		state = stResult
 		showResult
 	case stHome:
@@ -2937,6 +2976,7 @@ func escKey() {
 	} else if state == stLevels || state == stGarage || state == stRanks || state == stAssist {
 		goHome
 	} else if state == stShare {
+		panelOff()
 		state = stResult // 分享战报：回到结算
 		showResult
 	}
