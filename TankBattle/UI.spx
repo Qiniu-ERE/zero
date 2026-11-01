@@ -153,6 +153,32 @@ func hit(name string, x, y float64) bool {
 		return x >= -126 && x <= -34 && y >= 118 && y <= 138
 	case "lb.back":
 		return x >= 114 && x <= 224 && y >= 118 && y <= 138
+	case "as.1":
+		return x >= -57 && x <= -21 && y >= 18 && y <= 44
+	case "as.2":
+		return x >= -15 && x <= 21 && y >= 18 && y <= 44
+	case "as.3":
+		return x >= 27 && x <= 63 && y >= 18 && y <= 44
+	case "as.4":
+		return x >= -57 && x <= -21 && y >= -14 && y <= 12
+	case "as.5":
+		return x >= -15 && x <= 21 && y >= -14 && y <= 12
+	case "as.6":
+		return x >= 27 && x <= 63 && y >= -14 && y <= 12
+	case "as.7":
+		return x >= -57 && x <= -21 && y >= -46 && y <= -20
+	case "as.8":
+		return x >= -15 && x <= 21 && y >= -46 && y <= -20
+	case "as.9":
+		return x >= 27 && x <= 63 && y >= -46 && y <= -20
+	case "as.del":
+		return x >= -57 && x <= -21 && y >= -78 && y <= -52
+	case "as.0":
+		return x >= -15 && x <= 21 && y >= -78 && y <= -52
+	case "as.ok":
+		return x >= 27 && x <= 63 && y >= -78 && y <= -52
+	case "as.back":
+		return x >= -55 && x <= 55 && y >= -136 && y <= -110
 	case "home.start":
 		return x >= -224 && x <= -54 && y >= 46 && y <= 96
 	case "home.coop":
@@ -162,11 +188,13 @@ func hit(name string, x, y float64) bool {
 	case "home.levels":
 		return x >= -224 && x <= -54 && y >= -90 && y <= -52
 	case "home.daily":
-		return x >= -14 && x <= 60 && y >= -126 && y <= -82
+		return x >= -40 && x <= 22 && y >= -126 && y <= -82
 	case "home.garage":
-		return x >= 68 && x <= 142 && y >= -126 && y <= -82
+		return x >= 26 && x <= 88 && y >= -126 && y <= -82
 	case "home.ranks":
-		return x >= 150 && x <= 224 && y >= -126 && y <= -82
+		return x >= 92 && x <= 154 && y >= -126 && y <= -82
+	case "home.assist":
+		return x >= 158 && x <= 220 && y >= -126 && y <= -82
 	case "lv.1":
 		return x >= -224 && x <= -120 && y >= 16 && y <= 100
 	case "lv.2":
@@ -429,7 +457,9 @@ func refresh() {
 			hide
 			return
 		}
-		if dailyOfficial {
+		if dailyOfficial && touchUI {
+			setCostume "dtag_offt_" + langCode() // 手机上没有 S 键：点标签分享战报
+		} else if dailyOfficial {
 			setCostume "dtag_off_" + langCode()
 		} else {
 			setCostume "dtag_prac_" + langCode()
@@ -806,8 +836,11 @@ func clickAd() {
 
 // 点击全屏 / 弹窗画面上的按钮
 func clickScreen() {
-	x := mouseX
-	y := mouseY
+	clickAt mouseX, mouseY
+}
+
+// 点在舞台坐标 (x, y)：按画面判断按了哪个按钮（测试直接调用它模拟点击）
+func clickAt(x, y float64) {
 	switch state {
 	case stHome:
 		if hit("home.start", x, y) {
@@ -824,6 +857,22 @@ func clickScreen() {
 			playDaily
 		} else if hit("home.ranks", x, y) {
 			openRanks
+		} else if hit("home.assist", x, y) {
+			openAssist
+		}
+	case stAssist:
+		for n := 0; n <= 9; n++ {
+			if hit("as."+strconv.Itoa(n), x, y) {
+				assistKey n
+				return
+			}
+		}
+		if hit("as.del", x, y) {
+			assistKey -1
+		} else if hit("as.ok", x, y) {
+			assistConfirm
+		} else if hit("as.back", x, y) {
+			goHome
 		}
 	case stRanks:
 		if hit("lb.tab.1", x, y) {
@@ -1020,6 +1069,8 @@ onClick => {
 		clickAd
 	case kPauseBtn:
 		pauseGame
+	case kDailyTag:
+		openShare // 点“正式成绩”标签打开分享战报（不是正式成绩时 openShare 什么都不做）
 	case kScreen, kEdSel, kEdSwitch, kEdStatus, kEdCursor, kEdMark:
 		clickScreen // 编辑器的小部件盖在按钮上面，点击时按鼠标位置判断按了什么
 	}

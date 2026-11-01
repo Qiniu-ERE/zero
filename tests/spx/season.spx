@@ -1,4 +1,4 @@
-// 赛季、分享战报、助战码（S01~S09），见 docs/v6/TEST_PLAN.md
+// 赛季、分享战报、助战码（S01~S11），见 docs/v6/TEST_PLAN.md
 // timeout: 90
 onStart => {
 	wait 3
@@ -146,6 +146,37 @@ onStart => {
 	endGame true
 	openShare
 	tInt "S09 练习局结算后也能打开今天正式成绩的战报", state, stShare
+
+	// S11 每日挑战结算：点“正式成绩”标签打开分享战报（手机上没有 S 键）；点战报回到结算
+	escKey
+	tInt "S11 先回到结算", state, stResult
+	UI.clickAt 60, 150
+	tInt "S11 结算画面空白处不会打开战报", state, stResult
+	openShare // 等同点标签（UI 的 onClick：kDailyTag → openShare）
+	tInt "S11 点标签打开分享战报", state, stShare
+	UI.clickAt 0, 0
+	tInt "S11 点战报回到结算", state, stResult
+
+	// S10 触屏 / 鼠标输入助战码：主页的“助战码”卡片，屏幕上的数字键盘（键的位置和 build.py 的 AS_PAD 一致）
+	goHome
+	tCheck "S10 主页有助战码卡片", UI.hit("home.assist", 398+31-240, 180-284)
+	tCheck "S10 排行榜卡片没有被挤掉", UI.hit("home.ranks", 332+31-240, 180-284)
+	UI.clickAt 398+31-240, 180-284
+	tInt "S10 点卡片打开助战码输入", state, stAssist
+	code2 := assistCode([]int{cShield})
+	pad := "123456789d0k" // 3 列 x 4 行：d 删除，k 确认
+	for _, ch := range "9d" + code2 {
+		i := strings.IndexRune(pad, ch)
+		UI.clickAt 183+float64(i%3)*42+18-240, 180-(136+float64(i/3)*32+13)
+	}
+	tStr "S10 点数字键输入，删除键删一位", assistInput, code2
+	UI.clickAt 183+2*42+18-240, 180-(136+3*32+13)
+	tInt "S10 点确认回主页", state, stHome
+	tInt "S10 记下好友的芯片", assistGift, cShield
+	assistGift = 0
+	UI.clickAt 398+31-240, 180-284
+	UI.clickAt 0, 180-303
+	tInt "S10 点返回回主页", state, stHome
 
 	tDone "season"
 }
