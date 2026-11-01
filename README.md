@@ -12,7 +12,7 @@
 [![测试 1063 通过](https://img.shields.io/badge/测试-1063_通过-brightgreen)](docs/v6/TEST_PLAN.md)
 [![覆盖率 99%](https://img.shields.io/badge/覆盖率-99%25-brightgreen)](docs/v6/TEST_PLAN.md#一要求和怎么检查)
 
-**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v5-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [v6.0 新内容](#v60-做了什么) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
+**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v6-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [v6.0 新内容](#v60-做了什么) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
 
 </div>
 
@@ -28,9 +28,9 @@
 | v3.0 | **8 个关卡、双人合作、自己做地图**，打包成六个平台的安装包 |
 | v2.0 | 现代画风、中英文、主页 / 复活 / 结算、不打扰玩家的广告设计 |
 
-![坦克大战 2026 演示](docs/demo/tankbattle-v5.gif)
+![坦克大战 2026 演示](docs/demo/tankbattle-v6.gif)
 
-> 动图：双人合作 → 暂停菜单 → 编辑器里画地图并试玩（v6 的新内容见下面的截图）。截自 v5.0 的[完整演示视频](docs/demo/tankbattle-v5-demo.mp4)（约 1 分半，无声；以前的版本：[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)），由游戏内置的**路演演示模式**（主页按 P）在真实引擎里录制。
+> 动图：v6 的精英掉芯片 → 三选一升级 → 车库 → 每日挑战 → 新关卡。截自 v6.0 的[完整演示视频](docs/demo/tankbattle-v6-demo.mp4)（约 1 分 50 秒，无声：对局、画风和语言切换、复活、结算，v6 的芯片、车库、每日挑战，v3 的关卡、双人合作、编辑器；以前的版本：[v5.0](docs/demo/tankbattle-v5-demo.mp4)、[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)），由游戏内置的**路演演示模式**（主页按 P）在真实引擎里录制。
 
 | 主页 | 对局：敌我区分、精英、芯片 | 打精英后三选一 | 车库 |
 |---|---|---|---|
@@ -260,7 +260,7 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | [跨平台](docs/v3/CROSS_PLATFORM.md) | 打包方法、实测截图、限制 |
 | [微信小游戏](docs/v3/WECHAT_MINIGAME.md) | 可行性评估 |
 | [v2.0 规划](docs/v2/DESIGN.md) | 玩法、画风、商业化设计和效果图 |
-| [演示视频](docs/demo/tankbattle-v5-demo.mp4) | v5.0 完整流程（以前的版本：[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)）；v4.0：[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4) |
+| [演示视频](docs/demo/tankbattle-v6-demo.mp4) | v6.0 完整流程（以前的版本：[v5.0](docs/demo/tankbattle-v5-demo.mp4)、[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)）；v4.0：[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4) |
 
 ## 项目结构
 
@@ -342,7 +342,7 @@ tools/export/release_local.sh             # 版本号或提交号不对、打包
 tools/export/release_local.sh --append    # 以后给已有的 Release 补包（例如 Windows / iOS）
 
 # 重新录制演示视频（需要 ffmpeg）
-./tools/dev/record_demo.sh           # 输出 docs/demo/tankbattle-v5-demo.mp4 和 tankbattle-v5.gif（DEMO_NAME 可以改名字）
+./tools/dev/record_demo.sh           # 输出 docs/demo/tankbattle-v6-demo.mp4 和 tankbattle-v6.gif（DEMO_NAME 改名字，GIF_START / GIF_LEN 改动图截哪一段）
 ```
 
 **跑测试需要什么**：缺了某样东西时，有的测试会**跳过**。`run_all.sh` 会逐项列出“⚠️ 跳过”；`pr_check.sh` 有跳过时**不算通过**（退出码 2）。
