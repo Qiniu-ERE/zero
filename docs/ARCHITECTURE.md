@@ -1,6 +1,6 @@
 # 坦克大战 2026 · 架构文档
 
-本文说明游戏（当前版本 v5.0.0）的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2.0 规划](v2/DESIGN.md)，v3.0 的关卡、双人合作、自己做地图和跨平台见 [v3.0 规划](v3/PLAN.md)，v4.0 的自动化测试见 [v4.0 规划](v4/PLAN.md) 和[第 10 节](#10-测试与演示视频)，v5.0 的商业化规划见 [v5.0 规划](v5/PLAN.md)。
+本文说明游戏（当前版本 v6.0，开发中）的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2.0 规划](v2/DESIGN.md)，v3.0 的关卡、双人合作、自己做地图和跨平台见 [v3.0 规划](v3/PLAN.md)，v4.0 的自动化测试见 [v4.0 规划](v4/PLAN.md) 和[第 10 节](#10-测试与演示视频)，v5.0 的商业化规划见 [v5.0 规划](v5/PLAN.md)，v6.0 的敌我区分、局内升级、车库、每日挑战、排行榜见 [v6.0 规划和实现](v6/PLAN.md) 和 [v6 测试方案](v6/TEST_PLAN.md)。
 
 ## 目录
 
@@ -71,6 +71,12 @@ flowchart LR
 | 表现 | `look()`（画风后缀）、`langCode()`、`switchTheme()`、`switchLang()`、`toast()`、`shake()`、基地特写镜头、`lifeLook(n, slot, p2)`（生命图标用哪个造型：超过 3 条显示“图标 ×N”） |
 | 触屏 | `touchZone(x, y)`：手指按在哪里做什么。方向键范围内返回方向（移动并开火），战场内返回 1（只开火），顶栏和右侧面板返回 -1（不开火，按钮都在这里） |
 | 界面布局 | `buildHud()`：创建所有 UI 克隆，坐标见[第 6 节](#6-坐标与布局) |
+| v6 局内升级 | 芯片规则 `chipKey` `chipRarity` `chipUnlocked` `hasChip`、效果 `bulletLimit` `bulletSpeed` `bounceLimit` `moveSpeed` `playerBlocked` `stealthed` `shieldBlock`、连携 `comboBarrage` `comboSalvo`；精英 `eliteSlot` `eliteDown`；三选一 `pickChip` `pickRoll` `pickChoose` `pickReroll`；等级 `resetRun` `snapRun` `clearRun` `loseLevel`；战术芯片 `fortify` `endFortify`（空袭广播 `bomb`、冰冻 `freezeLeft`）；每帧 `chipTick`（`chipLoop` 消息） |
+| v6 车库与存档 | `save.txt` 读写（`saveGame` `loadText` `initSave`）、指挥官等级（`gainXP` `levelForXP`）、钱包 `wallet`、涂装 `buySkin`、每日任务（`pickTasks` `taskAdd`）、`openGarage`；时间 `nowSec` / `today`（解释器里没有 `time.Now`，见 9.3） |
+| v6 每日挑战 | `dailyRows(day)`（按日期生成地图，和 `tools/levels/daily.py` 同一个算法）、`dailyRand`、`playDaily`、`dailyEnd`（一天一次正式成绩）；地图检查拆成纯函数 `mapProblem`，编辑器也用 |
+| v6 排行榜 | `lbRecord` `lbEnqueue` `lbFlush`（后台 goroutine 上传，离线排队）、`lbFetch` `lbHealth`、每帧 `lbPoll` 收结果、`openRanks` `lbShow` `lbText`；服务地址常量 `lbURL`（还没部署，是空的） |
+| v6 赛季与分享 | `seasonOf` `tierOf` `gainSeason`、连续打卡、`assistCode` / `assistDecode`、`openShare` `openAssist` `applyAssist`、`shareText` |
+| 画面小部件 | `panelOff` 和 `buildGarage` / `buildRanks` / `buildShare` / `buildAssist`：全屏画面的小部件打开时才创建（克隆上限，见 9.4） |
 | 路演演示 | `demoFlow` 消息处理（v2 内容之后调用 `demoV3()`：新关卡、双人合作、暂停菜单、编辑器里画地图并试玩；按 Esc 退出：`escKey` 设 `demoStop` 后重新广播 `demoFlow` 打断正在运行的演示，新的处理调用 `stopDemo()` 还原画风、语言和编辑器地图并回主页）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
 
 ### 3.2 精灵
@@ -78,8 +84,8 @@ flowchart LR
 | 精灵 | 职责 | 对外接口 | 字段大小 |
 |---|---|---|---|
 | `Player` | 玩家坦克：键盘 / 自动驾驶移动、开火（每人同时只能 1 发）、出生保护闪烁、死后倒计时重生、引擎声。原型是 1P，双人合作时克隆一个当 2P（`isCloned` 区分按键、颜色、出生点）。`fireHeld`：2P 的开火键要松开再按；1P 触屏时手指要先松开才开火（开局时为 true） | `respawn()`、`spawnP2()`；收 `playerHit` `p2respawn` `p2off` `themeChanged` | 32 B |
-| `Enemy` | 敌人坦克：三种类型，随机转向且偏向基地，定时开火；重型坦克 3 发 | `spawn(x, y, kind)`；收 `themeChanged` `clear` `reviveClear` | 56 B |
-| `PBullet` / `EBullet` | 子弹：飞行、撞墙（交给 `bulletHit`）、互相抵消、命中坦克。2P 的子弹把朝向加 1000 记录发射者（`bulletDir()` 还原）；敌人子弹用 `nearestPlayer()` 判断打中了谁 | `PBullet.fire(x, y, dir, who)`、`EBullet.fire(x, y, dir)`；PBullet 收 `pbHit`，EBullet 收 `reviveClear` | 16 B |
+| `Enemy` | 敌人坦克：三种类型，随机转向且偏向基地，定时开火；重型坦克 3 发。v6：`kind` 加 10 是精英（多 1 发血、快 15%、被击毁掉芯片），冰冻时不动不开火 | `spawn(x, y, kind)`；收 `themeChanged` `clear` `reviveClear` `bomb` | 56 B |
+| `PBullet` / `EBullet` | 子弹：飞行、撞墙（交给 `bulletHit`）、互相抵消、命中坦克。2P 的子弹把朝向加 1000 记录发射者，v6 的跳弹每反弹一次再加 10000（`bulletDir` `pbWho` `pbBounces` 还原）；敌人子弹用 `nearestPlayer()` 判断打中了谁，迷彩的坦克在草丛里时穿过去 | `PBullet.fire(x, y, dir, who)`、`EBullet.fire(x, y, dir)`；PBullet 收 `pbHit`，EBullet 收 `reviveClear` | 16 B |
 | `Boom` | 爆炸动画（3 帧），大爆炸触发震屏 | `explodeAt(x, y, size)` | 1 B |
 | `Tile` | 地图格子的显示：砖、钢、水、草、基地。碰撞全部由舞台的 `grid` 判断 | `build(x, y, kind, idx)`；收 `gridChanged` `themeChanged` `baseChanged` `clear` | 16 B |
 | `UI` | **所有界面元素**，用 `kind` 区分（见下表） | `label` `number` `icon` `langButton` `toastBar` `adSlot` `screenLayer` | 56 B |
@@ -100,7 +106,15 @@ flowchart LR
 | `kPauseBtn` | 顶栏的暂停按钮（对局中显示，可点击） | `pausebtn` | `screen` |
 | `kTouchPad` | 触屏模式（手机 App，`touchUI` 为 true）的方向键，替换右侧的按键说明 | `touchpad_<lang>` | `hud`、`screen` |
 | `kEdSel` `kEdSwitch` `kEdStatus` `kEdCursor` `kEdMark` | 地图编辑器的小部件：工具选中框、对称开关和对称线、检查结果、光标、问题标记 | `edsel` `edsw_on/off` `edline` `edok/edbad1/edbad2_<lang>` `edcursor` `edmark` | `edit`、`edCursor` |
-| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`levels`（选关画面，点击区域 `lv.1`~`lv.8`、`lv.back`）、`editor`、`pause`、`pause_edit`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`，再加 `_<lang>` | `screen` |
+| `kAlly` | v6 我方标识：脚下光圈 + 头顶“1P · Lv3”，每帧跟着坦克（显示规则在舞台的 `allyAt`） | `ally_<1\|2>_<等级>` | 每帧 |
+| `kChip` | v6 右侧面板的芯片格（1P 三格、双人时 2P 三格；触屏模式不显示） | `ci_<芯片>`、`ci_empty` | `hud` |
+| `kPick` | v6 三选一：三张卡片、刷新按钮、谁在选 | `pc_<芯片>[_combo]_<lang>`、`reroll_<ad\|free\|used>_<lang>`、`pickwho_<p>` | `screen` |
+| `kDrop` | v6 战场上掉落的芯片（最后 3 秒闪烁） | `drop` | 每帧 |
+| `kDailyTag` | v6 每日挑战结算：正式成绩 / 练习 | `dtag_<off\|prac>_<lang>` | `screen` |
+| `kGarage` `kWallet` | v6 车库（**按需创建**）：指挥官等级、经验条、图鉴、涂装、任务、赛季条；金币数 | `cmd_*` `xp_*` `cx_*` `sk_*` `tk_*` `ssn_*` …，数字 `C…` | `screen`、`hud` |
+| `kRanks` `kLbNum` | v6 排行榜（**按需创建**）：选项卡、每行的底和芯片、状态；数字（`slot` = 行 × 100 + 第几个数 × 10 + 第几个字符，第 9 行是分享战报，第 10 行是助战码输入） | `lbtab_*` `lbrow_*` `lbme_*` `lbst_*`，数字 `L…` | `screen`、`hud`；图层在 `raise` / `raiseTop` |
+| `kShare` | v6 分享战报（**按需创建**）：芯片、“联网后显示” | `ci_*`、`sh_norank_<lang>` | `screen` |
+| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`levels`（选关画面，点击区域 `lv.1`~`lv.8`、`lv.back`）、`editor`、`pause`、`pause_edit`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`；v6：`pick`、`garage`、`ranks`、`share`、`assist`，再加 `_<lang>` | `screen` |
 
 ### 3.4 构建工具 `tools/`
 
@@ -109,6 +123,9 @@ flowchart LR
 | `assets/strings.py` | 中英文案表（唯一来源），游戏和效果图共用 |
 | `assets/textpath.py` | 把文字转成 SVG 路径；字体固定到 google/fonts 的某个提交并校验 sha256；缺字直接报错 |
 | `assets/build.py` | 生成：两套背景、现代画风的所有造型、经典画风的水面和草丛、`UI` 精灵的全部造型和 `index.json`、`UI.spx` 里的 `GENERATED widths` / `GENERATED hit` 区块 |
+| `levels/daily.py` | v6 每日挑战的地图生成器（和 `main.spx` 的 `dailyRows` 同一个算法）：打印某一天的地图，`--write` 重新生成 `tests/data/daily_maps.txt`（365 天） |
+| `server/leaderboard.py` | v6 自建排行榜服务（Python 标准库）：上传成绩、榜单、查名次、合理性检查、限频，海外 / 国内分开；接口见 `server/README.md`。还没部署 |
+| `test/py_coverage.py` | v6 Python 行覆盖率（标准库 `trace`）：新工具要求 100% |
 | `levels/check.py` | 检查 `levelMap()` 里的每一关：13×13、出生点和基地位置、从出生点能到达基地、玩家能到达出生点、基地旁边没有钢墙和水面，1P / 2P 出生点都要能开到敌人出生点。地图编辑器的实时检查（`edCheck`）用同一套规则 |
 | `package_xbp.sh` | 打包 `TankBattle.xbp` |
 | `export/setup_spx.sh` | 准备打包环境：固定提交的 spx 源码（每次先恢复干净，再按顺序打 `export/patches/` 里的补丁）、`patch_spx.py` 改模板（包名、版本、图标、iOS 不签名）、xgo、`buildctl setup`；Go 版本和 `env.sh` 不一样时提醒（`GO_STRICT=1` 报错） |
@@ -139,7 +156,11 @@ flowchart LR
 | `hud` | 舞台、Player | UI | 分数、生命、敌军剩余、金币变了 |
 | `toast` | 舞台 `toast()` | UI（提示条） | 内容在舞台的 `toastKey` / `toastSecs` |
 | `screen` | 舞台 `setScreen`（`broadcastAndWait`） | UI | 画面切换：画面层置顶，广告位按状态显示 / 隐藏 |
-| `raise` | 舞台 `setScreen` | UI | 把广告位、语言按钮、提示条、金币数放到画面层之上 |
+| `raise` | 舞台 `setScreen`（v6 起 `broadcastAndWait`） | UI | 把广告位、语言按钮、提示条、金币数、三选一、车库、排行榜每行的底放到画面层之上 |
+| `raiseTop` | 舞台 `setScreen` | UI | v6：排行榜的数字和芯片放到每行的底之上 |
+| `panelOff` | 舞台 `panelOff`（`broadcastAndWait`） | UI | v6：删掉车库、排行榜、分享战报、助战码的小部件（克隆上限，见 9.4） |
+| `chipLoop` | 舞台 `onStart`（只广播一次） | 舞台 | v6：每帧 `chipTick`（护盾、冰冻、钢铁堡垒倒计时，芯片消失、磁吸、拾取）和 `lbPoll`（收后台网络请求的结果） |
+| `bomb` | 舞台 `applyChip`（空袭） | Enemy | v6：场上的敌人全部被击毁（照样加分、精英照样掉芯片） |
 | `playerHit` | EBullet | Player | 玩家被击中；`hitWho` 说明是 1P 还是 2P，只有那一辆处理 |
 | `editLoop` | 舞台 | 舞台 | 编辑器：每帧读鼠标，绘制格子 |
 | `edit` / `edCursor` | 舞台 | UI（编辑器小部件） | 编辑状态变了 / 鼠标所在的格子变了 |
@@ -180,7 +201,7 @@ stateDiagram-v2
   结算 --> 主页: H / 点击主页
 ```
 
-- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stEdit` `stPause` `stLevels`（选关画面，v5）。按键处理都先看 `state`，同一个键在不同画面有不同含义。
+- `state` 取值：`stHome` `stPlay` `stRevive` `stAd` `stResult` `stEdit` `stPause` `stLevels`（选关画面，v5），v6 加了 `stPick`（三选一，战场冻结）、`stGarage`（车库，主页 G）、`stRanks`（排行榜，主页 B）、`stShare`（分享战报，每日挑战结算后 S）、`stAssist`（输入助战码，主页 A）。每日挑战是 `stage = dailyStage`（10），主页按 D。按键处理都先看 `state`，同一个键在不同画面有不同含义。
 - `gameOver` 表示“战场冻结”，坦克和子弹在冻结时不动。除了 `stPlay` 以外的状态，战场都是冻结的。
 - **每关只能复活一次**：`reviveStage` 记下在哪一关复活过，`startGame` 里 `revived = reviveStage == stage`。暂停菜单的“重新开始本关”不清零（不会再给一次复活）；输了以后在结算画面重打本关、从主页或选关画面进关、过关进入下一关、试玩自制地图都会清零（可以再复活一次）。
 - **复活**（`revive()`）：修好基地、加命，广播 `reviveClear` 清掉敌人子弹和基地 3 格以内的敌人，按本关地图把基地四周碎了、裂了的护墙恢复成砖墙，广播 `baseGuard` 让基地 3 秒内打不掉。复活后如果敌人已经全灭，直接胜利结算。
@@ -249,6 +270,10 @@ stateDiagram-v2
 - **点击在鼠标按下时就触发**（spx 的 `onLeftButtonDown`）：点按钮进入一个会读 `mousePressed` 的画面（例如地图编辑器）时，下一帧鼠标还按着，要先等松开，否则会误操作。
 - **XBuilder 线上的 spx v3.3.0 和本地 spx 4.0 有差别**：`rand(整数, 整数)` 在 v3.3.0 里返回 `float64`，在 4.0 里返回 `int`。和整数比较时要写成 `int(rand(1, 100))`，否则在 XBuilder 里编译失败（本地 4.0 能跑，所以本地测试发现不了）。
 
+- **解释器里没有 `time.Now`**（v6 发现，spx 为了录制回放保持确定，没有注册它；编译报 `undefined: time.Now`，有时报成 `unreachable`）。现在的时间用写一个临时文件再读修改时间得到（`nowSec`）；网页版没有文件系统，用排行榜服务健康检查返回的日期。
+- **网络请求放在 goroutine 里**（v6）：`net/http`、`encoding/json` 在 v3.3.0 和 4.0 都注册了；请求在 `go` 启动的 goroutine 里做（不卡画面），结果只写进舞台变量，由每帧的 `lbPoll` 在舞台上取走（游戏状态、广播、存档都只在舞台上改）。解释器里 `io.ReadAll` 不能用，用 `resp.Body.Read` 循环读。
+- **类文件的字段只能写在 `var (...)` 块里**，单独的 `var x int` 编译不过；测试脚本追加在事件处理之后，不能再写 `func`，要用局部的闭包。
+
 - **同一条消息再次广播时，正在运行（比如正在 `wait`）的处理会被打断重来**。所以不要在消息处理里等待之后再做关键的事（例如重生）：双人合作时一人中弹会再次广播 `playerHit`，另一人还在等待的重生就丢了。现在的做法是把倒计时放进每帧的循环里。
 
 - 类文件里**所有 `func` 必须写在第一个事件处理（`onStart` / `onKey` / `onMsg`…）之前**，否则编译报错。
@@ -257,6 +282,12 @@ stateDiagram-v2
 - LunaSVG **不支持 filter**（阴影、模糊），阴影要画成半透明图形。
 - 原型精灵如果把自己 `destroy` 了，之后再 `clone` 会直接崩溃。克隆体判断“我是不是原型”要可靠：`Tile` 在克隆之后把原型的 `kind` 重置为 0。
 - XBuilder 的运行尺寸固定为 480×360；地图可以更大，但只能靠镜头滚动。
+
+### 9.4 全部精灵最多 300 个克隆（v6 发现）
+
+- spx 和 Scratch 一样，**所有精灵的克隆加起来最多 300 个**（spx 源码 `shape_manager.go` 的 `maxClones`，v3.3.0 和 4.0 相同）。超过时 `clone` 直接失败、**不报错**：地图格子、敌人、子弹就不出现。
+- v6 的排行榜每行数字都是克隆，常驻时 UI 克隆超过 200 个，地图和敌人出不来（截图时发现）。对策：全屏画面（车库、排行榜、分享战报、助战码）的小部件打开时才创建，离开时广播 `panelOff` 删掉；常驻的只有对局要用的界面。
+- 预算：常驻 UI 克隆（v6 是 95 个）+ 最满的地图 169 格 + 坦克、子弹、爆炸约 30 个 ≤ 300，由 `tests/spx/budget.spx`（舞台变量 `uiClones` 计数）和 `tests/tools/test_daily.py`（每日挑战地图给分享战报留名额）检查。**新加常驻的界面元素前先看预算**。
 
 ## 10. 测试与演示视频
 
@@ -297,7 +328,9 @@ stateDiagram-v2
 
 **覆盖率**：`--coverage` 给副本的每个 func 和事件处理插一句 `tCov`（只加舞台变量），统计哪些被执行到，和 `tests/coverage-baseline.json` 比较：原来覆盖到的现在没覆盖到、或者新加的代码没有测试执行，就失败。v4.0.1 时：`main.spx` 函数 99%、全部函数 96%、事件处理 100%、消息 100%（v4.0.1 修复子弹相撞后；v4.0 时事件处理 98%，子弹相撞抵消的处理受已知问题影响时有时无）。
 
-**测试发现的问题**：子弹迎面相撞经常不抵消（C17），v4.0.1 已修复，见测试方案第九节。
+**测试发现的问题**：子弹迎面相撞经常不抵消（C17），v4.0.1 已修复，见测试方案第九节。v6 发现的克隆上限、`time.Now` 不可用、三选一测试偶发失败见 [v6 测试方案第四节](v6/TEST_PLAN.md#四测试发现的问题)。
+
+**v6 的测试**（[v6 测试方案](v6/TEST_PLAN.md)）：每个用例 ID 都要有测试（`spx_coverage.py` 读 `docs/v6/TEST_PLAN.md`，缺一个就失败）；`run_all.sh --coverage` 加了 Python 行覆盖率（`tools/test/py_coverage.py`，新工具 100%）；测试文件里写 `// server: true` 时 `run_spx.sh` 先在本机起一个排行榜服务（地址在环境变量 `TB_LB`），排行榜客户端做端到端测试。
 
 ## 11. 开发流程与分工
 
@@ -395,6 +428,21 @@ v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`�
 | `fix/v5-revive-rule-title` | danielfeng | 复活规则定稿（暂停里重开不给、结算后重打本关给一次），窗口和网页标题加上英文名 |
 | 本 PR | danielfeng | 上面这些改动的文档 |
 
+### v6.0 的 PR 记录
+
+v6.0 的 PR 依次叠在前一个上（#85 → #86 → … ），最后合入集成分支 `v6.0`，再由 `v6.0` 合入 `main`。规划见 [v6.0 规划和实现](v6/PLAN.md)。
+
+| PR | 作者 | 内容 |
+|---|---|---|
+| #84 | danielfeng | 商业方案换成路演最新版；v6.0 规划（文档） |
+| #85 | danielfeng | P0 敌我区分：敌人枪灰车身 + 红色标识，我方光圈 + 1P / 2P 标签（V01~V10） |
+| #86 | danielfeng | P1 精英与升级芯片：三选一、Lv1~Lv4、12 块芯片、2 个连携（U01~U34） |
+| #87 | danielfeng | P2 车库与存档：指挥官等级、金币、涂装、每日任务；克隆预算和按需创建的小部件（K01~K12、Q01~Q03） |
+| #88 | danielfeng | P3 每日挑战：全球同图同芯片、一天一次正式成绩（D01~D11） |
+| #89 | danielfeng | P3b 全球排行榜：服务端 `server/` + 客户端（R01~R29） |
+| #90 | danielfeng | P4 赛季、分享战报、助战码（S01~S09、Q04） |
+| #91 | danielfeng | v6 文档、截图、测试方案、Python 行覆盖、覆盖率基线（Q05~Q07） |
+
 ### 分工
 
 团队两人：**danielfeng**（本地 git 用户名 `dn-mbp14-qn`，GitHub [danielfeng](https://github.com/danielfeng)）和 **zhangxunling**（GitHub zhangxunling）。**测试与覆盖率由 zhangxunling 负责，其余全部由 danielfeng 负责。**
@@ -410,6 +458,7 @@ v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`�
 | 演示视频与文档 | danielfeng | 实机截图、演示视频、README、架构文档、更新记录、v4.0 发布文档、v5.0 规划 |
 | v4.0.1 修复与本机打包 | danielfeng | 子弹迎面相撞的修复（#52）、本机打包和发布脚本（#51、#53） |
 | v5 第一批修复（P1） | danielfeng | 游戏修复和选关画面（#59~#76）、打包和测试工具（#65~#75）、难度模拟（#63）、文档 |
+| v6.0 功能与测试 | danielfeng | 敌我区分、精英与芯片、车库与存档、每日挑战、排行榜（服务端和客户端）、赛季与分享，以及每个功能的测试（#85~#91） |
 | 测试与覆盖率（v4.0） | zhangxunling | 测试方案、引擎内测试框架、全部测试用例（规则、流程、编辑器、双人、构建工具、网页外壳、XBuilder 兼容、安装包启动）、覆盖率统计和基线、本地检查 `pr_check.sh`、PR 模板 |
 
 测试与覆盖率的 PR 里，#24~#43 由 zhangxunling 的账号提交；#44~#47（网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板）由 danielfeng 的账号代为提交，内容同属测试与覆盖率。测试发现的游戏问题（例如子弹相撞）由 danielfeng 确认和修复：v4.0.1 的修复（#52）先提交能复现问题的测试，再提交修复，都由 danielfeng 的账号提交。

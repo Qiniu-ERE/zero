@@ -7,6 +7,9 @@
 #       tools/test/run_spx.sh tests/spx/grid.spx   # 只跑一组
 #       TEST_WORK=目录 tools/test/run_spx.sh        # 工作目录（会先清空），默认 $TMPDIR/tankbattle-test-<仓库路径的校验和>
 #
+# 测试文件里可以写：// timeout: 秒数（这一组的超时）、// touch: true（触屏模式）、
+#                   // server: true（v6：先在本机起一个排行榜服务，地址在环境变量 TB_LB）
+#
 # 做法（详见 docs/v4/TEST_PLAN.md 第二节）：每组测试复制一份工程，把 prelude.spx 的断言函数插到
 # 副本 main.spx 的第一个 func 前面（类文件里 func 必须写在事件处理之前），把测试脚本追加到末尾，
 # 用 spx run -headless 运行。仓库里的游戏不会被改动。

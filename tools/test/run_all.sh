@@ -31,6 +31,12 @@ if [ -n "$n" ] && [ "$n" -gt 0 ]; then
     skips="${skips} 构建工具测试"
 fi
 
+if [ -n "$COV" ]; then
+    echo
+    echo "==> Python 行覆盖率（tools/test/py_coverage.py，v6 新增的工具要求 100%）"
+    "$PY" "$ROOT/tools/test/py_coverage.py" --check || status=1
+fi
+
 echo
 echo "==> 网页外壳测试（tests/web，需要 Node.js 18 以上）"
 if command -v node > /dev/null 2>&1; then
