@@ -33,11 +33,12 @@ onStart => {
 	tInt "D05 第 20758 天是第 1 期", dailyNo(20758), 1
 	tInt "D05 提示每日挑战", len(stageTip()), len("msg.daily")
 
-	// D06 同一天：敌人类型的顺序、三选一抽到的芯片，每局都一样（全部 12 块都在卡池里）
+	// D06 同一天：敌人类型的顺序、三选一抽到的芯片，每局都一样（全部 12 块都在卡池里）。
+	// 开局后马上停止出兵（不让出兵协程先消耗随机数），再读两个序列
 	seq := func() string {
 		startGame
-		wait 0.2
-		tCalm
+		gameOver = true
+		spawned = totalEnemy
 		s := ""
 		for i := 0; i < 20; i++ {
 			s += strconv.Itoa(dailyRand(100)) + ","
@@ -48,6 +49,7 @@ onStart => {
 			pickRoll()
 			s += joinInts(pickOpts) + ";"
 		}
+		gameOver = false
 		return s
 	}
 	cmdLevel = 1
@@ -55,6 +57,20 @@ onStart => {
 	cmdLevel = 30
 	b2 := seq()
 	tStr "D06 同一天两局的随机序列相同（和指挥官等级无关）", b2, a
+	// 三选一的序列不受出兵影响：先让出兵消耗几次随机数，三选一抽到的还是一样
+	startGame
+	gameOver = true
+	spawned = totalEnemy
+	for i := 0; i < 7; i++ {
+		dailyRand(100)
+	}
+	pickWho = 1
+	chips[1] = nil
+	pickRoll()
+	first := joinInts(pickOpts)
+	gameOver = false
+	fields := strings.Split(strings.Split(a, ";")[0], ",") // a 的前 20 个是敌人的随机数，后面是第一次三选一
+	tStr "D06 出了几辆敌人都不影响三选一抽到的芯片", first, strings.Join(fields[20:], ",")
 	seen := false
 	for t := 0; t < 200 && !seen; t++ {
 		pickRoll()
