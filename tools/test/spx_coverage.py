@@ -28,6 +28,7 @@ import sys
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 GAME = os.path.join(ROOT, "TankBattle")
 TEST_PLAN = os.path.join(ROOT, "docs", "v4", "TEST_PLAN.md")
+TEST_PLAN_V6 = os.path.join(ROOT, "docs", "v6", "TEST_PLAN.md")  # v6 的用例清单：每个 ID 都要有测试，否则不通过
 
 FUNC = re.compile(r"^func (\w+)\(.*\{\s*$")
 HANDLER = re.compile(r"^(onStart|onCloned|onClick|onKey|onMsg)\b(.*?)=> \{\s*$")
@@ -91,8 +92,10 @@ def messages(game=GAME):
     return sorted(sent)
 
 
-def plan_ids():
-    with open(TEST_PLAN, encoding="utf-8") as f:
+def plan_ids(path=TEST_PLAN):
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
         return sorted(set(re.findall(r"^\| ([A-Z]\d\d) \|", f.read(), re.M)))
 
 
@@ -202,8 +205,9 @@ def report(logs, unittest_log=None, baseline=None):
     got = {n.split('"')[1] for n in covered if ':onMsg "' in n}
     msg_hit = [m for m in sent if m in got]
 
-    ids = plan_ids()
+    ids = sorted(set(plan_ids()) | set(plan_ids(TEST_PLAN_V6)))
     id_hit = [i for i in ids if i in tested]
+    v6_missing = [i for i in plan_ids(TEST_PLAN_V6) if i not in tested]
 
     values = {"main.spx 函数": pct(*per[("main.spx", "func")]), "全部函数": pct(*tot["func"]),
               "事件处理（不含按键 / 点击）": pct(*tot["handler"]), "消息": pct(len(msg_hit), len(sent))}
@@ -212,7 +216,7 @@ def report(logs, unittest_log=None, baseline=None):
         out.append(f"| {k} | {values[k]:.0f}% | ≥ {want}% | {'✅' if values[k] >= want else '❌'} |")
     if skip:
         out.append(f"| 不计入的不稳定消息 | {'、'.join(sorted(skip))} | — | 原因见 KNOWN_UNSTABLE |")
-    out.append(f"| 用例清单（TEST_PLAN 第三节） | {len(id_hit)}/{len(ids)}（{pct(len(id_hit), len(ids)):.0f}%） | 参考 | |")
+    out.append(f"| 用例清单（v4 / v6 TEST_PLAN） | {len(id_hit)}/{len(ids)}（{pct(len(id_hit), len(ids)):.0f}%） | v6 的 100% | {'✅' if not v6_missing else '❌'} |")
 
     miss = [n for n, k in pts.items() if k != "input" and n not in covered]
     out += ["", f"## 没覆盖到的函数和事件处理（{len(miss)} 个）", ""]
@@ -222,6 +226,9 @@ def report(logs, unittest_log=None, baseline=None):
     out += ["", f"## 还没有测试的用例 ID（{len(ids) - len(id_hit)} / {len(ids)}）", ""]
     out += [", ".join(i for i in ids if i not in tested) or "（没有）"]
     ok = True
+    if v6_missing:  # v6 的规则全覆盖：清单里每个用例 ID 都要有测试（docs/v6/TEST_PLAN.md）
+        out += ["", f"❌ **v6 用例清单里还没有测试的 ID（{len(v6_missing)} 个）**：" + ", ".join(v6_missing)]
+        ok = False
     if baseline and os.path.exists(baseline):
         lines, ok = compare(covered, baseline)
         out += lines
