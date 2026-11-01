@@ -21,6 +21,13 @@ onStart => {
 	tInt "Q02 再打开一次数量一样（不会重复创建）", uiClones, n
 	goHome
 
+	// Q02 排行榜也一样（排行榜的数字克隆很多）
+	openRanks
+	tStr "Q02 记下建好的是排行榜", panel, "ranks"
+	tCheck "Q02 打开排行榜时创建小部件", uiClones > base+100
+	goHome
+	tInt "Q02 离开排行榜后删掉", uiClones, base
+
 	// Q03 去过车库以后，地图格子和敌人照样能出来：砖墙最多的第 5 关，精英能被打掉（克隆存在）
 	playStage 5
 	wait 0.5

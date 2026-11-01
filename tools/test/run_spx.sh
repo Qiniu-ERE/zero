@@ -54,6 +54,21 @@ for suite in "$@"; do
 	fi
 	{ printf '\n// ---- 测试：%s ----\n' "${name}"; cat "$suite"; } >> "$main"
 
+	# 测试文件里写一行 “// server: true”：先在本机起一个排行榜服务（server/leaderboard.py，临时数据库），
+	# 地址放在环境变量 TB_LB 里，测试脚本把 lbBase 指向它（v6 排行榜的端到端测试）
+	lbpid=""
+	TB_LB=""
+	if grep -q '^// server: true' "$suite"; then
+		port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
+		python3 "$ROOT/server/leaderboard.py" --port "$port" --db "$dir/lb.sqlite" > "$dir/server.log" 2>&1 &
+		lbpid=$!
+		TB_LB="http://127.0.0.1:$port"
+		for _ in 1 2 3 4 5 6 7 8 9 10; do
+			curl -s "$TB_LB/v1/health" > /dev/null 2>&1 && break
+			sleep 0.3
+		done
+	fi
+	export TB_LB
 	# 地图编辑器的存档写到 os.UserConfigDir()，指向临时目录，不碰玩家自己的存档
 	log="$dir/run.log"
 	(cd "$dir/TankBattle" && HOME="$dir/home" XDG_CONFIG_HOME="$dir/home/.config" APPDATA="$dir/home/AppData" \
@@ -71,6 +86,7 @@ for suite in "$@"; do
 		kill $pid 2>/dev/null || true
 	fi
 	wait $pid 2>/dev/null || true
+	[ -z "$lbpid" ] || { kill "$lbpid" 2>/dev/null; wait "$lbpid" 2>/dev/null || true; }
 
 	pass=$(grep -a -c '^TEST PASS' "${log}" || true)
 	fail=$(grep -a -c '^TEST FAIL' "${log}" || true)
