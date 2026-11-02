@@ -1618,11 +1618,11 @@ func lbText(row, field int) string {
 		return ""
 	}
 	if row == 8 {
+		if lbMyRank == 0 {
+			return "" // 没上榜：这一行是“你还没上这个榜”的整句话，不显示数字
+		}
 		switch field {
 		case 0:
-			if lbMyRank == 0 {
-				return "-"
-			}
 			return strconv.Itoa(lbMyRank)
 		case 2:
 			return strconv.Itoa(lbMyBest)
