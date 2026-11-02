@@ -1,4 +1,4 @@
-// 每日挑战（D04~D11），见 docs/v6/TEST_PLAN.md。地图生成器的 Python 版和 365 张图的合法性在 tests/tools/test_daily.py
+// 每日挑战（D04~D15），见 docs/v6/TEST_PLAN.md。地图生成器的 Python 版和 365 张图的合法性在 tests/tools/test_daily.py
 // timeout: 90
 onStart => {
 	wait 3
@@ -159,6 +159,71 @@ onStart => {
 	t0 = dailySecs
 	wait 0.5
 	tNum "D11 暂停时不计时", dailySecs, t0
+
+	// D12 正式局（今天第一局）中途在暂停里重来 / 回主页：按放弃结算，当时的得分就是今天的正式成绩（v6.0.1；以前可以一直重来刷成绩）
+	goHome
+	dayOverride = 20810
+	playDaily
+	wait 0.3
+	tCalm
+	score = 1500
+	pauseGame
+	restartFromPause
+	tInt "D12 重来前先结算：今天的正式成绩已记录", dailyDay, 20810
+	tInt "D12 正式成绩是放弃时的得分", dailyScore, 1500
+	tInt "D12 重来的这局开始了", state, stPlay
+	tCheck "D12 重来的这局用时从 0 算（上传的用时只算这一局）", runSecs < 1
+	wait 0.3
+	tCalm
+	score = 4200
+	endGame true
+	tCheck "D12 重来的这局是练习", !dailyOfficial
+	tInt "D12 正式成绩不变", dailyScore, 1500
+	goHome
+	dayOverride = 20811
+	playDaily
+	wait 0.3
+	tCalm
+	score = 900
+	pauseGame
+	quitFromPause
+	tInt "D12 回主页前先结算", dailyDay, 20811
+	tInt "D12 回主页时的得分是正式成绩", dailyScore, 900
+	tInt "D12 回到主页", state, stHome
+	playDaily
+	wait 0.3
+	tCalm
+	pauseGame
+	restartFromPause
+	tInt "D12 练习局在暂停里重来：直接开始，不结算", state, stPlay
+	tInt "D12 练习局重来不改正式成绩", dailyScore, 900
+
+	// D13 每日挑战赢了：结算按钮是“再来一局”（没有下一关）
+	wait 0.3
+	tCalm
+	endGame true
+	tStr "D13 每日挑战赢了用自己的结算画面", screen, "result_dwin_plain"
+
+	// D14 过了零点在结算里再来一局：打的是新一天的图，新一天的第一局是正式成绩
+	dayOverride = 20812
+	again
+	wait 0.3
+	tInt "D14 再来一局换成新的一天", dailyDayNow, 20812
+	tCalm
+	score = 3000
+	endGame true
+	tCheck "D14 新一天的第一局是正式成绩", dailyOfficial
+	tInt "D14 记下新一天", dailyDay, 20812
+
+	// D15 分享卡片的助战码和卡片上的芯片是同一局（正式局）；正式局的芯片写进存档
+	dailyBuild = []int{cPierce, cShield}
+	chips[1] = []int{cRapid}
+	tStr "D15 助战码用正式局的芯片", shareText(5), assistCode([]int{cPierce, cShield})
+	txt := saveText()
+	dailyBuild = nil
+	loadText txt
+	tCheck "D15 重启后正式局的芯片还在", len(dailyBuild) == 2 && dailyBuild[0] == cPierce && dailyBuild[1] == cShield
+	tCheck "D15 存档里坏掉的芯片编号丢掉", loadText(strings.Replace(txt, "daily.build=3,5", "daily.build=3,99,0", 1)) && len(dailyBuild) == 1
 
 	tDone "daily"
 }

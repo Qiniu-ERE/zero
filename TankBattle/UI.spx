@@ -910,7 +910,7 @@ func clickAt(x, y float64) {
 		if hit("pause.resume", x, y) {
 			resumeGame
 		} else if hit("pause.restart", x, y) {
-			startGame
+			restartFromPause
 		} else if hit("pause.home", x, y) {
 			quitFromPause
 		}
