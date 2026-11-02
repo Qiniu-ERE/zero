@@ -1054,7 +1054,7 @@ onMsg "toast", => {
 		if state == stHome {
 			setXYpos 0, 112 // 主页：标题和“开始战役”之间（下面的菜单、v6 的四张卡片都不挡）
 		} else if state == stAssist || state == stPick {
-			setXYpos 0, -150 // 助战码键盘、三选一卡片的下方，不挡按钮
+			setXYpos 0, -163 // 助战码键盘、三选一卡片下方，最底下一行（不挡按钮和操作提示）
 		} else {
 			setXYpos -72, 20 // 战场上方
 		}
