@@ -77,6 +77,22 @@ check_spx_patches() {  # 装好的 spx 打过的源码补丁和现在的 patches
   return 1
 }
 
+check_spx_commit() {  # 装好的 spx 是 env.sh 固定的提交（换了 SPX_COMMIT 没重新 setup，打出来的包会悄悄用旧版本）
+  local got
+  got="$(cat "$SPX_DIR/.bin/tankbattle-spx.txt" 2>/dev/null || echo "（没有记录）")"
+  [ "$got" = "$SPX_COMMIT" ] && return 0
+  echo "装好的 spx 是 ${got}，env.sh 固定的是 ${SPX_COMMIT}：先重新运行 tools/export/setup_spx.sh（Linux 虚拟机里：tools/export/linux_vm.sh setup）" >&2
+  return 1
+}
+
+check_ispx_commit() {  # 网页版的解释器 ispx.wasm 是用固定的提交编译的（只有 setup_spx.sh web 会重新编译它）
+  local got
+  got="$(cat "$(go env GOPATH)/bin/ispx.tankbattle-spx.txt" 2>/dev/null || echo "（没有记录）")"
+  [ "$got" = "$SPX_COMMIT" ] && return 0
+  echo "网页版的解释器 ispx.wasm 是用 ${got} 编译的，env.sh 固定的是 ${SPX_COMMIT}：先运行 tools/export/setup_spx.sh web" >&2
+  return 1
+}
+
 verify_sha256() {  # 文件 期望的 sha256：不一致时打印两个值并返回 1
   local got; got="$(sha256_of "$1")"
   [ "$got" = "$2" ] && return 0

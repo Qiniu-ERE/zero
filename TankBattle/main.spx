@@ -1058,8 +1058,8 @@ func saveFile() string {
 // Android 的 App 进程里通常没有 $HOME，Go 的 UserConfigDir 会失败：退到 App 自己的私有目录
 // （Godot 的 user:// 也在这里，App 一定能写）。都不行时返回 ""（网页版：进度只在这次运行里有效）
 func dataDir() string {
-	if dir, err := os.UserConfigDir(); err == nil && dir != "" {
-		return dir + "/TankBattle"
+	if dir, err := os.UserConfigDir(); err == nil && dir != "" && os.MkdirAll(dir+"/TankBattle", 0755) == nil {
+		return dir + "/TankBattle" // 拿到了而且写得进去（有的设备设了 $HOME 但不可写，也要走下面的退路）
 	}
 	for _, d := range []string{"/data/data/" + appID + "/files", "/data/user/0/" + appID + "/files"} {
 		if os.MkdirAll(d+"/TankBattle", 0755) == nil {
@@ -2953,6 +2953,7 @@ func resumeGame() {
 func quitFromPause() {
 	if dailyForfeit() {
 		goHome // 正式局已经按放弃结算了
+		toast "msg.daily.done", 2.5 // 告诉玩家：今天的正式机会已经用掉了（goHome 会收起之前的提示，所以回主页以后再弹）
 		return
 	}
 	if stage == customStage {

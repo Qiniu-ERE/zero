@@ -952,6 +952,9 @@ func clickAt(x, y float64) {
 			pickReroll
 		}
 	case stResult:
+		if !resultReady {
+			return // 结算画面刚出来的 0.6 秒：手机上连点开火的手指不能误点到“看视频”“下一关”（和确认键一样）
+		}
 		if hit("result.ad", x, y) && !doubled {
 			watchAd rewardDouble
 		} else if hit("result.again", x, y) {

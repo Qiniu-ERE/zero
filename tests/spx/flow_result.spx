@@ -23,6 +23,8 @@ onStart => {
 	// F24 结算画面出现后 0.6 秒内按确认键不算数（J / Enter 也是开火键）
 	confirm
 	tInt "F24 结算刚出现时按确认：不播广告", state, stResult
+	UI.clickAt -72, -39 // “下一关”按钮
+	tInt "F24 结算刚出现时点按钮也不算（手机上连点开火的手指，v6.0.1）", state, stResult
 	wait 0.7
 
 	// F12 看视频翻倍，只能翻一次

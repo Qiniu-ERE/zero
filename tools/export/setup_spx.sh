@@ -55,12 +55,15 @@ BUILDCTL="$SPX_DIR/.bin/buildctl$(go env GOEXE)"
 log "安装 spx 和运行时（buildctl setup host --published-runtime）"
 (cd "$SPX_DIR" && "$BUILDCTL" setup host --published-runtime)
 patches_digest > "$SPX_DIR/.bin/tankbattle-patches.txt"   # 装好的 spx 打过哪些源码补丁（build.sh 核对）
+echo "$SPX_COMMIT" > "$SPX_DIR/.bin/tankbattle-spx.txt"   # 装好的 spx 是哪个提交（build.sh 核对，见 env.sh 的 check_spx_commit）
 
 for target in "$@"; do
   case "$target" in
     web)
       log "Web 运行时（buildctl setup web --mode normal）"
       (cd "$SPX_DIR" && "$BUILDCTL" setup web --mode normal)
+      # 网页版的解释器 ispx.wasm 只在这一步重新编译：记下是哪个提交编的（build.sh web 核对，换了 SPX_COMMIT 没重跑这一步会报错）
+      echo "$SPX_COMMIT" > "$(go env GOPATH)/bin/ispx.tankbattle-spx.txt"
       ;;
     android|ios)
       log "$target 导出模板"

@@ -304,6 +304,55 @@ class ReleaseNotes(unittest.TestCase):
             self.assertIn("打的，标签", out.stderr)
 
 
+class SpxCommit(unittest.TestCase):
+    """Q10 打包前核对装好的 spx 和网页版解释器是 env.sh 固定的提交（换了 SPX_COMMIT 没重新 setup 时，
+    以前会悄悄用旧版本打包：网页版的 ispx.wasm 只有 setup_spx.sh web 会重新编译，Linux 虚拟机里的 spx 要单独 setup）"""
+
+    def check(self, func, record_dir_key, content):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        spx, gopath = os.path.join(d, "spx"), os.path.join(d, "go")
+        os.makedirs(os.path.join(spx, ".bin"))
+        os.makedirs(os.path.join(gopath, "bin"))
+        rec = {"spx": os.path.join(spx, ".bin", "tankbattle-spx.txt"),
+               "ispx": os.path.join(gopath, "bin", "ispx.tankbattle-spx.txt")}[record_dir_key]
+        if content is not None:
+            with open(rec, "w") as f:
+                f.write(content + "\n")
+        return subprocess.run([BASH, "-c", f'source "$1/env.sh" 2>/dev/null; {func}', "-", EXPORT],
+                              capture_output=True, text=True, env=dict(os.environ, SPX_DIR=spx, GOPATH=gopath))
+
+    def pinned(self):
+        with open(os.path.join(EXPORT, "env.sh"), encoding="utf-8") as f:
+            return re.search(r'^SPX_COMMIT="([0-9a-f]{40})"', f.read(), re.M).group(1)
+
+    def test_Q10_spx_commit(self):
+        self.assertEqual(self.check("check_spx_commit", "spx", self.pinned()).returncode, 0)
+        for content, words in ((None, "没有记录"), ("c3c0da57ee7ffd2e15b55721785bb0641583a058", "c3c0da5")):
+            with self.subTest(content=content):
+                out = self.check("check_spx_commit", "spx", content)
+                self.assertNotEqual(out.returncode, 0)
+                self.assertIn(words, out.stderr)
+                self.assertIn("setup_spx.sh", out.stderr)
+                self.assertIn("linux_vm.sh setup", out.stderr)
+
+    def test_Q10_ispx_commit(self):
+        self.assertEqual(self.check("check_ispx_commit", "ispx", self.pinned()).returncode, 0)
+        out = self.check("check_ispx_commit", "ispx", None)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("setup_spx.sh web", out.stderr)
+
+    def test_Q10_setup_writes_records(self):
+        with open(os.path.join(EXPORT, "setup_spx.sh"), encoding="utf-8") as f:
+            src = f.read()
+        self.assertIn('echo "$SPX_COMMIT" > "$SPX_DIR/.bin/tankbattle-spx.txt"', src)
+        self.assertIn('echo "$SPX_COMMIT" > "$(go env GOPATH)/bin/ispx.tankbattle-spx.txt"', src)
+        with open(os.path.join(EXPORT, "build.sh"), encoding="utf-8") as f:
+            build = f.read()
+        self.assertIn("check_spx_commit || exit 1", build)
+        self.assertIn("check_ispx_commit || exit 1", build)
+
+
 class AppId(unittest.TestCase):
     def test_K14_game_app_id_matches_build(self):
         """K14 游戏里的 appID（Android 私有目录 /data/data/<包名> 用到）和打包配置的 APP_ID 一致"""

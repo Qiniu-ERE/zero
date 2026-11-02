@@ -190,6 +190,7 @@ onStart => {
 	tInt "D12 回主页前先结算", dailyDay, 20811
 	tInt "D12 回主页时的得分是正式成绩", dailyScore, 900
 	tInt "D12 回到主页", state, stHome
+	tStr "D12 回主页后提示今天的正式成绩已记录", toastKey, "msg.daily.done"
 	playDaily
 	wait 0.3
 	tCalm

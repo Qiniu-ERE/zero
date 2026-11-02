@@ -219,6 +219,8 @@ onStart => {
 	xdg := os.Getenv("XDG_CONFIG_HOME")
 	tCheck "K14 平时在系统的用户配置目录下", strings.HasPrefix(dataDir(), home) && strings.HasSuffix(dataDir(), "/TankBattle")
 	tCheck "K14 存档在数据目录里", saveFile() == dataDir()+"/save.txt" && edFile() == dataDir()+"/maps.txt"
+	os.Setenv "HOME", "/"
+	tStr "K14 $HOME 写不进去时也走退路（这台电脑上退路也不行：不存）", dataDir(), ""
 	os.Setenv "HOME", ""
 	os.Setenv "XDG_CONFIG_HOME", ""
 	tStr "K14 系统目录和 App 私有目录都拿不到：不存", dataDir(), ""
