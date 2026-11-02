@@ -188,5 +188,22 @@ onStart => {
 	dayOverride = 0
 	serverDay = 0
 
+	// R34 正在后台发送的那批成绩也写进存档（这时关掉游戏不丢）（v6.0.1）
+	lbSending = []string{`{"n":1}`}
+	lbQueue = []string{`{"n":2}`}
+	txt := saveText()
+	tInt "R34 发送中的和排队的都在存档里", strings.Count(txt, "lb.queue="), 2
+	lbSending = nil
+	lbQueue = nil
+
+	// R35 切走以后才回来的旧请求：直接丢掉，不覆盖新请求的结果（以前可能一直停在“加载中”）
+	lbGen = 7
+	lbDoneFetch = 0
+	lbFetch 6, server, "daily", 20900
+	tInt "R35 旧请求的结果不写", lbDoneFetch, 0
+	lbFetch 7, server, "daily", 20900
+	tInt "R35 新请求的结果照常写", lbDoneFetch, 7
+	lbPoll
+
 	tDone "board"
 }

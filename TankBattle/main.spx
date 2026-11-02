@@ -94,6 +94,7 @@ var (
 	shooter      int        // 正在判定的玩家子弹是谁打的（PBullet 调 bulletHit 之前设好，穿甲弹靠它）
 	elitesKilled int        // 本关已击毁的精英
 	dropX        float64    // 场上的芯片在哪（同一时间只有一块）
+	busyCells    map[int]bool // 钢铁堡垒放墙前统计：坦克压着的格子（见 tankCells）
 	dropY        float64
 	dropLeft     float64 // 芯片还有几秒消失；0 表示场上没有芯片
 	pickWho      int     // 谁在三选一
@@ -130,6 +131,7 @@ var (
 	// v6 排行榜（docs/v6/PLAN.md 第五节）
 	lbBase    string   // 排行榜服务的地址，开始时等于常量 lbURL（测试里指向本机临时起的服务）；"" 表示不联网
 	lbQueue   []string // 还没传上去的成绩（JSON，存档里也有，联网后补传）
+	lbSending []string // 后台正在发送的那批（发送完由 lbPoll 清掉；存档时和 lbQueue 一起写）
 	lbBusy    bool     // 后台正在上传
 	lbOnline  bool     // 最近一次联网成功了
 	lbTab     int      // 排行榜画面的选项卡：0 每日挑战，1 全球周榜
@@ -892,21 +894,51 @@ func setCell(i, k int) {
 	}
 }
 
-// 钢铁堡垒：基地四周变成钢墙 15 秒（再捡一次就重新计时）
+// 钢铁堡垒：基地四周变成钢墙 15 秒（再捡一次就重新计时）。有坦克压着的格子不放墙（不然坦克卡在墙里动不了）
 func fortify() {
 	if fortifyLeft <= 0 {
+		busy := tankCells()
 		for _, i := range baseRing() {
-			setCell i, 2
+			if !busy[i] {
+				setCell i, 2
+			}
 		}
 	}
 	fortifyLeft = fortifySecs
+}
+
+// 场上坦克（玩家和敌人）压着的格子：坦克 24 像素，最多压 4 格
+func tankCells() map[int]bool {
+	busyCells = map[int]bool{}
+	markTank p1x, p1y
+	if coop && p2Exists {
+		markTank p2x, p2y
+	}
+	broadcastAndWait "markTanks" // 每辆敌人调 markTank 报告自己的位置
+	return busyCells
+}
+
+func markTank(x, y float64) {
+	if x > 9000 {
+		return // 被击毁了（位置报得很远）
+	}
+	h := 11.0
+	for _, p := range [][]float64{{x - h, y - h}, {x + h, y - h}, {x - h, y + h}, {x + h, y + h}} {
+		if i := cellIndex(p[0], p[1]); i >= 0 {
+			busyCells[i] = true
+		}
+	}
 }
 
 // 钢铁堡垒到时间：四周恢复成完整的砖墙（钢墙被穿甲弹打掉的也补上）
 func endFortify() {
 	fortifyLeft = 0
 	m := levelMap()
+	busy := tankCells()
 	for _, i := range baseRing() {
+		if busy[i] {
+			continue // 坦克正压着：先不补墙
+		}
 		k := 0
 		if m[i/cols][i%cols] == 'B' {
 			k = 1
@@ -1049,8 +1081,8 @@ func saveText() string {
 		"daily.day=" + strconv.Itoa(dailyDay), "daily.score=" + strconv.Itoa(dailyScore),
 		"daily.secs=" + strconv.Itoa(dailyBestSecs), "daily.build=" + joinInts(dailyBuild), "streak=" + strconv.Itoa(streak), "streak.day=" + strconv.Itoa(streakDay),
 		"season=" + strconv.Itoa(seasonNo), "season.pts=" + strconv.Itoa(seasonPts)}
-	for _, q := range lbQueue {
-		lines = append(lines, "lb.queue="+q) // 没传上去的成绩，一条一行
+	for _, q := range append(append([]string{}, lbSending...), lbQueue...) {
+		lines = append(lines, "lb.queue="+q) // 没传上去的成绩（包括正在发送的那批：这时关掉游戏也不丢），一条一行
 	}
 	return strings.Join(lines, "\n") + "\n"
 }
@@ -1385,6 +1417,7 @@ func openGarage() {
 		return
 	}
 	refreshTasks()
+	refreshSeason() // 网页版的日期要等排行榜服务器告诉，进车库时再对一次赛季
 	state = stGarage
 	buildGarage()
 	setScreen "garage"
@@ -1447,6 +1480,7 @@ func lbFlush() {
 	lbBusy = true
 	batch := lbQueue
 	lbQueue = nil
+	lbSending = batch
 	go lbSendAll(lbBase, batch)
 }
 
@@ -1514,6 +1548,9 @@ func lbFetch(gen int, base, board string, period int) {
 	q := "region=" + lbRegion + "&board=" + board + "&period=" + strconv.Itoa(period)
 	top := lbGet(base + "/v1/board?" + q + "&limit=8")
 	me := lbGet(base + "/v1/rank?" + q + "&player=" + playerID)
+	if gen != lbGen {
+		return // 已经切到别的选项卡了：丢掉，别覆盖新请求的结果
+	}
 	if top == nil || me == nil {
 		lbDoneFetch = -gen // 负数：这个编号的请求失败了
 		return
@@ -1559,6 +1596,7 @@ func lbPoll() {
 	if lbDoneSend {
 		lbDoneSend = false
 		lbQueue = append(append([]string{}, lbDoneLeft...), lbQueue...)
+		lbSending = nil
 		lbOnline = len(lbDoneLeft) == 0
 		lbBusy = false
 		saveGame()
@@ -1841,8 +1879,8 @@ func assistConfirm() {
 
 // 开局时送出好友的助战芯片（战役和自制地图都行，每日挑战不行：大家要公平）
 func applyAssist() {
-	if assistGift == 0 || stage == dailyStage || autopilot {
-		return
+	if assistGift == 0 || stage < 1 || stage > lastStage || autopilot {
+		return // 只在战役里用（每日挑战要公平，自制地图试玩不算“下一关”）
 	}
 	id := assistGift
 	assistGift = 0
@@ -1851,6 +1889,7 @@ func applyAssist() {
 	}
 	chips[1] = append(chips[1], id)
 	lvl[1] = 1 + len(chips[1])
+	snapChips[1] = append([]int{}, chips[1]...) // 算进进关时的样子：战败重打本关也还在
 	toast "msg.assist.used", 2
 }
 
@@ -3144,7 +3183,8 @@ func demoV3() {
 	tgtAge = 9
 	wait 4
 	autopilot = false
-	pauseGame // 暂停菜单（Esc / 顶栏的 Ⅱ）
+	pauseGame // 暂停菜单（Esc / 顶栏的 Ⅱ）；路演演示时 pauseGame 不让暂停，所以临时关一下自动驾驶
+	autopilot = true // 马上恢复：继续以后照样是演示（不进存档、不会被击毁）
 	wait 2.5
 	resumeGame
 	wait 0.5

@@ -724,6 +724,10 @@ func refreshGarage() {
 		k := taskIDs[i]
 		c = "tp_" + strconv.Itoa(taskProg[i]*10/taskTarget(k))
 	case slot == 50: // 赛季和段位
+		if seasonNo < 1 {
+			hide // 还不知道日期（网页版没连上服务器）：没有赛季可显示
+			return
+		}
 		c = "ssn_" + strconv.Itoa(int(math.Min(float64(seasonNo), 12))) + "_" + strconv.Itoa(tierOf(seasonPts)) + "_" + langCode()
 	case slot == 51:
 		have, need := tierProgress(seasonPts)

@@ -199,6 +199,13 @@ onMsg "bomb", => {
 	}
 }
 
+// 钢铁堡垒放墙前：报告自己压着哪些格子
+onMsg "markTanks", => {
+	if alive {
+		markTank xpos, ypos
+	}
+}
+
 onMsg "clear", => {
 	if alive {
 		alive = false

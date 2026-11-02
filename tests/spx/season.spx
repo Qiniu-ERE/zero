@@ -1,4 +1,4 @@
-// 赛季、分享战报、助战码（S01~S11），见 docs/v6/TEST_PLAN.md
+// 赛季、分享战报、助战码（S01~S12），见 docs/v6/TEST_PLAN.md
 // timeout: 90
 onStart => {
 	wait 3
@@ -177,6 +177,21 @@ onStart => {
 	UI.clickAt 398+31-240, 180-284
 	UI.clickAt 0, 180-303
 	tInt "S10 点返回回主页", state, stHome
+
+	// S12 好友的助战芯片只在战役里用（自制地图试玩不用掉它）；战败重打本关还在（v6.0.1）
+	goHome
+	assistGift = cBounce
+	stage = customStage
+	resetRun()
+	applyAssist()
+	tCheck "S12 自制地图不用助战芯片", !hasChip(1, cBounce)
+	tInt "S12 留到战役", assistGift, cBounce
+	playStage 2
+	wait 0.3
+	tCheck "S12 战役开局装上", hasChip(1, cBounce)
+	resetRun() // 战败后重打本关：芯片回到进关时的样子
+	tCheck "S12 战败重打本关还在", hasChip(1, cBounce)
+	goHome
 
 	tDone "season"
 }
