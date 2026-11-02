@@ -297,7 +297,7 @@ stateDiagram-v2
 - **关卡地图**：`python3 tools/levels/check.py` 检查 8 张地图（编辑器里的实时检查是同一套规则）。
 - **安装包**：`tools/export/build.sh` 本地打包；`tools/test/package_boot.sh` 打出桌面包后运行里面的程序做启动测试（B03）；`tools/test/dist_boot.sh <安装包>` 直接运行要发出去的那个包（B14）。`.github/workflows/release.yml` 里的云端冒烟测试只能手动触发，要等 Actions 额度恢复才能用。
 
-- **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v3-demo.mp4` 和 `tankbattle-v3.gif`）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
+- **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v6-demo.mp4` 和 `tankbattle-v6.gif`；`DEMO_NAME` 改名字，`GIF_START` / `GIF_LEN` 改动图截哪一段）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
 - **测试演示视频**：`tools/dev/record_tests.sh` 真实运行一次 `tools/test/run_all.sh`，记下每行输出的时间，用 ffmpeg 画成终端画面（加速播放，画面上标明实际用时和倍速），输出 `docs/demo/tankbattle-v4-tests.mp4`。只改画面时用 `--from` 读取上次保存的输出记录，不用重跑测试。
 
 ### 自动化测试（v4.0）
@@ -306,13 +306,13 @@ stateDiagram-v2
 
 | 命令 | 测什么 | 时间 |
 |---|---|---|
-| `tools/test/run_all.sh` | 构建工具（`tests/tools/`，Python）+ 网页外壳（`tests/web/`，Node.js）+ 引擎内测试（`tests/spx/`） | 约 6 分钟 |
+| `tools/test/run_all.sh` | 构建工具（`tests/tools/`，Python）+ 网页外壳（`tests/web/`，Node.js）+ 引擎内测试（`tests/spx/`） | 约 11 分钟（v6） |
 | `tools/test/run_spx.sh [tests/spx/某组.spx]` | 引擎内测试（全部或一组） | 每组 5~90 秒 |
-| `tools/test/pr_check.sh --coverage` | PR 合入前：`check.yml` 的三项检查 + 全部测试 + 覆盖率和基线比较，生成报告贴到 PR 里 | 约 6 分钟 |
+| `tools/test/pr_check.sh --coverage` | PR 合入前：`check.yml` 的三项检查 + 全部测试 + 覆盖率和基线比较，生成报告贴到 PR 里 | 约 12 分钟（v6） |
 | `tools/test/xbuilder_check.sh` | 用 XBuilder 线上的 spx v3.3.0 编译检查（T09） | 几秒 |
 | `tools/test/package_boot.sh` | 打出桌面安装包并运行启动测试（B03） | 约 20 秒 |
 | `tools/test/dist_boot.sh <安装包> [秒数]` | 直接运行要发出去的安装包（B14） | 约 15 秒 |
-| `tools/test/update_baseline.sh` | 覆盖率提高后更新基线（有测试失败就停下，成功后删掉工作目录） | 约 10 分钟 |
+| `tools/test/update_baseline.sh` | 覆盖率提高后更新基线（有测试失败就停下，成功后删掉工作目录） | 约 25 分钟（v6：先跑一遍构建工具测试，再跑两遍引擎内测试） |
 | `tools/dev/clean.sh [--yes] [--legacy]` | 列出 / 删除这个仓库的临时文件 | 几秒 |
 
 **引擎内测试怎么工作**：`run_spx.sh` 为每组测试复制一份工程，把 `tools/test/prelude.spx` 的断言函数插到 `main.spx` 第一个 `func` 前面（类文件里 func 必须写在事件处理之前），把 `tests/spx/<组>.spx` 追加到末尾，用 `spx run -headless` 运行，按输出判定：`TEST PASS` / `TEST FAIL` / `TEST DONE`，超时、`panic`、编译失败都算失败（进程退出码永远是 0）。临时目录名带仓库路径的校验和（例如 `$TMPDIR/tankbattle-test-1491624922`），两个 clone 同时跑不会互相删；`TEST_WORK=目录` 可以指定。`pr_check.sh` 的报告默认在 `$TMPDIR/pr_check-<校验和>.md`，有检查跳过时不算通过（退出码 2）。仓库里的游戏不会被改动；运行时 `HOME` 指向临时目录，编辑器存档不会碰到玩家自己的地图。
@@ -337,7 +337,7 @@ stateDiagram-v2
 ### 开发流程
 
 - `main` 是发布分支，不直接推送；每个功能一个分支、一个 Pull Request。**例外**：v1.0.0 的 5 个提交（2026-10-23 上午）是在开始按 PR 流程之前直接推到 main 的；v2.0 起没有再直接推送。
-- 标签：`v0` 是导入的基础版本（2026-10-23 的首次提交 `0955dd3`，初版坦克大战），之后的提交都是在它之上新增的；`v1.0.0` 是 v0 之后当天上午直接提交到 main 的 5 个提交（音效、中文字体、砖墙两下、画风切换、README，事后补打的标签，见 CHANGELOG）；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1`、`v5.0.0` 是发布版本，每个版本改了什么见 [CHANGELOG](../CHANGELOG.md)。其中 `v1.0.0`、`v2.0.0`（当时还没有安装包）和 `v4.0.0`（Actions 启动不了，安装包见 v4.0.1）只有标签，没有 GitHub Release。
+- 标签：`v0` 是导入的基础版本（2026-10-23 的首次提交 `0955dd3`，初版坦克大战），之后的提交都是在它之上新增的；`v1.0.0` 是 v0 之后当天上午直接提交到 main 的 5 个提交（音效、中文字体、砖墙两下、画风切换、README，事后补打的标签，见 CHANGELOG）；`v2.0.0`、`v3.0.0`、`v3.0.1`、`v3.0.2`、`v4.0.0`、`v4.0.1`、`v5.0.0`、`v5.0.1`、`v6.0.0`、`v6.0.1` 是发布版本，每个版本改了什么见 [CHANGELOG](../CHANGELOG.md)。其中 `v1.0.0`、`v2.0.0`（当时还没有安装包）、`v4.0.0`（Actions 启动不了，安装包见 v4.0.1）和 `v6.0.0`（打包前发现一批问题，修好后发布 v6.0.1）只有标签，没有 GitHub Release。
 - v2.0：功能分支合入集成分支 `v2.0`，最后由 `v2.0` 合入 `main`。v3.0：功能 PR 依次叠在前一个 PR 上（#10 → #9 → #12 → #13 → #14 → #15），按顺序合入 `main`。v4.0：测试 PR 合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`（#50）；游戏代码的修复直接走 `main`。
 - 发布：先在 `CHANGELOG.md` 写好这个版本；在 `main` 上打 `v*` 标签并推送，在这个提交上（工作区干净）运行 `tools/export/build_local.sh` 打包并检查，再运行 `tools/export/release_local.sh` 创建 Release（本机打不了的平台指向以前的版本；以后补包用 `--append`）。GitHub Actions 的工作流都只保留手动触发（组织额度用完，2026-10-25 起不再自动运行）。
 - PR 描述写清楚：改了什么、为什么、怎么验证的（附实机截图）。
@@ -395,7 +395,7 @@ v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`�
 
 | PR | 内容 |
 |---|---|
-| #48 | v5.0 规划：商业化落地、盈利预期、全面审查清单（文档，**还没合入**） |
+| #48 | v5.0 规划：商业化落地、盈利预期、全面审查清单（文档） |
 | #51 | 本机打包：`build_local.sh` 打本机能打的全部平台并逐个检查，`linux_vm.sh` 在虚拟机里打 Linux 包；GitHub Actions 的工作流改成只能手动触发 |
 | #52 | 修复子弹迎面相撞经常不抵消（C17 改回普通断言，先提交失败的测试再修复）；发布 [v4.0.1](https://github.com/Qiniu-ERE/zero/releases/tag/v4.0.1) |
 | #53 | `release_local.sh`：缺的平台指向最近一个有这个平台安装包的版本；`DRY_RUN=1` 只打印发布说明 |
@@ -403,7 +403,7 @@ v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`�
 
 ### v5 第一批（P1）的 PR 记录
 
-按 v5 的审查清单（`docs/v5/REVIEW.md`，在 #48 里，还没合入）修复。游戏和工具各是一串叠在一起的 PR，按顺序合入；每个修复都先提交失败的测试，再提交修复。
+按 v5 的审查清单（`docs/v5/REVIEW.md`，#48）修复。游戏和工具各是一串叠在一起的 PR，按顺序合入；每个修复都先提交失败的测试，再提交修复。
 
 | PR | 作者 | 内容 |
 |---|---|---|
@@ -425,8 +425,11 @@ v4.0 的功能分支合入集成分支 `v4.0`，最后由 `v4.0` 合入 `main`�
 | #74 | danielfeng | A3：选择关卡画面（`stLevels`、`openLevels`，F35） |
 | #75 | danielfeng | B7 / B17：`release.yml` 可以只打指定平台、补到已有的 Release，默认不发布；第三方 Action 锁定到提交 |
 | #76 | danielfeng | 英文名改为 Brickline Tanks（中文名不变） |
-| `fix/v5-revive-rule-title` | danielfeng | 复活规则定稿（暂停里重开不给、结算后重打本关给一次），窗口和网页标题加上英文名 |
-| 本 PR | danielfeng | 上面这些改动的文档 |
+| #77 | danielfeng | 复活规则定稿（暂停里重开不给、结算后重打本关给一次），窗口和网页标题加上英文名 |
+| #78 | danielfeng | 上面这些改动的文档 |
+| #79 | danielfeng | v5.0.0 发布：更新记录、README、演示视频与截图 |
+| #80~#82 | danielfeng | README 头部精简、比赛交付对照表、补上 v1.0.0 说明、README 优化 |
+| #83 | danielfeng | 路演演示可以按 Esc 退出；发布 v5.0.1 |
 
 ### v6.0 的 PR 记录
 
@@ -448,6 +451,14 @@ v6.0 的 PR 依次叠在前一个上（#85 → #86 → … ），最后合入集
 | #95 | danielfeng | 路演演示加入 v6：精英掉芯片 → 三选一 → 车库 → 每日挑战（F22） |
 | #96 | danielfeng | 修复：排行榜底部“我的名次”没上榜时显示错乱（R06） |
 | #97 | danielfeng | 排行榜本机模拟上线 `server/deploy/local.sh`（R33） |
+| #98 | danielfeng | v6.0.0 发布前定稿（文档） |
+| #99 | danielfeng | 发布：`v6.0` → `main`（打了标签 `v6.0.0`，没有发布安装包） |
+| #100 | danielfeng | v6.0.1：去掉我方坦克脚下的光圈 |
+| #101 | danielfeng | v6.0.1：三选一卡片、车库涂装、排行榜选项卡等不再吞掉点击（手机上三选一会卡住）；提示条不挡按钮（Q08） |
+| #102 | danielfeng | v6.0.1：每日挑战的公平性（暂停里重来 / 回主页不能刷正式成绩等，D12~D15） |
+| #103 | danielfeng | v6.0.1：钢铁堡垒、上传队列、排行榜选项卡、助战芯片、演示、赛季标签（U35、K13、R34、R35、S12） |
+| #104 | danielfeng | v6.0.1：排行榜服务的读写超时和玩家 ID 校验（R36） |
+| #105 | danielfeng | v6.0.1：文档、`clean.sh`（Q09）、v6.0.1 发布说明 |
 
 ### 分工
 
@@ -464,7 +475,7 @@ v6.0 的 PR 依次叠在前一个上（#85 → #86 → … ），最后合入集
 | 演示视频与文档 | danielfeng | 实机截图、演示视频、README、架构文档、更新记录、v4.0 发布文档、v5.0 规划 |
 | v4.0.1 修复与本机打包 | danielfeng | 子弹迎面相撞的修复（#52）、本机打包和发布脚本（#51、#53） |
 | v5 第一批修复（P1） | danielfeng | 游戏修复和选关画面（#59~#76）、打包和测试工具（#65~#75）、难度模拟（#63）、文档 |
-| v6.0 功能与测试 | danielfeng | 敌我区分、精英与芯片、车库与存档、每日挑战、排行榜（服务端和客户端）、赛季与分享、手机操作补齐、排行榜部署准备，以及每个功能的测试（#85~#97） |
+| v6.0 功能与测试 | danielfeng | 敌我区分、精英与芯片、车库与存档、每日挑战、排行榜（服务端和客户端）、赛季与分享、手机操作补齐、排行榜部署准备、v6.0.1 的全面检查和修复，以及每个功能的测试（#85~#105） |
 | 测试与覆盖率（v4.0） | zhangxunling | 测试方案、引擎内测试框架、全部测试用例（规则、流程、编辑器、双人、构建工具、网页外壳、XBuilder 兼容、安装包启动）、覆盖率统计和基线、本地检查 `pr_check.sh`、PR 模板 |
 
 测试与覆盖率的 PR 里，#24~#43 由 zhangxunling 的账号提交；#44~#47（网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板）由 danielfeng 的账号代为提交，内容同属测试与覆盖率。测试发现的游戏问题（例如子弹相撞）由 danielfeng 确认和修复：v4.0.1 的修复（#52）先提交能复现问题的测试，再提交修复，都由 danielfeng 的账号提交。

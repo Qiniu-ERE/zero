@@ -53,7 +53,9 @@ for f in "$TMP"/tankbattle-*; do
     case "$f" in *"$REPO_ID"*) continue ;; esac
     # 别的 clone 的新版临时文件：名字里有别的校验和（一串数字），不碰
     case "$(basename "$f")" in
-        tankbattle-test-[0-9]*|tankbattle-prcheck-[0-9]*|tankbattle-baseline-[0-9]*|tankbattle-unittest-[0-9]*|tankbattle-build-local-[0-9]*) continue ;;
+        tankbattle-test-[0-9]*|tankbattle-prcheck-[0-9]*|tankbattle-baseline-[0-9]*|tankbattle-unittest-[0-9]*|tankbattle-build-local-[0-9]*|tankbattle-distboot-[0-9]*) continue ;;
+        # 本机模拟上线（server/deploy/local.sh）正在用：里面有服务的数据和进程号，用 local.sh down 收尾
+        tankbattle-lb-local) continue ;;
     esac
     legacy=$((legacy + 1))
     if [ -n "$LEGACY" ]; then take "$f"; else printf '      %6s  %s\n' "$(size "$f")" "$f"; fi

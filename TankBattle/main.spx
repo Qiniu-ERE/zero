@@ -212,7 +212,7 @@ const (
 	// 排行榜：服务还没部署，lbURL 是空的（游戏里显示“排行榜服务还没上线”）。部署后打包时用 LB_URL=https://... 填上（tools/export/build.sh 只改打包副本）
 	lbURL       = ""
 	lbRegion    = "global" // 海外榜；国内的包打包时用 LB_REGION=cn（国内榜，数据存境内）
-	gameVersion = "6.0.0"
+	gameVersion = "6.0.1"
 	lbQueueMax  = 20
 	lbLoading   = 0
 	lbOK        = 1
