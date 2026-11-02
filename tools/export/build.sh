@@ -39,7 +39,12 @@ for a in "$@"; do
   esac
 done
 [ -n "$target" ] || { echo "$usage" >&2; exit 1; }
+case "$target" in
+  desktop|web|android|ios) ;;
+  *) echo "未知平台：${target}。${usage}" >&2; exit 1 ;;
+esac
 check_spx_patches || exit 1
+check_spx_commit || exit 1
 export STORE_BUILD DEMO_BUILD
 variant=""
 [ "$STORE_BUILD" = 0 ] || variant="store"
@@ -215,6 +220,7 @@ SH
 
 build_web() {
   prepare
+  check_ispx_commit || exit 1
   log "spx exportweb"
   (cd "$G" && spx exportweb)
   local src="$G/project/.builds/web" out="$BUILD_DIR/web/$APP_NAME"
