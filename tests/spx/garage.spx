@@ -1,4 +1,4 @@
-// 车库与存档（K01~K10），见 docs/v6/TEST_PLAN.md
+// 车库与存档（K01~K10、K13），见 docs/v6/TEST_PLAN.md
 // 存档写在 run_spx.sh 指定的临时 HOME 里，不碰玩家自己的存档
 onStart => {
 	wait 3
@@ -204,6 +204,14 @@ onStart => {
 	initSave
 	tInt "K10 重新读存档：金币还在", wallet, 777
 	tStr "K10 重新读存档：ID 不变", playerID, id
+
+	// K13 进车库时补算赛季（网页版的日期要等服务器告诉；以前赛季标签会用不存在的造型 ssn_0）
+	goHome
+	seasonNo = 0
+	dayOverride = 20800
+	openGarage
+	tCheck "K13 进车库时算出赛季", seasonNo >= 1
+	goHome
 
 	tDone "garage"
 }

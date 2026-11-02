@@ -1,4 +1,4 @@
-// 战术芯片和双人（U30~U34），见 docs/v6/TEST_PLAN.md
+// 战术芯片和双人（U30~U35），见 docs/v6/TEST_PLAN.md
 // timeout: 90
 onStart => {
 	wait 3
@@ -45,6 +45,27 @@ onStart => {
 	revive
 	tNum "U30 复活时结束钢铁堡垒", fortifyLeft, 0
 	tInt "U30 复活后基地四周是砖墙", grid[ring[0]], 1
+
+	// U35 钢铁堡垒不把墙放在坦克压着的格子上（v6.0.1：以前坦克被埋在钢墙里，15 秒动不了）；到时间补砖墙时也一样
+	setCell ring[0], 0
+	setCell ring[2], 0
+	Enemy.spawn cellX(ring[0]%cols), cellY(ring[0]/cols), 0
+	wait 0.1
+	gameOver = true // 让敌人别动
+	p1x, p1y = cellX(ring[2]%cols), cellY(ring[2]/cols)
+	applyChip 1, cFortify
+	tInt "U35 敌人压着的格子不放钢墙", grid[ring[0]], 0
+	tInt "U35 玩家压着的格子不放钢墙", grid[ring[2]], 0
+	tInt "U35 其他格子照样变钢墙", grid[ring[1]], 2
+	p1x, p1y = cellX(ring[2]%cols), cellY(ring[2]/cols)
+	endFortify
+	tInt "U35 到时间：敌人还压着的格子先不补墙", grid[ring[0]], 0
+	broadcastAndWait "clear"
+	p1x, p1y = 9999, 9999
+	endFortify
+	tInt "U35 坦克走了以后补回砖墙", grid[ring[0]], 1
+	tInt "U35 坦克走了以后补回砖墙（玩家那格）", grid[ring[2]], 1
+	gameOver = false
 
 	// U31 空袭：场上的敌人全部被击毁，照样加分；精英照样掉芯片；打掉最后一辆就过关
 	tQuiet
