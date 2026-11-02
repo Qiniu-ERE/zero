@@ -1,6 +1,6 @@
 ## 坦克大战 2026 v@VERSION@
 
-XBuilder 复刻重铸版《坦克大战》：**8 个关卡、双人合作、自己做地图**，中英文，现代画风 / 1985 经典像素风随时切换。
+XBuilder 复刻重铸版《坦克大战》（英文名 Brickline Tanks）：**8 个关卡、双人合作、自己做地图**；v6 起**打精英坦克升级自己**（芯片三选一）、车库、全球同图的每日挑战、赛季和排行榜。中英文，现代画风 / 1985 经典像素风随时切换。
 
 ### 下载
 
@@ -10,7 +10,7 @@ XBuilder 复刻重铸版《坦克大战》：**8 个关卡、双人合作、自�
 | macOS（Apple 芯片） | `TankBattle-@VERSION@-macos-arm64.zip` | 解压后第一次用“右键 → 打开” |
 | Linux（x86_64） | `TankBattle-@VERSION@-linux-x64.tar.gz` | 解压后运行 `./TankBattle` |
 | iPhone / 安卓 / 浏览器 | `TankBattle-@VERSION@-web.zip` | 网页版（PWA），带触屏虚拟按键。上传到任意 HTTPS 静态网站后手机打开，“添加到主屏幕”即可像 App 一样使用；电脑上运行 `play-local.py` 试玩 |
-| Android（arm64） | `TankBattle-@VERSION@-android.apk` | 直接安装（调试证书签名）；装过旧版本、提示签名不一致时先卸载旧版再装（只需一次）；触屏模式：右侧方向键按住移动并自动开火 |
+| Android（64 位手机，arm64） | `TankBattle-@VERSION@-android.apk` | 直接安装（调试证书签名）；装过旧版本、提示签名不一致时先卸载旧版再装（只需一次）；触屏模式：右侧方向键按住移动并自动开火，菜单和画面都可以点；手机 App 不支持双人合作 |
 | iPhone / iPad | `TankBattle-@VERSION@-ios-unsigned.ipa` | 没有签名，需要用 Sideloadly / AltStore 以自己的 Apple ID 签名安装（免费账号 7 天有效） |
 
 每个安装包里都有一份 README.txt（安装说明）。`SHA256SUMS.txt` 是所有文件的校验和。
@@ -20,6 +20,8 @@ XBuilder 复刻重铸版《坦克大战》：**8 个关卡、双人合作、自�
 - **8 个关卡**：钢铁峡谷、水乡迷宫、丛林伏击、钢铁堡垒、砖城巷战、闪电突袭、双子要塞、最终决战，主页按 1~8 选关
 - **双人合作**（主页按 C）：1P 用 WASD + J，2P 用方向键 + Enter
 - **自己做地图**（主页按 E）：鼠标 / 手指画地图，实时检查能不能玩，马上试玩；PC 版可以保存
+- **打精英升级**（v6）：每关有紫色精英坦克，击毁后掉芯片，捡到后三选一（12 块芯片、2 个连携），坦克最高 Lv4
+- **车库**（主页 G）、**每日挑战**（主页 D，全世界同一张图）、**排行榜**（主页 B）、**助战码**（主页 A）；排行榜服务还没上线，游戏里会提示
 - 方向键 / WASD 移动，空格 / J 开火，Esc 暂停 / 退出（手机上点顶栏的 Ⅱ），T 切换画风，L 切换中英文
 
-完整说明见仓库的 README、`docs/v3/`（玩法和打包）和 `docs/v4/`（测试）。
+完整说明见仓库的 [README](https://github.com/Qiniu-ERE/zero#readme)（包括[哪些功能要等服务器或平台](https://github.com/Qiniu-ERE/zero#哪些功能要等服务器或平台才能用)）、[更新记录](https://github.com/Qiniu-ERE/zero/blob/main/CHANGELOG.md) 和 `docs/v6/`（v6 规划和测试）。
