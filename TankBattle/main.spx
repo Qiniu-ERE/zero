@@ -1047,7 +1047,7 @@ func saveText() string {
 		"skin=" + strconv.Itoa(skin), "skins=" + joinInts(owned),
 		"task.day=" + strconv.Itoa(taskDay), "task.ids=" + joinInts(taskIDs), "task.prog=" + joinInts(taskProg),
 		"daily.day=" + strconv.Itoa(dailyDay), "daily.score=" + strconv.Itoa(dailyScore),
-		"daily.secs=" + strconv.Itoa(dailyBestSecs), "streak=" + strconv.Itoa(streak), "streak.day=" + strconv.Itoa(streakDay),
+		"daily.secs=" + strconv.Itoa(dailyBestSecs), "daily.build=" + joinInts(dailyBuild), "streak=" + strconv.Itoa(streak), "streak.day=" + strconv.Itoa(streakDay),
 		"season=" + strconv.Itoa(seasonNo), "season.pts=" + strconv.Itoa(seasonPts)}
 	for _, q := range lbQueue {
 		lines = append(lines, "lb.queue="+q) // 没传上去的成绩，一条一行
@@ -1105,6 +1105,13 @@ func loadText(text string) bool {
 			dailyDay = n
 		case "daily.score":
 			dailyScore = n
+		case "daily.build": // 正式局的芯片（重启后分享卡片上的芯片和助战码还在）
+			dailyBuild = []int{}
+			for _, id := range splitInts(v) {
+				if id >= 1 && id <= chipCount {
+					dailyBuild = append(dailyBuild, id)
+				}
+			}
 		case "daily.secs":
 			dailyBestSecs = n
 		case "streak":
@@ -1864,7 +1871,7 @@ func shareText(field int) string {
 	case 4:
 		return strconv.Itoa(streak)
 	case 5:
-		return assistCode(chips[1])
+		return assistCode(dailyBuild) // 和卡片上的芯片同一局（今天的正式局）
 	}
 	return ""
 }
@@ -2832,6 +2839,8 @@ func showResult() {
 		if won {
 			name = "result_ewin_"
 		}
+	} else if won && stage == dailyStage {
+		name = "result_dwin_" // 每日挑战赢了：按钮是“再来一局”（没有下一关）
 	} else if won && stage == lastStage {
 		name = "result_final_" // 全部通关
 	} else if won {
@@ -2873,11 +2882,34 @@ func resumeGame() {
 
 // 暂停菜单里的“返回”：自制地图回到编辑器，其他回到主页
 func quitFromPause() {
+	if dailyForfeit() {
+		goHome // 正式局已经按放弃结算了
+		return
+	}
 	if stage == customStage {
 		openEditor
 	} else {
 		goHome
 	}
+}
+
+// 暂停菜单的“重新开始本关”（R 或点按钮）
+func restartFromPause() {
+	if dailyForfeit() {
+		again // 正式局已经按放弃结算，这一局是练习
+		return
+	}
+	startGame
+}
+
+// 每日挑战的正式局（今天第一局）中途重来或回主页：按放弃结算，当前得分就是今天的正式成绩。
+// 不然可以一直重来，直到打出满意的一局（“今天第一局是正式成绩”就没意义了）。返回是否结算了
+func dailyForfeit() bool {
+	if stage != dailyStage || autopilot || dailyDay == dailyDayNow {
+		return false
+	}
+	endGame false
+	return true
 }
 
 // 结算后的“再来一局”按钮（R）：赢了进下一关；全部通关后从第 1 关重新开始；输了重打本关
@@ -2887,6 +2919,9 @@ func again() {
 		return
 	}
 	if stage == dailyStage {
+		if d := today(); d > 0 {
+			dailyDayNow = d // 过了零点再来一局，打的是新一天的图（新一天的第一局是正式成绩）
+		}
 		reviveStage = 0
 		clearRun()
 		runSecs = 0
@@ -3302,6 +3337,9 @@ func startGame() {
 	dailySeed = dailyDayNow*31 + 7
 	dailyChipSeed = dailyDayNow*97 + 3
 	dailySecs = 0
+	if stage == dailyStage {
+		runSecs = 0 // 上传的用时只算这一局（和分享卡片上的一致）
+	}
 	state = stPlay
 	setScreen ""
 	Camera.setZoom 1
@@ -3469,7 +3507,7 @@ onKey KeyR, => {
 	} else if state == stResult {
 		again
 	} else if state == stPause {
-		startGame // 重新开始本关
+		restartFromPause // 重新开始本关
 	} else if state == stEdit {
 		edCommand "rand"
 	}

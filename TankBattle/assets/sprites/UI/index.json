@@ -6000,6 +6000,20 @@
       "bitmapResolution": 2
     },
     {
+      "name": "result_dwin_plain_zh",
+      "path": "result_dwin_plain_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_dwin_done_zh",
+      "path": "result_dwin_done_zh.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
       "name": "card_en",
       "path": "card_en.svg",
       "x": 240.0,
@@ -6219,6 +6233,20 @@
     {
       "name": "result_elose_done_en",
       "path": "result_elose_done_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_dwin_plain_en",
+      "path": "result_dwin_plain_en.svg",
+      "x": 480.0,
+      "y": 360.0,
+      "bitmapResolution": 2
+    },
+    {
+      "name": "result_dwin_done_en",
+      "path": "result_dwin_done_en.svg",
       "x": 480.0,
       "y": 360.0,
       "bitmapResolution": 2

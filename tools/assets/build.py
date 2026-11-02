@@ -738,11 +738,11 @@ COIN_POS = (MX + 50, MY + 70)  # 结算弹窗里金币数字的锚点（SVG 坐�
 
 def result(kind, done, lang):
     """kind：win 过关（按钮是“下一关”）、final 最后一关也赢了（全部通关）、lose 战败、
-    ewin / elose 自制地图试玩的胜负（按钮是“继续编辑”）"""
+    ewin / elose 自制地图试玩的胜负（按钮是“继续编辑”）、dwin 每日挑战赢了（按钮是“再来一局”，v6.0.1）"""
     win = kind not in ("lose", "elose")
     m = MX + MW / 2
     s = [f'<rect width="{W}" height="{H}" fill="#05070c" fill-opacity="0.5"/>', modal_frame("#f2c94c" if win else "#3a4660")]
-    title = {"win": "rs.win", "final": "rs.final", "lose": "rs.lose", "ewin": "rs.win", "elose": "rs.lose"}[kind]
+    title = {"win": "rs.win", "final": "rs.final", "lose": "rs.lose", "ewin": "rs.win", "elose": "rs.lose", "dwin": "rs.win"}[kind]
     s.append(text(m, MY + 34, tr(title, lang), 18, "#ffe27a" if win else "#c8d2e3", True, "middle"))
     # 金币（数字由 UI 克隆显示在 COIN_POS）
     s.append(f'<rect x="{MX+20}" y="{MY+48}" width="{MW-40}" height="32" rx="8" fill="#ffffff" fill-opacity="0.05"/>')
@@ -949,7 +949,7 @@ def screen_costumes():
             out.append((f"revive_{n}_{lang}", *revive(n, lang), 2))
         for n in range(1, 6):
             out.append((f"adplay_{n}_{lang}", *adplay(n, lang), 2))
-        for kind in ("win", "final", "lose", "ewin", "elose"):
+        for kind in ("win", "final", "lose", "ewin", "elose", "dwin"):
             for done in (False, True):
                 name = f"result_{kind}_{'done' if done else 'plain'}_{lang}"
                 out.append((name, *result(kind, done, lang), 2))
