@@ -1048,7 +1048,9 @@ onMsg "toast", => {
 		key = toastKey
 		left = toastSecs
 		if state == stHome {
-			setXYpos 0, -118 // 主页：菜单和横幅之间的空白处
+			setXYpos 0, 112 // 主页：标题和“开始战役”之间（下面的菜单、v6 的四张卡片都不挡）
+		} else if state == stAssist || state == stPick {
+			setXYpos 0, -150 // 助战码键盘、三选一卡片的下方，不挡按钮
 		} else {
 			setXYpos -72, 20 // 战场上方
 		}
@@ -1071,7 +1073,9 @@ onClick => {
 		pauseGame
 	case kDailyTag:
 		openShare // 点“正式成绩”标签打开分享战报（不是正式成绩时 openShare 什么都不做）
-	case kScreen, kEdSel, kEdSwitch, kEdStatus, kEdCursor, kEdMark:
-		clickScreen // 编辑器的小部件盖在按钮上面，点击时按鼠标位置判断按了什么
+	default:
+		// spx 只把点击交给最上层的那一个精灵：画面上的小部件（三选一卡片、车库涂装、排行榜选项卡、
+		// 分享战报的数字、提示条、编辑器的小部件……）盖在按钮上，点到它们时也按鼠标位置判断按了什么
+		clickScreen
 	}
 }
