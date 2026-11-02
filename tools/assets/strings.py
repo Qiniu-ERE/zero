@@ -40,7 +40,7 @@ STRINGS = {
     "msg.ed.bad": ("地图还不能玩，先看右边的提示", "Not playable yet, see the panel"),
     "msg.ed.saved": ("已保存，下次打开还在", "Saved for next time"),
     "msg.ed.savefail": ("保存失败（网页版不能存文件），地图保留到关闭页面", "Save failed (no files on the web); kept until you close"),
-    "msg.coop.touch": ("双人合作需要键盘或两只手柄", "Co-op needs a keyboard or two gamepads"),
+    "msg.coop.touch": ("手机 App 不支持双人合作，请用电脑版或网页版", "Co-op isn't available in the mobile app. Use the desktop or web version"),
     "msg.ed.loaded": ("已载入上次保存的地图", "Loaded your saved map"),
     "msg.ed.clear": ("已清空", "Cleared"),
     "msg.ed.rand": ("已随机生成一张地图", "Random map ready"),
@@ -281,7 +281,7 @@ STRINGS = {
     "lb.me.none": ("你还没上这个榜：打完一局就会上传", "Not on this board yet: finish a run to upload"),
     "lb.st.0": ("读取中……", "Loading..."),
     "lb.st.2": ("离线：成绩已排队，联网后自动上传", "Offline: scores queued, will upload later"),
-    "lb.st.3": ("排行榜服务还没上线：成绩先记在本机", "Leaderboard server not live yet"),
+    "lb.st.3": ("排行榜服务还没上线：成绩只记在本机，不会上传", "Leaderboard not live yet: scores stay on this device"),
     "lb.st.empty": ("还没有人上榜，快去挑战", "No scores yet. Be the first!"),
     "lb.foot": ("全球榜由我们自己的服务器提供；好友榜要等接入 Steam / Game Center / 微信", "Global boards run on our server; friend boards need Steam / Game Center / WeChat"),
     # v6 赛季、分享战报、助战码（游戏）

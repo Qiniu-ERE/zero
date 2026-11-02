@@ -633,14 +633,14 @@
     {
       "name": "msg.coop.touch_zh",
       "path": "msg.coop.touch_zh.svg",
-      "x": 282.0,
+      "x": 433.36,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
       "name": "msg.coop.touch_en",
       "path": "msg.coop.touch_en.svg",
-      "x": 423.61,
+      "x": 684.66,
       "y": 44.0,
       "bitmapResolution": 4
     },
@@ -3769,7 +3769,7 @@
     {
       "name": "lbst_3_zh",
       "path": "lbst_3_zh.svg",
-      "x": 349.0,
+      "x": 434.0,
       "y": 52,
       "bitmapResolution": 4
     },
@@ -3916,7 +3916,7 @@
     {
       "name": "lbst_3_en",
       "path": "lbst_3_en.svg",
-      "x": 326.27,
+      "x": 493.69,
       "y": 52,
       "bitmapResolution": 4
     },

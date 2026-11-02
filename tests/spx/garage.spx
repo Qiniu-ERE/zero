@@ -1,4 +1,4 @@
-// 车库与存档（K01~K10、K13），见 docs/v6/TEST_PLAN.md
+// 车库与存档（K01~K10、K13、K14），见 docs/v6/TEST_PLAN.md
 // 存档写在 run_spx.sh 指定的临时 HOME 里，不碰玩家自己的存档
 onStart => {
 	wait 3
@@ -212,6 +212,21 @@ onStart => {
 	openGarage
 	tCheck "K13 进车库时算出赛季", seasonNo >= 1
 	goHome
+
+	// K14 存档目录：平时用系统的用户配置目录；拿不到时（Android 的 App 进程里没有 $HOME）退到 App 自己的私有目录 /data/data/<包名>/files；
+	// 那里也不行（这台电脑上就是）就不存，也不报错（v6.0.1）
+	home := os.Getenv("HOME")
+	xdg := os.Getenv("XDG_CONFIG_HOME")
+	tCheck "K14 平时在系统的用户配置目录下", strings.HasPrefix(dataDir(), home) && strings.HasSuffix(dataDir(), "/TankBattle")
+	tCheck "K14 存档在数据目录里", saveFile() == dataDir()+"/save.txt" && edFile() == dataDir()+"/maps.txt"
+	os.Setenv "HOME", ""
+	os.Setenv "XDG_CONFIG_HOME", ""
+	tStr "K14 系统目录和 App 私有目录都拿不到：不存", dataDir(), ""
+	saveGame()
+	tCheck "K14 拿不到时取日期不出错", nowSec() >= 0
+	os.Setenv "HOME", home
+	os.Setenv "XDG_CONFIG_HOME", xdg
+	tCheck "K14 恢复后照常", dataDir() != ""
 
 	tDone "garage"
 }

@@ -84,7 +84,7 @@ flowchart LR
 | 精灵 | 职责 | 对外接口 | 字段大小 |
 |---|---|---|---|
 | `Player` | 玩家坦克：键盘 / 自动驾驶移动、开火（每人同时只能 1 发）、出生保护闪烁、死后倒计时重生、引擎声。原型是 1P，双人合作时克隆一个当 2P（`isCloned` 区分按键、颜色、出生点）。`fireHeld`：2P 的开火键要松开再按；1P 触屏时手指要先松开才开火（开局时为 true） | `respawn()`、`spawnP2()`；收 `playerHit` `p2respawn` `p2off` `themeChanged` | 32 B |
-| `Enemy` | 敌人坦克：三种类型，随机转向且偏向基地，定时开火；重型坦克 3 发。v6：`kind` 加 10 是精英（多 1 发血、快 15%、被击毁掉芯片），冰冻时不动不开火 | `spawn(x, y, kind)`；收 `themeChanged` `clear` `reviveClear` `bomb` | 56 B |
+| `Enemy` | 敌人坦克：三种类型，随机转向且偏向基地，定时开火；重型坦克 3 发。v6：`kind` 加 10 是精英（多 1 发血、快 15%、被击毁掉芯片），冰冻时不动不开火 | `spawn(x, y, kind)`；收 `themeChanged` `clear` `reviveClear` `bomb` `markTanks` | 56 B |
 | `PBullet` / `EBullet` | 子弹：飞行、撞墙（交给 `bulletHit`）、互相抵消、命中坦克。2P 的子弹把朝向加 1000 记录发射者，v6 的跳弹每反弹一次再加 10000（`bulletDir` `pbWho` `pbBounces` 还原）；敌人子弹用 `nearestPlayer()` 判断打中了谁，迷彩的坦克在草丛里时穿过去 | `PBullet.fire(x, y, dir, who)`、`EBullet.fire(x, y, dir)`；PBullet 收 `pbHit`，EBullet 收 `reviveClear` | 16 B |
 | `Boom` | 爆炸动画（3 帧），大爆炸触发震屏 | `explodeAt(x, y, size)` | 1 B |
 | `Tile` | 地图格子的显示：砖、钢、水、草、基地。碰撞全部由舞台的 `grid` 判断 | `build(x, y, kind, idx)`；收 `gridChanged` `themeChanged` `baseChanged` `clear` | 16 B |
@@ -110,11 +110,11 @@ flowchart LR
 | `kChip` | v6 右侧面板的芯片格（1P 三格、双人时 2P 三格；触屏模式不显示） | `ci_<芯片>`、`ci_empty` | `hud` |
 | `kPick` | v6 三选一：三张卡片、刷新按钮、谁在选 | `pc_<芯片>[_combo]_<lang>`、`reroll_<ad\|free\|used>_<lang>`、`pickwho_<p>` | `screen` |
 | `kDrop` | v6 战场上掉落的芯片（最后 3 秒闪烁） | `drop` | 每帧 |
-| `kDailyTag` | v6 每日挑战结算：正式成绩 / 练习 | `dtag_<off\|prac>_<lang>` | `screen` |
+| `kDailyTag` | v6 每日挑战结算：正式成绩 / 练习；点“正式成绩”打开分享战报 | `dtag_<off\|prac\|offt>_<lang>`（`offt` 是触屏模式的“点这里分享战报”） | `screen` |
 | `kGarage` `kWallet` | v6 车库（**按需创建**）：指挥官等级、经验条、图鉴、涂装、任务、赛季条；金币数 | `cmd_*` `xp_*` `cx_*` `sk_*` `tk_*` `ssn_*` …，数字 `C…` | `screen`、`hud` |
 | `kRanks` `kLbNum` | v6 排行榜（**按需创建**）：选项卡、每行的底和芯片、状态；数字（`slot` = 行 × 100 + 第几个数 × 10 + 第几个字符，第 9 行是分享战报，第 10 行是助战码输入） | `lbtab_*` `lbrow_*` `lbme_*` `lbst_*`，数字 `L…` | `screen`、`hud`；图层在 `raise` / `raiseTop` |
 | `kShare` | v6 分享战报（**按需创建**）：芯片、“联网后显示” | `ci_*`、`sh_norank_<lang>` | `screen` |
-| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`levels`（选关画面，点击区域 `lv.1`~`lv.8`、`lv.back`）、`editor`、`pause`、`pause_edit`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`；v6：`pick`、`garage`、`ranks`、`share`、`assist`，再加 `_<lang>` | `screen` |
+| `kScreen` | 全屏 / 弹窗画面（可点击） | `home`、`levels`（选关画面，点击区域 `lv.1`~`lv.8`、`lv.back`）、`editor`、`pause`、`pause_edit`、`revive_<n>`、`adplay_<n>`、`result_<win\|final\|lose\|ewin\|elose\|dwin>_<plain\|done>`（`dwin`：每日挑战赢了，按钮是“再来一局”）；v6：`pick`、`garage`、`ranks`、`share`、`assist`，再加 `_<lang>` | `screen` |
 
 ### 3.4 构建工具 `tools/`
 
@@ -155,6 +155,9 @@ flowchart LR
 | `langChanged` | 舞台 `switchLang` | UI | 换语言 |
 | `hud` | 舞台、Player | UI | 分数、生命、敌军剩余、金币变了 |
 | `toast` | 舞台 `toast()` | UI（提示条） | 内容在舞台的 `toastKey` / `toastSecs` |
+| `toastOff` | 舞台 `goHome`（`broadcastAndWait`） | UI（提示条） | v6.0.1：回主页时收起对局里的提示 |
+| `resultArm` | 舞台 `endGame` | 舞台 | 0.6 秒后才认结算画面的确认键（防止连按开火误点） |
+| `markTanks` | 舞台 `tankCells`（`broadcastAndWait`） | Enemy | v6.0.1：钢铁堡垒放墙前，每辆敌人调 `markTank` 报告自己压着的格子 |
 | `screen` | 舞台 `setScreen`（`broadcastAndWait`） | UI | 画面切换：画面层置顶，广告位按状态显示 / 隐藏 |
 | `raise` | 舞台 `setScreen`（v6 起 `broadcastAndWait`） | UI | 把广告位、语言按钮、提示条、金币数、三选一、车库、排行榜每行的底放到画面层之上 |
 | `raiseTop` | 舞台 `setScreen` | UI | v6：排行榜的数字和芯片放到每行的底之上 |
@@ -164,10 +167,10 @@ flowchart LR
 | `playerHit` | EBullet | Player | 玩家被击中；`hitWho` 说明是 1P 还是 2P，只有那一辆处理 |
 | `editLoop` | 舞台 | 舞台 | 编辑器：每帧读鼠标，绘制格子 |
 | `edit` / `edCursor` | 舞台 | UI（编辑器小部件） | 编辑状态变了 / 鼠标所在的格子变了 |
-| `tileGone` | 舞台 `edPaint` | Tile | 编辑器改了一个格子，编号为 `edChanged` 的克隆消失 |
+| `tileGone` | 舞台 `edPaint`、`setCell` | Tile | 编辑器或钢铁堡垒改了一个格子，编号为 `edChanged` 的克隆消失 |
 | `p2respawn` / `p2off` | 舞台 | Player（2P 克隆） | 2P 重新出生（开局、复活）/ 去掉 2P（单人开局、回主页） |
 | `pbHit` | Enemy | PBullet | 子弹命中坦克后消失：敌人先把自己的位置写进舞台的 `pbHitX` / `pbHitY`，只有离这里 20 像素以内的子弹消失（双人时另一个人的子弹不受影响）。子弹迎面相撞不用消息：玩家子弹调用舞台的 `bulletClash`（按距离判断），撞上的敌人子弹记在 `ebHit` 里自己消失（v4.0.1 起，原来的 `clash` 消息去掉了） |
-| `reviveClear` | 舞台 `revive`（`broadcastAndWait`） | Enemy、EBullet | 复活清场：敌人子弹全部消失；基地 3 格以内的敌人消失（不算击毁，`spawned` 减 1，以后重新出场） |
+| `reviveClear` | 舞台 `revive`（`broadcastAndWait`） | Enemy、EBullet | 复活清场：敌人子弹全部消失；基地 3 格以内的敌人消失（不算击毁，调 `owe` 记下欠一辆、是不是精英，以后补出场；v6.0.1 以前是把 `spawned` 减 1，会让精英丢失或重复） |
 | `baseGuard` | 舞台 `revive` | 舞台 | 基地保护：`baseSafe = 3`，每帧倒计时（战场冻结、暂停时不算）；`baseSafe > 0` 时子弹打到基地只会消失 |
 | `shake` / `baseCam` | 舞台 | 舞台 | 震屏 / 基地特写镜头 |
 | `reviveFlow` / `adFlow` / `gameEnd` | 舞台 | 舞台 | 复活倒计时 / 模拟激励视频 / 结算音乐（需要 `wait` 的流程放在消息处理里异步执行） |
@@ -205,7 +208,7 @@ stateDiagram-v2
 - `gameOver` 表示“战场冻结”，坦克和子弹在冻结时不动。除了 `stPlay` 以外的状态，战场都是冻结的。
 - **每关只能复活一次**：`reviveStage` 记下在哪一关复活过，`startGame` 里 `revived = reviveStage == stage`。暂停菜单的“重新开始本关”不清零（不会再给一次复活）；输了以后在结算画面重打本关、从主页或选关画面进关、过关进入下一关、试玩自制地图都会清零（可以再复活一次）。
 - **复活**（`revive()`）：修好基地、加命，广播 `reviveClear` 清掉敌人子弹和基地 3 格以内的敌人，按本关地图把基地四周碎了、裂了的护墙恢复成砖墙，广播 `baseGuard` 让基地 3 秒内打不掉。复活后如果敌人已经全灭，直接胜利结算。
-- **Esc**（`escKey()`）：对局中暂停、暂停时继续、选关画面回主页；复活询问时要等弹窗出现（`screen` 以 `revive_` 开头）才算放弃，和 J / Enter 一样。
+- **Esc**（`escKey()`）：对局中暂停、暂停时继续；选关、车库、排行榜、助战码画面回主页；分享战报回到结算；路演演示中退出演示；复活询问时要等弹窗出现（`screen` 以 `revive_` 开头）才算放弃，和 J / Enter 一样。
 - **同一帧基地失守又打掉最后一辆**：`enemyKilled` 看到 `gameOver` 就不判胜利，按战败走复活询问。
 - 金币只能翻倍一次（`doubled`）。
 
@@ -459,6 +462,8 @@ v6.0 的 PR 依次叠在前一个上（#85 → #86 → … ），最后合入集
 | #103 | danielfeng | v6.0.1：钢铁堡垒、上传队列、排行榜选项卡、助战芯片、演示、赛季标签（U35、K13、R34、R35、S12） |
 | #104 | danielfeng | v6.0.1：排行榜服务的读写超时和玩家 ID 校验（R36） |
 | #105 | danielfeng | v6.0.1：文档、`clean.sh`（Q09）、v6.0.1 发布说明 |
+| #106 | danielfeng | v6.0.1：spx 固定到 v4.0.0 正式版；XBuilder 兼容检查同时查 v3.3.0 和 v4.0.0（T09） |
+| #107 | danielfeng | v6.0.1：第二轮检查（复活清场的精英、Android 存档目录、网页版方向键等，F30、F23、U09、K14、W01）；README 写明哪些功能要等服务器或平台 |
 
 ### 分工
 
@@ -475,7 +480,7 @@ v6.0 的 PR 依次叠在前一个上（#85 → #86 → … ），最后合入集
 | 演示视频与文档 | danielfeng | 实机截图、演示视频、README、架构文档、更新记录、v4.0 发布文档、v5.0 规划 |
 | v4.0.1 修复与本机打包 | danielfeng | 子弹迎面相撞的修复（#52）、本机打包和发布脚本（#51、#53） |
 | v5 第一批修复（P1） | danielfeng | 游戏修复和选关画面（#59~#76）、打包和测试工具（#65~#75）、难度模拟（#63）、文档 |
-| v6.0 功能与测试 | danielfeng | 敌我区分、精英与芯片、车库与存档、每日挑战、排行榜（服务端和客户端）、赛季与分享、手机操作补齐、排行榜部署准备、v6.0.1 的全面检查和修复，以及每个功能的测试（#85~#105） |
+| v6.0 功能与测试 | danielfeng | 敌我区分、精英与芯片、车库与存档、每日挑战、排行榜（服务端和客户端）、赛季与分享、手机操作补齐、排行榜部署准备、v6.0.1 的全面检查和修复，以及每个功能的测试（#85~#107） |
 | 测试与覆盖率（v4.0） | zhangxunling | 测试方案、引擎内测试框架、全部测试用例（规则、流程、编辑器、双人、构建工具、网页外壳、XBuilder 兼容、安装包启动）、覆盖率统计和基线、本地检查 `pr_check.sh`、PR 模板 |
 
 测试与覆盖率的 PR 里，#24~#43 由 zhangxunling 的账号提交；#44~#47（网页外壳测试、XBuilder 兼容检查、安装包启动测试、覆盖率基线和 PR 模板）由 danielfeng 的账号代为提交，内容同属测试与覆盖率。测试发现的游戏问题（例如子弹相撞）由 danielfeng 确认和修复：v4.0.1 的修复（#52）先提交能复现问题的测试，再提交修复，都由 danielfeng 的账号提交。

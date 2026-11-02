@@ -58,6 +58,8 @@ func tCalm() {
 	gameOver = true
 	broadcastAndWait "clear"
 	spawned = totalEnemy
+	spawnOwed = 0 // 复活清场欠下的也不补了
+	eliteOwed = 0
 	enemiesAlive = 0
 	gameOver = false
 }

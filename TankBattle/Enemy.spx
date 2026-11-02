@@ -186,7 +186,7 @@ onMsg "reviveClear", => {
 	if alive && xpos-baseX < 84 && baseX-xpos < 84 && ypos-baseY < 84 {
 		alive = false
 		enemiesAlive--
-		spawned--
+		owe kind >= 10 // 记下欠一辆（精英还是精英），以后补出场
 		Boom.explodeAt xpos, ypos, 0.8
 		destroy
 	}

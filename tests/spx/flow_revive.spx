@@ -14,6 +14,8 @@ onStart => {
 	// F23 复活弹窗出现之前（先等 2.2 秒爆炸和特写）按确认键不算数：J / Enter 也是开火键，连按开火不能误点“看视频”
 	confirm
 	tInt "F23 弹窗出现前按确认：还在复活询问", state, stRevive
+	UI.clickAt -72, -18 // “看视频复活”按钮的位置
+	tInt "F23 弹窗出现前点“看视频复活”的位置也不算数", state, stRevive
 	wait 1
 	confirm
 	tInt "F23 1 秒后按确认：还在复活询问", state, stRevive
@@ -93,9 +95,27 @@ onStart => {
 	tInt "F30 敌人子弹清掉了", len(ebPos), 0
 	tInt "F30 基地附近的敌人清掉了，远处的还在", enemiesAlive, 1
 	tInt "F30 清掉的敌人不算击毁", killed, 0
-	tInt "F30 清掉的敌人以后重新出场", spawned, totalEnemy-1
+	tInt "F30 清掉的敌人以后重新出场（欠 1 辆）", spawnOwed, 1
 	tInt "F30 碎掉的护墙补回来了", grid[tAt(11, 5)], 1
 	tInt "F30 裂开的护墙补回来了", grid[tAt(11, 6)], 1
+	// 清掉的是精英：补出场时还是精英；补的不占出场编号（以前把 spawned 减 1，精英会丢掉或多出一辆，v6.0.1）
+	gameOver = true
+	spawnOwed, eliteOwed = 0, 0
+	owe true
+	spawned = 5 // 第 6 辆按编号不是精英
+	toastKey = ""
+	spawnEnemy
+	tStr "F30 补出场的精英还是精英", toastKey, "msg.elite"
+	tInt "F30 补出场不占编号", spawned, 5
+	tInt "F30 欠的补完了", spawnOwed+eliteOwed, 0
+	owe false
+	spawned = 10 // 第 11 辆按编号是精英，但补出场的是普通坦克
+	toastKey = ""
+	spawnEnemy
+	tStr "F30 补出场的普通坦克不会变成精英", toastKey, ""
+	broadcastAndWait "clear"
+	enemiesAlive = 1
+	gameOver = false
 	spawned = totalEnemy
 	hitPoint baseX, baseY, false
 	tCheck "F30 复活后 3 秒内基地打不掉", !baseDown
