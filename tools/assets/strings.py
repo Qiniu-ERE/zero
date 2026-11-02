@@ -281,7 +281,7 @@ STRINGS = {
     "lb.me.none": ("你还没上这个榜：打完一局就会上传", "Not on this board yet: finish a run to upload"),
     "lb.st.0": ("读取中……", "Loading..."),
     "lb.st.2": ("离线：成绩已排队，联网后自动上传", "Offline: scores queued, will upload later"),
-    "lb.st.3": ("排行榜服务还没上线：成绩先记在本机", "Leaderboard server not live yet"),
+    "lb.st.3": ("排行榜服务还没上线：成绩只记在本机，不会上传", "Leaderboard not live yet: scores stay on this device"),
     "lb.st.empty": ("还没有人上榜，快去挑战", "No scores yet. Be the first!"),
     "lb.foot": ("全球榜由我们自己的服务器提供；好友榜要等接入 Steam / Game Center / 微信", "Global boards run on our server; friend boards need Steam / Game Center / WeChat"),
     # v6 赛季、分享战报、助战码（游戏）
