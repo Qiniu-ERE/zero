@@ -3,7 +3,8 @@
 #
 # 做法：复制一份工程，追加“自动开始演示、结束后退出”的脚本（不改仓库里的游戏），
 # 用 spx run --movie 录制，再用 ffmpeg 转成 docs/demo/<NAME>-demo.mp4 和 <NAME>.gif。
-# NAME 默认 tankbattle-v5（v3 的 tankbattle-v3-demo.mp4 保留不动），可以用 DEMO_NAME 环境变量改。
+# NAME 默认 tankbattle-v6（以前版本的视频保留不动），可以用 DEMO_NAME 环境变量改。
+# 动图截视频里的一段：GIF_START（秒）起 GIF_LEN 秒，默认是 v6 那段（芯片三选一、车库、每日挑战）。
 #
 # 为什么要拉伸时间：spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，
 # 但游戏逻辑按真实时间以 60 Hz 运行。机器渲染不到 30 帧/秒时视频会被“快进”。
@@ -11,7 +12,9 @@
 # 录像器的音频同样被压缩，所以成品不带声音（路演时现场讲解）。
 set -e
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-NAME=${DEMO_NAME:-tankbattle-v5}
+NAME=${DEMO_NAME:-tankbattle-v6}
+GIF_START=${GIF_START:-53}
+GIF_LEN=${GIF_LEN:-36}
 WORK=${TMPDIR:-/tmp}/tankbattle-record
 rm -rf "$WORK" && mkdir -p "$WORK" && cp -R "$ROOT/TankBattle" "$WORK/"
 cat >> "$WORK/TankBattle/main.spx" <<'SPX'
@@ -47,5 +50,5 @@ F=$(echo "$REAL / $VID" | bc -l)
 echo "game time ${REAL}s, video ${VID}s, stretch x$F"
 mkdir -p "$ROOT/docs/demo"
 ffmpeg -v error -y -i "$IN" -an -vf "setpts=PTS*$F,fps=30,format=yuv420p" -c:v libx264 -preset slow -crf 23 -movflags +faststart "$ROOT/docs/demo/$NAME-demo.mp4"
-ffmpeg -v error -y -ss 53 -t 36 -i "$ROOT/docs/demo/$NAME-demo.mp4" -vf "fps=8,scale=420:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" "$ROOT/docs/demo/$NAME.gif"
+ffmpeg -v error -y -ss "$GIF_START" -t "$GIF_LEN" -i "$ROOT/docs/demo/$NAME-demo.mp4" -vf "fps=8,scale=420:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" "$ROOT/docs/demo/$NAME.gif"
 ls -la "$ROOT/docs/demo"
