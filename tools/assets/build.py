@@ -425,14 +425,14 @@ def icon_costumes():
 
 
 def ally_costume(p, lv):
-    """我方标识（v6 敌我区分）：坦克脚下的光圈 + 头顶的标签“1P · Lv3”。UI 克隆每帧跟着坦克走，
-    不画进坦克造型：造型变大会改变碰撞范围。锚点是光圈中心"""
+    """我方标识（v6 敌我区分）：头顶的标签“1P · Lv3”。UI 克隆每帧跟着坦克走，
+    不画进坦克造型：造型变大会改变碰撞范围。锚点是坦克中心（标签在它上方）。
+    v6.0.1 起去掉了坦克脚下的光圈（遮挡战场），画布和锚点不变"""
     col = TANKS["player" if p == 1 else "player2"][0]
-    w, h, cy, r = 44, 46, 28, 15
+    w, h, cy = 44, 46, 28
     tag = f"{p}P · Lv{lv}"
     tw = width(tag, 6.5, True) + 8
-    body = (f'<circle cx="{w/2}" cy="{cy}" r="{r}" fill="{col}" fill-opacity="0.1" stroke="{col}" stroke-width="1.3"/>'
-            f'<rect x="{(w-tw)/2:.2f}" y="1" width="{tw:.2f}" height="10" rx="5" fill="{col}"/>'
+    body = (f'<rect x="{(w-tw)/2:.2f}" y="1" width="{tw:.2f}" height="10" rx="5" fill="{col}"/>'
             + text(w / 2, 8.6, tag, 6.5, "#1a1405", True, "middle"))
     return svg(w, h, body, res=HR), (w / 2, cy)
 

@@ -93,6 +93,9 @@ class Iff(unittest.TestCase):
         self.assertTrue({"ally_1_1", "ally_2_4"} <= ui, "UI 里有 1P / 2P 的我方标识")
         self.assertIn("#ffd23a", read("UI", "ally_1_1.svg"))
         self.assertIn("#4fe3c1", read("UI", "ally_2_4.svg"))
+        for p in (1, 2):
+            for lv in range(1, 5):
+                self.assertNotIn("<circle", read("UI", f"ally_{p}_{lv}.svg"), "v6.0.1 起我方坦克脚下不画光圈，只有头顶标签")
 
 
 if __name__ == "__main__":

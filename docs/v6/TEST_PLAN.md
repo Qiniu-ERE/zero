@@ -19,7 +19,7 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | 文件 | 用例 | 测什么 |
 |---|---|---|
 | `tests/tools/test_iff.py` | V01~V06 | 敌我区分的造型颜色和外形 |
-| `tests/spx/iff.spx` | V07~V10 | 我方标识（光圈 + 1P / 2P 标签） |
+| `tests/spx/iff.spx` | V07~V10 | 我方标识（头顶的 1P / 2P 标签） |
 | `tests/spx/elite.spx` | U01~U07 | 精英坦克、芯片掉落 |
 | `tests/spx/pick.spx` | U08~U17 | 三选一、坦克等级、刷新 |
 | `tests/spx/chips_fire.spx` | U18~U24 | 火力芯片和连携 |

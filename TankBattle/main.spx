@@ -506,7 +506,7 @@ func touchZone(x, y float64) int {
 	return -1 // 顶栏、右侧面板（暂停、语言、广告卡等按钮都在这里）
 }
 
-// 我方标识（v6 敌我区分）：第 p 个玩家（1 或 2）的光圈和标签要不要显示、显示在哪。
+// 我方标识（v6 敌我区分）：第 p 个玩家（1 或 2）的头顶标签要不要显示、显示在哪。
 // 只在对局中（含暂停）显示；坦克死了（报的位置很远）或者 2P 不在就不显示
 func allyAt(p int) (bool, float64, float64) {
 	x, y := p1x, p1y
@@ -2528,7 +2528,7 @@ func buildHud() {
 	}
 	UI.langButton 208, 164
 	UI.icon kPauseBtn, 176, 164, 0 // 暂停按钮（对局中显示；手机上没有 Esc 键，靠它暂停和退出）
-	UI.icon kAlly, 0, 0, 1 // 我方标识（v6 敌我区分）：1P、2P 脚下的光圈和头顶的标签
+	UI.icon kAlly, 0, 0, 1 // 我方标识（v6 敌我区分）：1P、2P 头顶的标签
 	UI.icon kAlly, 0, 0, 2
 	UI.icon kDrop, 0, 0, 0 // 战场上掉落的芯片（v6）
 	// 右侧面板：得分、最高分、生命、按键提示
