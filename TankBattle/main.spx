@@ -73,6 +73,7 @@ var (
 	// 路演演示模式（主页按 P）：玩家坦克自动驾驶，脚本依次展示各项功能
 	autopilot bool
 	demoOn         bool   // 路演演示正在进行（按 Esc 可以退出）
+	demoPick       int    // 路演演示的三选一选第几块（demoV6）
 	demoStop       bool   // 要退出演示：重新广播 demoFlow，新的处理看到它就收尾（重新广播会打断正在运行的演示）
 	demoTheme      int    // 演示开始时的画风和语言，退出时还原
 	demoLang       int
@@ -212,7 +213,7 @@ const (
 	// 排行榜：服务还没部署，lbURL 是空的（游戏里显示“排行榜服务还没上线”）。部署后打包时用 LB_URL=https://... 填上（tools/export/build.sh 只改打包副本）
 	lbURL       = ""
 	lbRegion    = "global" // 海外榜；国内的包打包时用 LB_REGION=cn（国内榜，数据存境内）
-	gameVersion = "6.0.0"
+	gameVersion = "6.0.1"
 	lbQueueMax  = 20
 	lbLoading   = 0
 	lbOK        = 1
@@ -2751,6 +2752,7 @@ func setScreen(name string) {
 func goHome() {
 	state = stHome
 	panelOff()
+	broadcastAndWait "toastOff" // 对局里的提示不留在主页上（回主页以后再弹的照常显示）
 	autopilot = false
 	gameOver = true
 	broadcastAndWait "clear"
@@ -3148,13 +3150,23 @@ func demoV6() {
 		dropLeft = 0
 		pickWho = 1
 		pickRoll()
+		demoPick = -1
+		for i, id := range pickOpts {
+			if demoPick < 0 && !chipTactical(id) {
+				demoPick = i // 演示选第一块升级芯片（战术芯片立即生效、不升级，看不出“升到 Lv2”）
+			}
+		}
+		if demoPick < 0 {
+			pickOpts[0] = cRapid // 三块都是战术芯片（很少见）：第一块换成疾速弹
+			demoPick = 0
+		}
 		state = stPick
 		gameOver = true
 		sfx "start"
 		setScreen "pick"
 	}
 	wait 3.5
-	pickChoose 0
+	pickChoose demoPick
 	wait 3.5
 	goHome
 	wait 1
