@@ -9,7 +9,7 @@
 [![1024 HACKATHON 第五届](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![XBuilder · XGo · spx 4.0](https://img.shields.io/badge/XBuilder-XGo_·_spx_4.0-b4521e)](https://x.qiniu.com)
 [![版本 v6.0.0](https://img.shields.io/badge/版本-v6.0.0-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
-[![测试 1063 通过](https://img.shields.io/badge/测试-1063_通过-brightgreen)](docs/v6/TEST_PLAN.md)
+[![测试 1078 通过](https://img.shields.io/badge/测试-1078_通过-brightgreen)](docs/v6/TEST_PLAN.md)
 [![覆盖率 99%](https://img.shields.io/badge/覆盖率-99%25-brightgreen)](docs/v6/TEST_PLAN.md#一要求和怎么检查)
 
 **[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v6-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [玩法](#玩法) · [v6.0 新内容](#v60-做了什么) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
@@ -22,7 +22,7 @@
 
 | 版本 | 做了什么 |
 |---|---|
-| **v6.0** | **敌我区分、打精英升级、每日挑战、排行榜**：敌方统一枪灰车身 + 红色标识；击毁精英坦克掉芯片、三选一升级；车库（指挥官等级、涂装、每日任务）、每日挑战（全球同图）、赛季、分享战报、助战码，手机上都能点；自建全球榜（服务端 + 客户端 + 部署文件）；117 个用例 ID 全覆盖（[v6.0 做了什么](#v60-做了什么)） |
+| **v6.0** | **敌我区分、打精英升级、每日挑战、排行榜**：敌方统一枪灰车身 + 红色标识；击毁精英坦克掉芯片、三选一升级；车库（指挥官等级、涂装、每日任务）、每日挑战（全球同图）、赛季、分享战报、助战码，手机上都能点；自建全球榜（服务端 + 客户端 + 部署文件）；118 个用例 ID 全覆盖（[v6.0 做了什么](#v60-做了什么)） |
 | v5.0 | **商业化落地探索**：评估 Steam、Xbox、App Store、Google Play，定下盈利方案（免费 + 激励视频、$0.99 去广告，PC $0.99 买断）和回本测算（投入 ¥3350，基准半年回本）；主页加“选择关卡”，复活更有用，修了一批审查发现的问题 |
 | v4.0 | **测试与质量**：每条游戏规则都有自动化测试，合入前一条命令跑完 |
 | v3.0 | **8 个关卡、双人合作、自己做地图**，打包成六个平台的安装包 |
@@ -184,8 +184,8 @@ v6.0 只解决一个问题：**让玩家明天还想回来**。全部功能不�
 | 车库与存档 | `save.txt` 存档、指挥官等级解锁芯片（只加选择、不加数值）、金币钱包、涂装、每日任务 |
 | 每日挑战 | 按日期生成全球同一张图、同一组敌人和芯片；一天一次正式成绩 |
 | 赛季与分享 | 6 周一季的段位和免费赛季涂装、分享战报卡、5 位助战码送芯片 |
-| 排行榜 | 自建服务（`server/`，Python 标准库）+ 游戏里的每日榜和周榜，后台上传、离线排队；部署文件已备好（Docker + 自动 HTTPS），**还没上线**，好友榜要等 SDK |
-| 测试全覆盖 | 117 个用例 ID 都有测试；新工具 Python 行覆盖 100%；克隆预算测试（spx 全部精灵最多 300 个克隆） |
+| 排行榜 | 自建服务（`server/`，Python 标准库）+ 游戏里的每日榜和周榜，后台上传、离线排队；部署文件已备好（Docker + 自动 HTTPS），本机模拟上线已跑通（`server/deploy/local.sh`），**还没正式上线**，好友榜要等 SDK |
+| 测试全覆盖 | 118 个用例 ID 都有测试；新工具 Python 行覆盖 100%；克隆预算测试（spx 全部精灵最多 300 个克隆） |
 
 ## v5.0 做了什么
 
@@ -252,7 +252,7 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | 文档 | 内容 |
 |---|---|
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、状态机、解释器限制、分工 |
-| [v6.0 规划和实现](docs/v6/PLAN.md) | 敌我区分、精英与芯片、车库、每日挑战、赛季、分享战报、排行榜：规则、截图、和路演商业路线对照、还没做的部分；[v6 测试方案](docs/v6/TEST_PLAN.md)（117 个用例 ID）；[排行榜服务](server/README.md) |
+| [v6.0 规划和实现](docs/v6/PLAN.md) | 敌我区分、精英与芯片、车库、每日挑战、赛季、分享战报、排行榜：规则、截图、和路演商业路线对照、还没做的部分；[v6 测试方案](docs/v6/TEST_PLAN.md)（118 个用例 ID）；[排行榜服务](server/README.md) |
 | [v5.0 规划](docs/v5/PLAN.md) | 平台、体验、盈利、推广、盈利周期、商店页、全面审查清单 |
 | [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x → v4.0.x → v5.0.x → v6.0.0 |
 | [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
@@ -325,6 +325,7 @@ tools/test/package_boot.sh          # 打出桌面安装包并运行启动测试
 tools/test/dist_boot.sh dist/TankBattle-版本-macos-arm64.zip   # 直接运行要发出去的安装包（B14）
 tools/test/update_baseline.sh       # 覆盖率提高后更新基线（约 25 分钟；有测试失败就停下）
 python3 server/leaderboard.py       # v6 排行榜服务在本机运行（部署见 server/README.md）
+server/deploy/local.sh up           # 本机模拟排行榜上线：Docker + Caddy HTTPS + 模拟玩家；local.sh game 起一份连本机服务的游戏，local.sh down 收尾
 tools/dev/clean.sh                  # 磁盘紧时：先列出测试和打包留下的临时文件，加 --yes 才删
 
 # 打安装包：全部在本地，不用 GitHub Actions（见 docs/v3/CROSS_PLATFORM.md「本地打包」）
