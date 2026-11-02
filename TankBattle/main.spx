@@ -95,6 +95,8 @@ var (
 	shooter      int        // 正在判定的玩家子弹是谁打的（PBullet 调 bulletHit 之前设好，穿甲弹靠它）
 	elitesKilled int        // 本关已击毁的精英
 	dropX        float64    // 场上的芯片在哪（同一时间只有一块）
+	spawnOwed    int          // 复活清场欠下、还要补出场的敌人（见 owe）
+	eliteOwed    int          // 其中几辆是精英
 	busyCells    map[int]bool // 钢铁堡垒放墙前统计：坦克压着的格子（见 tankCells）
 	dropY        float64
 	dropLeft     float64 // 芯片还有几秒消失；0 表示场上没有芯片
@@ -214,6 +216,7 @@ const (
 	lbURL       = ""
 	lbRegion    = "global" // 海外榜；国内的包打包时用 LB_REGION=cn（国内榜，数据存境内）
 	gameVersion = "6.0.1"
+	appID       = "com.qiniu.tankbattle" // 和 tools/export/env.sh 的 APP_ID 一致（Android 的私有目录 /data/data/<包名> 用到它）
 	lbQueueMax  = 20
 	lbLoading   = 0
 	lbOK        = 1
@@ -804,6 +807,7 @@ func pickChoose(i int) {
 	}
 	state = stPlay
 	setScreen ""
+	Player.fireHeld = true // 触屏：点卡片的手指还按在战场上，先松开才开火（不然选完会多开一炮）
 	gameOver = false // 先解冻再生效：空袭可能打掉最后一辆，要能判胜利
 	applyChip pickWho, pickOpts[i]
 }
@@ -1043,11 +1047,26 @@ func pbBounce(f int) int {
 
 // 存档放在哪里（PC 版）：和自制地图同一个目录。网页版没有文件系统，返回 ""（进度只在这次运行里有效）
 func saveFile() string {
-	dir, err := os.UserConfigDir()
-	if err != nil || dir == "" {
+	dir := dataDir()
+	if dir == "" {
 		return ""
 	}
-	return dir + "/TankBattle/save.txt"
+	return dir + "/save.txt"
+}
+
+// 存档、自制地图、取日期用的临时文件放在哪：系统的用户配置目录下的 TankBattle/（桌面版、iOS）。
+// Android 的 App 进程里通常没有 $HOME，Go 的 UserConfigDir 会失败：退到 App 自己的私有目录
+// （Godot 的 user:// 也在这里，App 一定能写）。都不行时返回 ""（网页版：进度只在这次运行里有效）
+func dataDir() string {
+	if dir, err := os.UserConfigDir(); err == nil && dir != "" {
+		return dir + "/TankBattle"
+	}
+	for _, d := range []string{"/data/data/" + appID + "/files", "/data/user/0/" + appID + "/files"} {
+		if os.MkdirAll(d+"/TankBattle", 0755) == nil {
+			return d + "/TankBattle"
+		}
+	}
+	return ""
 }
 
 func joinInts(a []int) string {
@@ -1314,7 +1333,16 @@ func buySkin(i int) {
 func nowSec() int {
 	f := os.TempDir() + "/tankbattle_clock"
 	if os.WriteFile(f, []byte("t"), 0644) != nil {
-		return 0
+		// Android 的 TempDir 是 /data/local/tmp，App 写不进去：改用数据目录
+		d := dataDir()
+		if d == "" {
+			return 0
+		}
+		os.MkdirAll(d, 0755)
+		f = d + "/clock"
+		if os.WriteFile(f, []byte("t"), 0644) != nil {
+			return 0
+		}
 	}
 	st, err := os.Stat(f)
 	if err != nil {
@@ -1878,7 +1906,7 @@ func assistConfirm() {
 	toast "msg.assist.ok", 2.5
 }
 
-// 开局时送出好友的助战芯片（战役和自制地图都行，每日挑战不行：大家要公平）
+// 开局时送出好友的助战芯片（只在战役里：每日挑战要公平，自制地图试玩不算“下一关”）
 func applyAssist() {
 	if assistGift == 0 || stage < 1 || stage > lastStage || autopilot {
 		return // 只在战役里用（每日挑战要公平，自制地图试玩不算“下一关”）
@@ -2118,11 +2146,11 @@ func openEditor() {
 
 // 保存的地图放在哪里（PC 版）；网页版没有文件系统，返回 ""
 func edFile() string {
-	dir, err := os.UserConfigDir()
-	if err != nil || dir == "" {
+	dir := dataDir()
+	if dir == "" {
 		return ""
 	}
-	return dir + "/TankBattle/maps.txt"
+	return dir + "/maps.txt"
 }
 
 func edSave() {
@@ -3322,13 +3350,33 @@ func spawnEnemy() {
 	} else if n <= heavy+fast {
 		kind = 1
 	}
-	if eliteSlot(spawned) {
+	elite := eliteSlot(spawned)
+	owed := spawnOwed > 0
+	if owed { // 先补复活清场时欠下的：是不是精英按清掉的那辆来，不看出场编号
+		spawnOwed--
+		elite = eliteOwed > 0
+		if elite {
+			eliteOwed--
+		}
+	}
+	if elite {
 		kind += 10 // 精英（v6）：类型加 10，不给 Enemy 加字段（方法表上限）
 		toast "msg.elite", 2
 	}
 	Enemy.spawn cellX(c), cellY(0), kind
-	spawned++
+	if !owed {
+		spawned++
+	}
 	enemiesAlive++
+}
+
+// 复活清场清掉了一辆（不算击毁）：欠一辆，以后补出场。以前是把 spawned 减 1，
+// 可是精英按出场编号算，减 1 会让精英丢掉或多出一辆（芯片跟着少一块或多一块）
+func owe(elite bool) {
+	spawnOwed++
+	if elite {
+		eliteOwed++
+	}
 }
 
 // 根据 levelMap 生成砖墙、钢墙和基地（都是 Tile 的克隆）
@@ -3377,6 +3425,8 @@ func startGame() {
 	lives2 = 3
 	pbCount2 = 0
 	spawned = 0
+	spawnOwed = 0
+	eliteOwed = 0
 	enemiesAlive = 0
 	killed = 0
 	pbCount = 0
@@ -3774,7 +3824,7 @@ onStart => {
 			maxAlive++
 		}
 		wait gap
-		if !gameOver && spawned < totalEnemy && enemiesAlive < maxAlive {
+		if !gameOver && (spawned < totalEnemy || spawnOwed > 0) && enemiesAlive < maxAlive {
 			spawnEnemy
 		}
 	}

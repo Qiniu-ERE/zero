@@ -1,6 +1,7 @@
 """打包和发布工具的测试：patch_spx.py（版本号换算、缺选项时失败）、env.sh（从 CHANGELOG 取版本号）、
 release_local.sh（DRY_RUN 生成的发布说明和校验和、发布前的检查）。都用临时目录里的小样本，不联网、不打包。"""
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -301,6 +302,16 @@ class ReleaseNotes(unittest.TestCase):
                                 capture_output=True).returncode == 0
         if tagged:  # 浅克隆里可能没有标签
             self.assertIn("打的，标签", out.stderr)
+
+
+class AppId(unittest.TestCase):
+    def test_K14_game_app_id_matches_build(self):
+        """K14 游戏里的 appID（Android 私有目录 /data/data/<包名> 用到）和打包配置的 APP_ID 一致"""
+        with open(os.path.join(ROOT, "TankBattle", "main.spx"), encoding="utf-8") as f:
+            game = re.search(r'appID\s*=\s*"([^"]+)"', f.read()).group(1)
+        with open(os.path.join(EXPORT, "env.sh"), encoding="utf-8") as f:
+            build = re.search(r'^APP_ID="([^"]+)"', f.read(), re.M).group(1)
+        self.assertEqual(game, build)
 
 
 class PinnedVersions(unittest.TestCase):

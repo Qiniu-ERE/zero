@@ -633,14 +633,14 @@
     {
       "name": "msg.coop.touch_zh",
       "path": "msg.coop.touch_zh.svg",
-      "x": 282.0,
+      "x": 433.36,
       "y": 44.0,
       "bitmapResolution": 4
     },
     {
       "name": "msg.coop.touch_en",
       "path": "msg.coop.touch_en.svg",
-      "x": 423.61,
+      "x": 684.66,
       "y": 44.0,
       "bitmapResolution": 4
     },

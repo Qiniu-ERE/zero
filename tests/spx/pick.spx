@@ -28,6 +28,7 @@ onStart => {
 	tInt "U09 升到 Lv2", lvl[1], 2
 	tCheck "U09 装上了选的那块", hasChip(1, first)
 	tStr "U09 画面关掉", screen, ""
+	tCheck "U09 触屏：选完先等手指松开才开火（点卡片的手指不会多开一炮）", Player.fireHeld
 
 	// U10 抽芯片：只抽解锁了的、没装上的；按稀有度，传奇最少
 	chips[1] = nil // U09 可能正好装上了穿甲弹（装上的不会再抽到），先清空

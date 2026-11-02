@@ -94,19 +94,19 @@ const box = (s) => ({ x: parseFloat(s.left), y: parseFloat(s.top), w: parseFloat
 test('W01 方向键：按下、滑动换方向、松开', () => {
 	const g = load({ touch: true })
 	g.dpad1.emit('pointerdown', at(90, 50)) // 圆心右边
-	assert.deepEqual(g.sent, [['keydown', 'KeyD']])
+	assert.deepEqual(g.sent, [['keydown', 'ArrowRight']])
 	g.dpad1.emit('pointermove', at(50, 10)) // 滑到上面：先松开右，再按上
-	assert.deepEqual(g.sent.slice(1), [['keyup', 'KeyD'], ['keydown', 'KeyW']])
+	assert.deepEqual(g.sent.slice(1), [['keyup', 'ArrowRight'], ['keydown', 'ArrowUp']])
 	g.dpad1.emit('pointermove', at(50, 15)) // 还在上面：不重复发
 	assert.equal(g.sent.length, 3)
 	g.dpad1.emit('pointerup', at(50, 15))
-	assert.deepEqual(g.sent.at(-1), ['keyup', 'KeyW'])
+	assert.deepEqual(g.sent.at(-1), ['keyup', 'ArrowUp'])
 	assert.equal(g.dpad1.classList.contains('active'), false)
 })
 
 test('W01 方向键：四个方向和中心空区', () => {
 	const g = load({ touch: true })
-	const dirs = [[50, 5, 'KeyW'], [50, 95, 'KeyS'], [5, 50, 'KeyA'], [95, 50, 'KeyD']]
+	const dirs = [[50, 5, 'ArrowUp'], [50, 95, 'ArrowDown'], [5, 50, 'ArrowLeft'], [95, 50, 'ArrowRight']]
 	for (const [x, y, key] of dirs) {
 		g.sent.length = 0
 		g.dpad1.emit('pointerdown', at(x, y))
@@ -123,13 +123,13 @@ test('W02 多点触控：一边移动一边开火，互不影响', () => {
 	g.dpad1.emit('pointerdown', at(50, 5, 1)) // 手指 1 按“上”
 	g.buttons.fire.emit('pointerdown', at(0, 0, 2)) // 手指 2 按开火
 	g.dpad1.emit('pointermove', at(50, 4, 2)) // 别的手指的移动不影响方向键
-	assert.deepEqual(g.sent, [['keydown', 'KeyW'], ['keydown', 'KeyJ']])
+	assert.deepEqual(g.sent, [['keydown', 'ArrowUp'], ['keydown', 'KeyJ']])
 	g.buttons.fire.emit('pointerup', at(0, 0, 2))
 	assert.deepEqual(g.sent.at(-1), ['keyup', 'KeyJ'])
 	g.dpad1.emit('pointerup', at(50, 5, 2)) // 不是按方向键的那根手指：方向键还按着
 	assert.equal(g.sent.filter(([t]) => t === 'keyup').length, 1)
 	g.dpad1.emit('pointerup', at(50, 5, 1))
-	assert.deepEqual(g.sent.at(-1), ['keyup', 'KeyW'])
+	assert.deepEqual(g.sent.at(-1), ['keyup', 'ArrowUp'])
 })
 
 test('W02 pointercancel（来电、切到后台）时松开所有按着的键', () => {
@@ -138,9 +138,21 @@ test('W02 pointercancel（来电、切到后台）时松开所有按着的键', 
 	g.buttons.fire.emit('pointerdown', at(0, 0, 2))
 	g.dpad1.emit('pointercancel', at(95, 50, 1))
 	g.buttons.fire.emit('pointercancel', at(0, 0, 2))
-	assert.deepEqual(g.sent, [['keydown', 'KeyD'], ['keydown', 'KeyJ'], ['keyup', 'KeyD'], ['keyup', 'KeyJ']])
+	assert.deepEqual(g.sent, [['keydown', 'ArrowRight'], ['keydown', 'KeyJ'], ['keyup', 'ArrowRight'], ['keyup', 'KeyJ']])
 	g.buttons.fire.emit('pointercancel') // 已经松开了：不再重复发 keyup
 	assert.equal(g.sent.length, 4)
+})
+
+test('W01 1P 方向键：单人时发方向键（WASD 在主页、编辑器里是快捷键），打开双人按键后发 WASD', () => {
+	const g = load({ touch: true })
+	g.dpad1.emit('pointerdown', at(5, 50))
+	g.dpad1.emit('pointerup', at(5, 50))
+	assert.deepEqual(g.sent, [['keydown', 'ArrowLeft'], ['keyup', 'ArrowLeft']], '单人：不发 KeyA（主页的 A 是助战码）')
+	g.els.coopBtn.emit('click')
+	g.sent.length = 0
+	g.dpad1.emit('pointerdown', at(5, 50))
+	g.dpad1.emit('pointerup', at(5, 50))
+	assert.deepEqual(g.sent, [['keydown', 'KeyA'], ['keyup', 'KeyA']], '双人：1P 用 WASD，方向键给 2P')
 })
 
 test('W03 双人按键：2P 方向键发方向键，2P 开火发 Enter，按钮切换双人布局', () => {

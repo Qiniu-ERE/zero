@@ -40,7 +40,7 @@ STRINGS = {
     "msg.ed.bad": ("地图还不能玩，先看右边的提示", "Not playable yet, see the panel"),
     "msg.ed.saved": ("已保存，下次打开还在", "Saved for next time"),
     "msg.ed.savefail": ("保存失败（网页版不能存文件），地图保留到关闭页面", "Save failed (no files on the web); kept until you close"),
-    "msg.coop.touch": ("双人合作需要键盘或两只手柄", "Co-op needs a keyboard or two gamepads"),
+    "msg.coop.touch": ("手机 App 不支持双人合作，请用电脑版或网页版", "Co-op isn't available in the mobile app. Use the desktop or web version"),
     "msg.ed.loaded": ("已载入上次保存的地图", "Loaded your saved map"),
     "msg.ed.clear": ("已清空", "Cleared"),
     "msg.ed.rand": ("已随机生成一张地图", "Random map ready"),

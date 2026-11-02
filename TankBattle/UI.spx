@@ -933,6 +933,9 @@ func clickAt(x, y float64) {
 			}
 		}
 	case stRevive:
+		if !strings.HasPrefix(screen, "revive_") {
+			return // 基地刚被打掉、复活询问还没弹出来（和按键一样，先等弹窗出现）
+		}
 		if hit("revive.ad", x, y) {
 			watchAd rewardRevive
 		} else if hit("revive.giveup", x, y) {

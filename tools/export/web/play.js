@@ -129,9 +129,12 @@ function sendKey(code, down) {
 	canvas.dispatchEvent(new w.KeyboardEvent(down ? 'keydown' : 'keyup', { code, key, keyCode, which: keyCode, bubbles: true, cancelable: true }))
 }
 
-// 方向键盘：按手指相对圆心的方向决定按哪个键，手指滑动时切换
+// 方向键盘：按手指相对圆心的方向决定按哪个键，手指滑动时切换。
+// 1P 的方向键单人时发方向键（单人时方向键也能开 1P；WASD 在主页、编辑器里是快捷键：A 助战码、D 每日挑战、S 保存），
+// 打开“双人按键”后才发 WASD（方向键留给 2P）
+const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
 pad.querySelectorAll('.dpad').forEach((el) => {
-	const [up, down, left, right] = el.dataset.keys.split(',')
+	const keys = () => (el.classList.contains('p2') || document.body.classList.contains('coop') ? el.dataset.keys.split(',') : ARROWS)
 	let held = null
 	let pointer = null
 	const set = (k) => {
@@ -146,6 +149,7 @@ pad.querySelectorAll('.dpad').forEach((el) => {
 		const dx = e.clientX - (r.left + r.width / 2)
 		const dy = e.clientY - (r.top + r.height / 2)
 		if (Math.hypot(dx, dy) < r.width * 0.12) return set(null) // 中心留一点空，不按任何方向
+		const [up, down, left, right] = keys()
 		set(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? right : left) : (dy > 0 ? down : up))
 	}
 	el.addEventListener('pointerdown', (e) => { pointer = e.pointerId; el.setPointerCapture(pointer); update(e); e.preventDefault() })
