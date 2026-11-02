@@ -9,7 +9,7 @@
 [![1024 HACKATHON 第五届](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![XBuilder · XGo · spx 4.0](https://img.shields.io/badge/XBuilder-XGo_·_spx_4.0-b4521e)](https://x.qiniu.com)
 [![版本 v6.0.1](https://img.shields.io/badge/版本-v6.0.1-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
-[![测试 1115 通过](https://img.shields.io/badge/测试-1115_通过-brightgreen)](docs/v6/TEST_PLAN.md)
+[![测试 1128 通过](https://img.shields.io/badge/测试-1128_通过-brightgreen)](docs/v6/TEST_PLAN.md)
 [![覆盖率 99%](https://img.shields.io/badge/覆盖率-99%25-brightgreen)](docs/v6/TEST_PLAN.md#一要求和怎么检查)
 
 **[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v6-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [要等服务器的功能](#哪些功能要等服务器或平台才能用) · [玩法](#玩法) · [v6.0 新内容](#v60-做了什么) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
