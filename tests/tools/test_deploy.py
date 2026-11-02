@@ -32,7 +32,7 @@ def parse_args(argv):
     """用服务端自己的参数解析检查一条启动命令（参数不对会 SystemExit）"""
     seen = {}
     real = lb.make_server
-    lb.make_server = lambda host, port, db, trust_proxy=False: seen.update(host=host, port=port, db=db, trust=trust_proxy) or _Stub()
+    lb.make_server = lambda host, port, db, trust_proxy=False, timeout=15: seen.update(host=host, port=port, db=db, trust=trust_proxy) or _Stub()
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             lb.main(argv)

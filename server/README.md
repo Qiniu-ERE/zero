@@ -18,6 +18,7 @@ curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1", "day"
 | `--host` | `127.0.0.1` | 监听地址；部署到容器里用 `0.0.0.0` |
 | `--port` | `8787` | 端口 |
 | `--db` | `lb.sqlite` | sqlite 文件，不存在就自动建 |
+| `--timeout` | `15` | 每条连接的读写超时（秒） |
 | `--trust-proxy` | 关 | 按 `X-Forwarded-For` 的第一个地址做 IP 限频；只在可信的反向代理 / 无服务器平台后面打开，否则客户端能伪造 |
 
 测试：`python3 -m unittest discover -s tests/tools -p 'test_leaderboard.py' -v`（用例 R10~R29，见 [test_leaderboard.py](../tests/tools/test_leaderboard.py)）。
@@ -72,9 +73,10 @@ curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1", "day"
 
 ### 限频（超了返回 429）
 
-- 同一个 IP 60 秒内最多 30 次上传（每次 `POST /v1/score` 都算，包括坏请求）；
+- 同一个 IP 60 秒内最多 30 次上传：请求体读完就算（成绩不合格、不是合法 JSON 的也算）；路径不对、`Content-Length` 缺失或超过 4 KB 的请求在读请求体之前就拒绝了，不算；
 - 同一个玩家 60 秒内最多 10 次上传（玩家 ID 格式对了就算，成绩不合格也算）；
-- 被拒的那次不计数；计数在内存里，重启清零。
+- 被 IP 限频拒掉的那次不计数；通过了 IP 限频、又被玩家限频拒掉的，仍占这次 IP 额度；计数在内存里，重启清零。
+- 每条连接有读写超时（默认 15 秒，`--timeout` 可以改）：连上不发数据、请求体只发一半的连接到时间就断开。
 
 ### 存储和排名
 
@@ -92,7 +94,7 @@ curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1", "day"
 
 ## 部署
 
-部署文件在 [`deploy/`](deploy/)，测试见 [test_deploy.py](../tests/tools/test_deploy.py)（R31、R32）。**还没有真正部署**：需要一台服务器和一个域名。
+部署文件在 [`deploy/`](deploy/)，测试见 [test_deploy.py](../tests/tools/test_deploy.py)（R31~R33）。**还没有真正部署**：需要一台服务器和一个域名。
 
 | 文件 | 用途 |
 |---|---|

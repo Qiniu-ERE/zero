@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 API_VERSION = "1"
 MAX_BODY = 4096                 # 请求体上限 4 KB
 TZ_OFFSET = 8 * 3600            # 按北京时间（UTC+8）切天
-PLAYER_RE = re.compile(r"^[0-9a-f]{16}$")
+PLAYER_RE = re.compile(r"[0-9a-f]{16}")  # 用 fullmatch：整串都要对（$ 会放过结尾的换行）
 REGIONS = {"global", "cn"}
 BOARDS = {"weekly", "daily"}
 CHIPS = {"rapid", "double", "pierce", "bounce", "shield", "engine", "float", "stealth", "magnet"}
@@ -62,7 +62,7 @@ def check_score(body, t):
     if not isinstance(body, dict):
         return "请求体应该是 JSON 对象"
     player = body.get("player")
-    if not isinstance(player, str) or not PLAYER_RE.match(player):
+    if not isinstance(player, str) or not PLAYER_RE.fullmatch(player):
         return "玩家 ID 应该是 16 位小写十六进制"
     if body.get("region") not in REGIONS:
         return "region 只能是 global 或 cn"
@@ -197,6 +197,11 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "TankBattleLeaderboard/" + API_VERSION
     protocol_version = "HTTP/1.1"
 
+    def setup(self):
+        # 读写超时：慢连接、连上不发数据、请求体发一半的，到时间就断开，不会一直占着线程
+        self.timeout = self.server.request_timeout
+        super().setup()
+
     def log_message(self, fmt, *args):
         if not self.server.quiet:
             super().log_message(fmt, *args)
@@ -258,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
             total, rows = store.top(region, board, period, int(limit))
             return self.send_json(200, {"ok": True, "total": total, "rows": rows})
         player = q.get("player", "")
-        if not PLAYER_RE.match(player):
+        if not PLAYER_RE.fullmatch(player):
             return self.fail(400, "玩家 ID 应该是 16 位小写十六进制")
         rank, total, score = store.rank(region, board, period, player)
         return self.send_json(200, {"ok": True, "rank": rank, "total": total, "score": score})
@@ -288,7 +293,7 @@ class Handler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, ValueError):
             return self.fail(400, "请求体不是合法的 JSON")
         player = body.get("player") if isinstance(body, dict) else None
-        if isinstance(player, str) and PLAYER_RE.match(player):
+        if isinstance(player, str) and PLAYER_RE.fullmatch(player):
             with srv.rate_lock:
                 if not srv.player_limit.allow(player, t):
                     return self.fail(429, "上传太频繁，请稍后再试")
@@ -302,8 +307,9 @@ class Handler(BaseHTTPRequestHandler):
 class LeaderboardServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, addr, db_path, now=time.time, trust_proxy=False, quiet=False):
+    def __init__(self, addr, db_path, now=time.time, trust_proxy=False, quiet=False, timeout=15):
         self.store = Store(db_path)
+        self.request_timeout = timeout
         self.now = now
         self.trust_proxy = trust_proxy
         self.quiet = quiet
@@ -317,9 +323,10 @@ class LeaderboardServer(ThreadingHTTPServer):
         self.store.close()
 
 
-def make_server(host, port, db_path, now=time.time, trust_proxy=False, quiet=False):
-    """建一个服务对象（还没开始 serve_forever）；port=0 时由系统分配端口，用 server.server_address 取"""
-    return LeaderboardServer((host, port), db_path, now=now, trust_proxy=trust_proxy, quiet=quiet)
+def make_server(host, port, db_path, now=time.time, trust_proxy=False, quiet=False, timeout=15):
+    """建一个服务对象（还没开始 serve_forever）；port=0 时由系统分配端口，用 server.server_address 取。
+    timeout：每条连接的读写超时（秒）"""
+    return LeaderboardServer((host, port), db_path, now=now, trust_proxy=trust_proxy, quiet=quiet, timeout=timeout)
 
 
 def main(argv=None):
@@ -329,8 +336,9 @@ def main(argv=None):
     ap.add_argument("--db", default="lb.sqlite", help="sqlite 文件路径")
     ap.add_argument("--trust-proxy", action="store_true",
                     help="按 X-Forwarded-For 的第一个地址限频（只在可信的反向代理后面打开）")
+    ap.add_argument("--timeout", type=float, default=15, help="每条连接的读写超时（秒），默认 15")
     args = ap.parse_args(argv)
-    srv = make_server(args.host, args.port, args.db, trust_proxy=args.trust_proxy)
+    srv = make_server(args.host, args.port, args.db, trust_proxy=args.trust_proxy, timeout=args.timeout)
     print(f"排行榜服务已启动：http://{args.host}:{srv.server_address[1]}/v1/health", flush=True)
     try:
         srv.serve_forever()

@@ -30,12 +30,13 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | `tests/tools/test_daily.py` | D01~D03、Q04 | 每日挑战地图生成器（Python 版） |
 | `tests/spx/daily.spx` | D04~D15 | 每日挑战（游戏） |
 | `tests/spx/board.spx` | R01~R09、R34~R35 | 排行榜客户端（端到端：测试脚本在本机起一个排行榜服务） |
-| `tests/tools/test_leaderboard.py` | R10~R29 | 排行榜服务 |
+| `tests/tools/test_leaderboard.py` | R10~R29、R36 | 排行榜服务 |
 | `tests/tools/test_release_tools.py` | R30 | 打包时填排行榜地址和区域（`LB_URL` / `LB_REGION`） |
 | `tests/tools/test_deploy.py` | R31~R33 | 排行榜的部署文件、部署后的冒烟检查、本机模拟上线 |
 | `tests/spx/season.spx` | S01~S12 | 赛季、分享战报、助战码；手机上的助战码键盘和分享入口 |
 | `tests/spx/budget.spx` | Q01~Q03 | 克隆预算 |
 | `tests/tools/test_cli_coverage.py` | Q05~Q07 | 工具的命令行入口和少见的分支 |
+| `tests/tools/test_ui_click.py` | Q08 | 点击不会被盖在按钮上的小部件吞掉 |
 
 引擎内测试文件里可以写 `// server: true`：`run_spx.sh` 先在本机起一个排行榜服务（临时数据库），地址放在环境变量 `TB_LB` 里。
 
@@ -173,6 +174,7 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | R33 | 本机模拟上线（`local.sh`）：端口只开在本机；模拟玩家都合法、编号各不相同、按分数排好；60 秒内再填被限频；连不上时报错；游戏副本的 `lbURL` 指向本机服务，仓库里的不改 |
 | R34 | 正在后台发送的那批成绩也写进存档（这时关掉游戏不丢） |
 | R35 | 切走以后才回来的旧请求直接丢掉，不覆盖新请求的结果 |
+| R36 | 服务：读写超时，连上不发数据、请求体只发一半的连接到时间断开，别的请求照常；结尾带换行的玩家 ID 也拒绝（v6.0.1） |
 
 ### 3.6 赛季、分享战报、助战码（S）
 
@@ -202,6 +204,7 @@ v6 沿用 v4 的测试框架（[v4 测试方案](../v4/TEST_PLAN.md)：引擎内
 | Q05 | 每日挑战生成器的命令行、检查结果、80 次都不合格时用空白地图 |
 | Q06 | `check.py` 的命令行 |
 | Q07 | 排行榜服务的命令行、限频窗口、日志、坏的 Content-Length |
+| Q08 | 点击不会被盖在按钮上的小部件吞掉：UI 的 onClick 里，没有专门处理的克隆都交给 clickScreen（v6.0.1） |
 
 ## 四、测试发现的问题
 
