@@ -106,7 +106,7 @@ flowchart LR
 | `kPauseBtn` | 顶栏的暂停按钮（对局中显示，可点击） | `pausebtn` | `screen` |
 | `kTouchPad` | 触屏模式（手机 App，`touchUI` 为 true）的方向键，替换右侧的按键说明 | `touchpad_<lang>` | `hud`、`screen` |
 | `kEdSel` `kEdSwitch` `kEdStatus` `kEdCursor` `kEdMark` | 地图编辑器的小部件：工具选中框、对称开关和对称线、检查结果、光标、问题标记 | `edsel` `edsw_on/off` `edline` `edok/edbad1/edbad2_<lang>` `edcursor` `edmark` | `edit`、`edCursor` |
-| `kAlly` | v6 我方标识：脚下光圈 + 头顶“1P · Lv3”，每帧跟着坦克（显示规则在舞台的 `allyAt`） | `ally_<1\|2>_<等级>` | 每帧 |
+| `kAlly` | v6 我方标识：头顶“1P · Lv3”（v6.0.1 去掉了脚下的光圈），每帧跟着坦克（显示规则在舞台的 `allyAt`） | `ally_<1\|2>_<等级>` | 每帧 |
 | `kChip` | v6 右侧面板的芯片格（1P 三格、双人时 2P 三格；触屏模式不显示） | `ci_<芯片>`、`ci_empty` | `hud` |
 | `kPick` | v6 三选一：三张卡片、刷新按钮、谁在选 | `pc_<芯片>[_combo]_<lang>`、`reroll_<ad\|free\|used>_<lang>`、`pickwho_<p>` | `screen` |
 | `kDrop` | v6 战场上掉落的芯片（最后 3 秒闪烁） | `drop` | 每帧 |
