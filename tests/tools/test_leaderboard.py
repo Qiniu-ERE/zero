@@ -1,4 +1,4 @@
-"""R10~R29：自建排行榜服务 server/leaderboard.py（见 docs/v6/PLAN.md 第五、六节）
+"""R10~R29、R36：自建排行榜服务 server/leaderboard.py（见 docs/v6/PLAN.md 第五、六节）
 
 每个用例在系统分配的端口上起一个新服务，用临时 sqlite 文件和假时钟，互不影响。
 """
@@ -6,6 +6,7 @@ import http.client
 import json
 import os
 import shutil
+import socket
 import sys
 import tempfile
 import threading
@@ -195,7 +196,7 @@ class Leaderboard(Base):
         self.assertEqual([r["player"] for r in self.board()[1]["rows"]], [pid(2), pid(1), pid(3)])
 
     def test_R15_player_region_board_validation(self):
-        for p in ["", "0" * 15, "0" * 17, "ABCDEF0123456789", "g000000000000000", 12345, None]:
+        for p in ["", "0" * 15, "0" * 17, "ABCDEF0123456789", "g000000000000000", 12345, None, "0123456789abcdef\n"]:
             with self.subTest(player=p):
                 self.assertRejected(entry(player=p), "玩家 ID")
         for r in ["", "us", "CN", None]:
@@ -205,6 +206,8 @@ class Leaderboard(Base):
             with self.subTest(board=b):
                 self.assertRejected(entry(board=b), "board")
         self.assertEqual(self.board()[1]["total"], 0, "被拒的成绩不能进榜")
+        # 结尾带换行的 ID 也不行（以前正则的 $ 会放过它，同一个人会变成两条记录）
+        self.assertEqual(self.rank("0123456789abcdef%0A")[0], 400)
 
     def test_R16_daily_period_and_late_upload(self):
         self.assertRejected(entry(period=DAY + 1), "期数")
@@ -431,6 +434,33 @@ class BehindProxy(Base):
         self.assertEqual(self.post(entry(player=pid(32)), {"X-Forwarded-For": "2.2.2.2"})[0], 200)
 
 
+class Timeout(Base):
+    """R36 读写超时：连上不发数据、请求体只发一半的连接，到时间就断开；不影响别的请求（v6.0.1）"""
+
+    def start(self):
+        self.srv = lb.make_server("127.0.0.1", 0, self.db, now=self.clock, quiet=True, timeout=0.3)
+        self.port = self.srv.server_address[1]
+        self.th = threading.Thread(target=self.srv.serve_forever, args=(0.05,), daemon=True)
+        self.th.start()
+
+    def closed_within(self, data, secs=3):
+        """发 data 以后，服务端在 secs 秒内断开连接（读到 EOF）"""
+        s = socket.create_connection(("127.0.0.1", self.port), timeout=secs)
+        try:
+            if data:
+                s.sendall(data)
+            return s.recv(1024) == b""
+        finally:
+            s.close()
+
+    def test_R36_idle_and_partial_connections_time_out(self):
+        self.assertTrue(self.closed_within(b""), "连上不发数据：到时间断开")
+        head = b"POST /v1/score HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n"
+        self.assertTrue(self.closed_within(head + b'{"player":'), "请求体只发一半：到时间断开")
+        self.assertEqual(self.get("/v1/health")[0], 200, "别的请求照常")
+        self.assertEqual(self.srv.request_timeout, 0.3)
+
+
 class Cli(unittest.TestCase):
     def test_R10_cli_starts_and_answers(self):
         import subprocess
@@ -442,7 +472,7 @@ class Cli(unittest.TestCase):
             port = srv.server_address[1]
             srv.server_close()
             p = subprocess.Popen([sys.executable, os.path.join(ROOT, "server", "leaderboard.py"),
-                                  "--host", "127.0.0.1", "--port", str(port), "--db", os.path.join(tmp, "lb.sqlite")],
+                                  "--host", "127.0.0.1", "--port", str(port), "--db", os.path.join(tmp, "lb.sqlite"), "--timeout", "5"],
                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
             try:
                 self.assertIn("已启动", p.stdout.readline())
