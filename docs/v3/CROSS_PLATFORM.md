@@ -320,7 +320,7 @@ Actions 额度恢复后，补 Windows / iOS 的推荐做法是 `platforms=window
 
 | 问题 | 做法 |
 |---|---|
-| spx 的 Go 模块 `v4.0.0` 还没发布 | 从固定提交（`c3c0da5`）编译安装 spx，游戏的 `go.mod` 用 `replace` 指向这份源码 |
+| spx 的 Go 模块 `v4.0.0` 当时还没发布（2026-10-27 已发布） | 从固定提交编译安装 spx，游戏的 `go.mod` 用 `replace` 指向这份源码；v6.0.1 起固定在 `v4.0.0` 正式版（以前是 `c3c0da5`） |
 | spx 每次导出都会用内置模板覆盖 `export_presets.cfg`，包名是 `com.gamestan.spx`，iOS 的 Team ID 是 spx 自己的 | `patch_spx.py` 在编译 spx 之前改模板：包名 `com.qiniu.tankbattle`、应用名、版本号、图标；iOS 改为只导出 Xcode 工程，再用 `xcodebuild CODE_SIGNING_ALLOWED=NO` 编出不签名的 IPA |
 | 原生 App 里没有网页外壳的虚拟按键 | 游戏加了**触屏模式**（`touchUI`，只在 Android / iOS 包里打开）：右侧面板换成方向键，按住移动并自动开火，点战场也能开火。引擎只把一根手指当作鼠标，所以按方向时自动开火 |
 | 桌面窗口标题显示一串哈希 | `assets/index.json` 里设置 `run.title` |

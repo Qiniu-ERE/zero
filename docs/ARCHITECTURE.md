@@ -22,7 +22,7 @@
 |---|---|
 | 语言 | [XGo](https://xgo.dev)（`.spx` 类文件：`main.spx` 是舞台，其他每个文件是一个精灵） |
 | 引擎 | [spx 4.0](https://github.com/goplus/spx)，底层是 Godot 4.4，SVG 由 LunaSVG 光栅化 |
-| 运行方式 | ① [XBuilder](https://x.qiniu.com) 网页版：导入 `TankBattle.xbp` 运行；② 本地：`spx run .`（解释执行）；③ 各平台安装包：`tools/export/`，见 [跨平台文档](v3/CROSS_PLATFORM.md#七实现结果)。注意：XBuilder 线上的解释器基于 spx v3.3.0（[goplus/builder](https://github.com/goplus/builder) 的 `tools/ispx`），本地和安装包用的是 spx 4.0，同属 ispx 解释器。v4.0 起用 `tools/test/xbuilder_check.sh`（T09）在 spx v3.3.0 上做编译检查，v4.0.1 发布前通过；运行时的行为差别仍要在 x.qiniu.com 导入 `.xbp` 实际玩一次（[测试方案第七节](v4/TEST_PLAN.md#七发布前手工检查表)） |
+| 运行方式 | ① [XBuilder](https://x.qiniu.com) 网页版：导入 `TankBattle.xbp` 运行；② 本地：`spx run .`（解释执行）；③ 各平台安装包：`tools/export/`，见 [跨平台文档](v3/CROSS_PLATFORM.md#七实现结果)。注意：XBuilder 线上的正式版（[goplus/builder](https://github.com/goplus/builder) v1.15.12）的解释器基于 spx v3.3.0；它的主分支 2026-10-28 已升到 spx v4.0.0，下一版上线后和本地一致。本地和安装包用的是 spx v4.0.0 正式版（v6.0.1 以前是发布前的提交 `c3c0da5`），同属 ispx 解释器。`tools/test/xbuilder_check.sh`（T09）在 spx v3.3.0 和 v4.0.0 上都做编译检查；运行时的行为差别仍要在 x.qiniu.com 导入 `.xbp` 实际玩一次（[测试方案第七节](v4/TEST_PLAN.md#七发布前手工检查表)） |
 | 画布 | 480×360（XBuilder 固定的运行尺寸，见 [v2.0 规划](v2/DESIGN.md#一技术确认画布尺寸)） |
 | 资源生成 | Python 3 + fontTools：`tools/assets/build.py` 用代码生成 SVG 造型，`strings.py` 是中英文案表 |
 
