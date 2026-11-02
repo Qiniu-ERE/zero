@@ -1,6 +1,6 @@
 # 坦克大战 2026 · 架构文档
 
-本文说明游戏（当前版本 v6.0，开发中）的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2.0 规划](v2/DESIGN.md)，v3.0 的关卡、双人合作、自己做地图和跨平台见 [v3.0 规划](v3/PLAN.md)，v4.0 的自动化测试见 [v4.0 规划](v4/PLAN.md) 和[第 10 节](#10-测试与演示视频)，v5.0 的商业化规划见 [v5.0 规划](v5/PLAN.md)，v6.0 的敌我区分、局内升级、车库、每日挑战、排行榜见 [v6.0 规划和实现](v6/PLAN.md) 和 [v6 测试方案](v6/TEST_PLAN.md)。
+本文说明游戏（当前版本 v6.0）的整体结构、每个模块的职责和接口、关键的技术约束，以及开发流程与分工。玩法和商业化的设计思路见 [v2.0 规划](v2/DESIGN.md)，v3.0 的关卡、双人合作、自己做地图和跨平台见 [v3.0 规划](v3/PLAN.md)，v4.0 的自动化测试见 [v4.0 规划](v4/PLAN.md) 和[第 10 节](#10-测试与演示视频)，v5.0 的商业化规划见 [v5.0 规划](v5/PLAN.md)，v6.0 的敌我区分、局内升级、车库、每日挑战、排行榜见 [v6.0 规划和实现](v6/PLAN.md) 和 [v6 测试方案](v6/TEST_PLAN.md)。
 
 ## 目录
 
@@ -77,7 +77,7 @@ flowchart LR
 | v6 排行榜 | `lbRecord` `lbEnqueue` `lbFlush`（后台 goroutine 上传，离线排队）、`lbFetch` `lbHealth`、每帧 `lbPoll` 收结果、`openRanks` `lbShow` `lbText`；服务地址常量 `lbURL`（仓库里是空的，打包时用 `LB_URL` 填） |
 | v6 赛季与分享 | `seasonOf` `tierOf` `gainSeason`、连续打卡、`assistCode` / `assistDecode`、`openShare` `openAssist` `applyAssist`、`shareText` |
 | 画面小部件 | `panelOff` 和 `buildGarage` / `buildRanks` / `buildShare` / `buildAssist`：全屏画面的小部件打开时才创建（克隆上限，见 9.4） |
-| 路演演示 | `demoFlow` 消息处理（v2 内容之后调用 `demoV3()`：新关卡、双人合作、暂停菜单、编辑器里画地图并试玩；按 Esc 退出：`escKey` 设 `demoStop` 后重新广播 `demoFlow` 打断正在运行的演示，新的处理调用 `stopDemo()` 还原画风、语言和编辑器地图并回主页）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
+| 路演演示 | `demoFlow` 消息处理（v2 内容之后先调用 `demoV6()`：芯片掉落、三选一升级、车库、每日挑战，演示不进存档；再调用 `demoV3()`：新关卡、双人合作、暂停菜单、编辑器里画地图并试玩；按 Esc 退出：`escKey` 设 `demoStop` 后重新广播 `demoFlow` 打断正在运行的演示，新的处理调用 `stopDemo()` 还原画风、语言和编辑器地图并回主页）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
 
 ### 3.2 精灵
 

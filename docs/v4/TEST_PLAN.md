@@ -225,7 +225,7 @@ v5 第一批（[#68](https://github.com/Qiniu-ERE/zero/pull/68)、[#70](https://
 | F19 | `gameOver` 时战场冻结：`defeat` / `baseDestroyed` 重复调用没有副作用 |
 | F20 | 播放广告时再次 `watchAd` 被忽略 |
 | F21 | 每个状态下 `setScreen` 的画面名正确（`home`、`revive_*`、`adplay_*`、`result_<win\|final\|lose\|ewin\|elose>_<plain\|done>`） |
-| F22 | 路演演示模式：`demoFlow` 跑完会发出 `demoDone`，期间 `autopilot` 为 true，结束后回到主页；v3.0.2 起还经过编辑器和暂停菜单，结束后还原玩家在编辑器里的地图 |
+| F22 | 路演演示模式：`demoFlow` 跑完会发出 `demoDone`，期间 `autopilot` 为 true，结束后回到主页；v3.0.2 起还经过编辑器和暂停菜单，结束后还原玩家在编辑器里的地图；v6 起还经过三选一（升到 Lv2 以上）、车库、每日挑战，钱包、经验、赛季积分、每日挑战正式成绩都不变 |
 | F36 | 演示中按 Esc 退出（v5 REVIEW A8）：马上回主页、关闭自动驾驶，画风、语言、编辑器地图还原；演示脚本不再继续 |
 | F23 | 复活询问的弹窗出现之前（战败后 2.2 秒内）按确认键不算数（J / Enter 也是开火键，防止连按开火误点广告） |
 | F24 | 结算画面出现后 0.6 秒内按确认键不算数，之后才能看视频翻倍 |
