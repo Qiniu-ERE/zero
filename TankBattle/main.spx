@@ -2752,6 +2752,7 @@ func setScreen(name string) {
 func goHome() {
 	state = stHome
 	panelOff()
+	broadcastAndWait "toastOff" // 对局里的提示不留在主页上（回主页以后再弹的照常显示）
 	autopilot = false
 	gameOver = true
 	broadcastAndWait "clear"

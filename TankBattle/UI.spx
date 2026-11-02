@@ -1046,6 +1046,14 @@ onMsg "raiseTop", => {
 	}
 }
 
+// 收起提示条（回主页时：对局里的提示不要留在主页上）
+onMsg "toastOff", => {
+	if isCloned && kind == kToast {
+		left = 0
+		hide
+	}
+}
+
 // 显示提示条，内容在舞台的 toastKey / toastSecs 里
 onMsg "toast", => {
 	if isCloned && kind == kToast {
