@@ -3053,6 +3053,48 @@ func autopilotBlocked() {
 }
 
 // 路演演示的 v3.0 部分：几个新关卡 → 双人合作 → 暂停菜单 → 地图编辑器里画一张“河流城堡”并试玩
+// 路演演示的 v6 部分：精英掉的芯片 → 捡起来三选一 → 坦克升到 Lv2（头顶标签、右侧芯片格）→ 车库 → 每日挑战。
+// 自动驾驶捡芯片时会直接装第一块（不弹三选一），所以这里由脚本摆出三选一画面，停一会儿再选第一块。
+// 演示不进存档：自动驾驶时经验、金币、任务、赛季、每日挑战正式成绩都不算
+func demoV6() {
+	autopilot = true
+	newGame 4, false // 第 4 关：钢铁堡垒，精英多
+	apTimer = 0
+	tgtAge = 9
+	wait 3
+	if state != stPlay {
+		return
+	}
+	dropX = p1x // 精英刚掉下的芯片（就在 1P 前面）
+	dropY = p1y + 34
+	dropLeft = dropSecs
+	broadcast "hud"
+	wait 1.5
+	if state == stPlay {
+		dropLeft = 0
+		pickWho = 1
+		pickRoll()
+		state = stPick
+		gameOver = true
+		sfx "start"
+		setScreen "pick"
+	}
+	wait 3.5
+	pickChoose 0
+	wait 3.5
+	goHome
+	wait 1
+	openGarage
+	wait 3.5
+	goHome
+	wait 0.5
+	autopilot = true
+	playDaily
+	apTimer = 0
+	tgtAge = 9
+	wait 5
+}
+
 func demoV3() {
 	for _, n := range []int{2, 3, 4, 8} {
 		autopilot = true
@@ -3537,6 +3579,7 @@ onMsg "adFlow", => {
 }
 
 // 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍
+// → v6.0：芯片掉落、三选一升级、车库、每日挑战（demoV6）
 // → v3.0：新关卡、双人合作、自己做地图（demoV3）→ 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
@@ -3583,6 +3626,7 @@ onMsg "demoFlow", => {
 	}
 	waitState stResult, 10
 	wait 4
+	demoV6
 	demoV3
 	demoOn = false
 	autopilot = false
