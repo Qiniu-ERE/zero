@@ -1,5 +1,5 @@
 #!/bin/bash
-# XBuilder 兼容检查（T09，见 docs/v4/TEST_PLAN.md）：用 XBuilder 线上的 spx v3.3.0 编译检查游戏代码
+# XBuilder 兼容检查（T09，见 docs/v4/TEST_PLAN.md）：用 XBuilder 线上的 spx v3.3.0 和下一版的 v4.0.0 编译检查游戏代码
 #
 # 用法：tools/test/xbuilder_check.sh [工程目录，默认 TankBattle]
 #
@@ -13,21 +13,33 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 SRC=${1:-$ROOT/TankBattle}
-SPX_VERSION=v3.3.0                                     # XBuilder 线上的 spx（goplus/builder 的 tools/ispx）
-XGO_VERSION=v1.7.6-0.20260818050008-fd36b6192e30       # spx v3.3.0 的 go.mod 里用的 xgo
+# 要检查的版本：spx 版本、模块路径、它的 go.mod 里用的 xgo。
+#   v3.3.0：XBuilder 线上的正式版（goplus/builder v1.15.12 的 tools/ispx）
+#   v4.0.0：XBuilder 主分支 2026-10-28 升到的版本（下一版上线后用它），也是本地 spx run 和安装包用的正式版
+CHECKS="v3.3.0 github.com/goplus/spx/v3 v1.7.6-0.20260818050008-fd36b6192e30
+v4.0.0 github.com/goplus/spx/v4 v1.7.6-0.20260925200949-51a44c58fd65"
+[ -z "${XBUILDER_SPX:-}" ] || CHECKS=$(printf '%s\n' "$CHECKS" | grep "^$XBUILDER_SPX ")  # 只查一个版本，例如 XBUILDER_SPX=v3.3.0
 
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/tankbattle-xbuilder.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
-cp "$SRC"/*.spx "$WORK"/
-printf 'module tankbattle\n\ngo 1.25.0\n\nrequire github.com/goplus/spx/v3 %s //xgo:class\n' "$SPX_VERSION" > "$WORK/go.mod"
-
-export XGOROOT
-XGOROOT=$(cd "$WORK" && GOFLAGS=-mod=mod go mod download -json "github.com/goplus/xgo@$XGO_VERSION" | sed -n 's/^[[:space:]]*"Dir": "\(.*\)",$/\1/p')
-cd "$WORK"
-if GOFLAGS=-mod=mod go run "github.com/goplus/xgo/cmd/xgo@$XGO_VERSION" go . > "$WORK/out.log" 2>&1 && [ -f xgo_autogen.go ]; then
-	echo "XBuilder 兼容检查通过：spx $SPX_VERSION 能编译 $(ls "$SRC"/*.spx | wc -l | tr -d ' ') 个 .spx 文件"
-else
-	echo "XBuilder 兼容检查失败：spx $SPX_VERSION 编译不过（导入 XBuilder 会报同样的错）"
-	grep -E '\.spx:[0-9]+:[0-9]+:' "$WORK/out.log" || tail -20 "$WORK/out.log"
-	exit 1
-fi
+n=$(ls "$SRC"/*.spx | wc -l | tr -d ' ')
+status=0
+while read -r SPX_VERSION MODULE XGO_VERSION; do
+	[ -n "$SPX_VERSION" ] || continue
+	D="$WORK/$SPX_VERSION"
+	mkdir -p "$D"
+	cp "$SRC"/*.spx "$D"/
+	printf 'module tankbattle\n\ngo 1.25.0\n\nrequire %s %s //xgo:class\n' "$MODULE" "$SPX_VERSION" > "$D/go.mod"
+	XGOROOT=$(cd "$D" && GOFLAGS=-mod=mod go mod download -json "github.com/goplus/xgo@$XGO_VERSION" | sed -n 's/^[[:space:]]*"Dir": "\(.*\)",$/\1/p')
+	export XGOROOT
+	if (cd "$D" && GOFLAGS=-mod=mod go run "github.com/goplus/xgo/cmd/xgo@$XGO_VERSION" go . > "$D/out.log" 2>&1) && [ -f "$D/xgo_autogen.go" ]; then
+		echo "XBuilder 兼容检查通过：spx $SPX_VERSION 能编译 $n 个 .spx 文件"
+	else
+		echo "XBuilder 兼容检查失败：spx $SPX_VERSION 编译不过（导入用这个版本的 XBuilder 会报同样的错）"
+		grep -E '\.spx:[0-9]+:[0-9]+:' "$D/out.log" || tail -20 "$D/out.log"
+		status=1
+	fi
+done <<EOF2
+$CHECKS
+EOF2
+exit $status

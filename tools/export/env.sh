@@ -1,14 +1,14 @@
 # 打包用的公共配置（被其他脚本 source）。版本都锁死，保证本地和 CI 打出来的包一致。
 #
-# spx 4.0.0 刚发布：运行时（runtime-v4.0.0）已发布，但 Go 模块的 v4.0.0 tag 还没有，
-# 所以从固定的 spx 提交编译安装 spx，游戏的 go.mod 用 replace 指向这份源码。
+# spx 固定在 v4.0.0 正式版（2026-10-27 发布；v6.0.1 以前用的是发布前三天的提交 c3c0da5，运行时清单完全相同）。
+# 从这份源码编译安装 spx（要给模板打补丁，见 patch_spx.py 和 patches/），游戏的 go.mod 用 replace 指向它。
 
 EXPORT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$EXPORT_DIR/../.." && pwd)"
 
 SPX_REPO="https://github.com/goplus/spx.git"
-SPX_COMMIT="c3c0da57ee7ffd2e15b55721785bb0641583a058"  # 2026-10-24，runtime 4.0.0
-XGO_VERSION="v1.7.5"                                   # 和 spx 的 runtime.lock.json 一致
+SPX_COMMIT="8b8d7adb2c692a7c14e47b9a35603365543cdb3a"  # 标签 v4.0.0（2026-10-27），runtime 4.0.0
+XGO_VERSION="v1.7.5"                                   # 和 spx 的 internal/release/runtime.lock.json 一致
 
 APP_NAME="TankBattle"
 APP_TITLE="坦克大战 2026"

@@ -1,4 +1,4 @@
-"""T09：游戏代码在 XBuilder 线上的 spx v3.3.0 下也能编译（tools/test/xbuilder_check.sh）。没有 Go 时跳过。"""
+"""T09：游戏代码在 XBuilder 线上的 spx v3.3.0 和下一版的 v4.0.0 下都能编译（tools/test/xbuilder_check.sh）。没有 Go 时跳过。"""
 import os
 import shutil
 import subprocess
@@ -14,9 +14,11 @@ class XBuilder(unittest.TestCase):
     def run_check(self, game):
         return subprocess.run([CHECK, game], capture_output=True, text=True, timeout=600)
 
-    def test_T09_game_compiles_on_spx_v3_3_0(self):
+    def test_T09_game_compiles_on_spx_v3_3_0_and_v4_0_0(self):
         r = self.run_check(os.path.join(ROOT, "TankBattle"))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("spx v3.3.0 能编译", r.stdout)   # XBuilder 线上的正式版
+        self.assertIn("spx v4.0.0 能编译", r.stdout)   # XBuilder 下一版、本地和安装包
 
     def test_T09_catches_the_pr18_problem(self):
         # 把一处 int(rand(...)) 改回 #18 修复前的写法：spx 4.0 能跑，v3.3.0 编译不过，这里必须报出来
@@ -31,6 +33,8 @@ class XBuilder(unittest.TestCase):
             r = self.run_check(d)
             self.assertNotEqual(r.returncode, 0)
             self.assertIn("mismatched types float64 and int", r.stdout)
+            self.assertIn("spx v3.3.0 编译不过", r.stdout)
+            self.assertIn("spx v4.0.0 能编译", r.stdout)       # 4.0 里 rand(整数, 整数) 返回 int，能编译
 
 
 if __name__ == "__main__":

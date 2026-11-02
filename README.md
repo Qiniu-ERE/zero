@@ -72,13 +72,13 @@
 
 ```sh
 # 1. 安装 spx 运行时（需要 Git、Go、Python 3）
-#    推荐用仓库里的脚本：装的是固定版本（spx 提交 c3c0da5），和打包、测试用的一样
+#    推荐用仓库里的脚本：装的是固定版本（spx v4.0.0 正式版），和打包、测试用的一样
 cd /path/to/zero
 tools/export/setup_spx.sh
 export PATH="$(go env GOPATH)/bin:$PATH"   # spx 装在这里
 
 #    也可以手动装，但一定要切到同一个提交（spx 的主分支在变，最新版不一定兼容）：
-#    git clone https://github.com/goplus/spx.git && cd spx && git checkout c3c0da5 && make setup
+#    git clone https://github.com/goplus/spx.git && cd spx && git checkout v4.0.0 && make setup
 
 # 2. 运行游戏
 cd /path/to/zero/TankBattle
