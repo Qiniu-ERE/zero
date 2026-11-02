@@ -1,0 +1,122 @@
+// 火力芯片和连携（U18~U24），见 docs/v6/TEST_PLAN.md
+// 都在“安静的战场”里测：地图清空、不出兵；子弹打砖墙，看砖墙裂没裂（砖墙要打两下才碎）
+onStart => {
+	wait 3
+
+	// U18 子弹朝向里记着谁打的、反弹过几次
+	tInt "U18 1P 向上的子弹反弹一次后向下", bulletDir(pbBounce(0)), 180
+	tInt "U18 反弹次数", pbBounces(pbBounce(0)), 1
+	tInt "U18 2P 向左的子弹反弹两次后还是 2P 的", pbWho(pbBounce(pbBounce(-90+1000))), 2
+	tInt "U18 2P 向左的子弹反弹两次后向左", bulletDir(pbBounce(pbBounce(-90+1000))), -90
+	tInt "U18 1P 向右反弹后向左", bulletDir(pbBounce(90)), -90
+	tInt "U18 没反弹的 2P 子弹", pbBounces(180+1000), 0
+
+	// U19 疾速弹：子弹快 40%。10 格外的砖墙，普通子弹 0.92 秒才到，疾速弹 0.66 秒
+	tNum "U19 普通子弹 260 像素/秒", bulletSpeed(1), 260
+	chips[1] = []int{cRapid}
+	tNum "U19 疾速弹 364 像素/秒", bulletSpeed(1), 364
+	for _, rapid := range []bool{false, true} {
+		tQuiet
+		Player.setXYpos cellX(0), cellY(12)
+		chips[1] = nil
+		if rapid {
+			chips[1] = []int{cRapid}
+		}
+		grid[tAt(0, 6)] = 1
+		PBullet.fire cellX(6), cellY(11), 0, 1
+		wait 0.8
+		if rapid {
+			tInt "U19 疾速弹 0.8 秒内打到 10 格外的砖墙", grid[tAt(0, 6)], 3
+		} else {
+			tInt "U19 普通子弹 0.8 秒还没打到", grid[tAt(0, 6)], 1
+		}
+	}
+
+	// U20 双联炮：同时 2 发；连携·连射（疾速弹 + 双联炮）：同时 3 发
+	for k, want := range []int{1, 2, 3} {
+		tQuiet
+		chips[1] = [][]int{nil, {cDouble}, {cDouble, cRapid}}[k]
+		tInt "U20 场上最多几发："+strconv.Itoa(want), bulletLimit(1), want
+		Player.shield = 0
+		Player.shoot
+		Player.shoot
+		Player.shoot
+		Player.shoot
+		tInt "U20 连按四下，场上只有 "+strconv.Itoa(want)+" 发", pbCount, want
+		wait 1.5
+		tInt "U20 子弹飞出去以后计数归零", pbCount, 0
+	}
+	tCheck "U20 连射是连携", comboSalvo(1)
+
+	// U21 穿甲弹：钢墙一发打掉；没有穿甲弹打不动
+	for _, ap := range []bool{false, true} {
+		tQuiet
+		Player.setXYpos cellX(0), cellY(12)
+		chips[1] = nil
+		if ap {
+			chips[1] = []int{cPierce}
+		}
+		grid[tAt(4, 6)] = 2
+		Tile.build cellX(6), cellY(4), 2, tAt(4, 6)
+		PBullet.fire cellX(6), cellY(9), 0, 1
+		wait 0.8
+		if ap {
+			tInt "U21 穿甲弹打掉钢墙", grid[tAt(4, 6)], 0
+		} else {
+			tInt "U21 普通子弹打不动钢墙", grid[tAt(4, 6)], 2
+		}
+	}
+	// 2P 的穿甲弹只算 2P 的：1P 装了、2P 没装，2P 的子弹打不动
+	tQuiet
+	chips[1] = []int{cPierce}
+	chips[2] = nil
+	grid[tAt(4, 6)] = 2
+	PBullet.fire cellX(6), cellY(9), 0, 2
+	wait 0.8
+	tInt "U21 穿甲弹只对装了它的人有效", grid[tAt(4, 6)], 2
+	pbCount2 = 0
+
+	// U22 跳弹：打到墙反弹一次，回头打中另一边的砖墙；没有跳弹不会回头
+	// U23 连携·弹幕（穿甲弹 + 跳弹）：反弹 2 次，第三次撞墙才消失
+	// 第 6 列：上面 (2, 6) 一块砖，下面 (10, 6) 一块砖，子弹从 (7, 6) 往上打
+	names := []string{"U22 没有跳弹", "U22 跳弹", "U23 弹幕"}
+	tops := []int{3, 3, 0}
+	bottoms := []int{1, 3, 3}
+	for k := 0; k < 3; k++ {
+		tQuiet
+		Player.setXYpos cellX(0), cellY(12)
+		chips[1] = [][]int{nil, {cBounce}, {cBounce, cPierce}}[k]
+		grid[tAt(2, 6)] = 1
+		grid[tAt(10, 6)] = 1
+		PBullet.fire cellX(6), cellY(7), 0, 1
+		wait 2.5
+		tInt names[k]+"：上面的砖", grid[tAt(2, 6)], tops[k]
+		tInt names[k]+"：下面的砖", grid[tAt(10, 6)], bottoms[k]
+		tInt names[k]+"：子弹最后消失了", pbCount, 0
+	}
+	tInt "U23 弹幕反弹 2 次", bounceLimit(1), 2
+	chips[1] = []int{cBounce}
+	tInt "U22 跳弹反弹 1 次", bounceLimit(1), 1
+
+	// U24 连携提示：装上第二块时提示连携；卡片上标出能组成连携的芯片
+	tQuiet
+	refreshTasks // 今天的每日任务先都算完成：“组成一次连携”的任务刚好完成时，“任务完成”的提示会盖掉连携提示（任务按日期抽，测试结果会随日期变）
+	for i := 0; i < 3; i++ {
+		taskProg[i] = taskTarget(taskIDs[i])
+	}
+	chips[1] = []int{cPierce}
+	pickWho = 1
+	tCheck "U24 已有穿甲弹时，跳弹的卡片标出连携", pickCombo(cBounce)
+	tCheck "U24 已有穿甲弹时，疾速弹的卡片不标连携", !pickCombo(cRapid)
+	toastKey = ""
+	applyChip 1, cBounce
+	tStr "U24 组成弹幕时提示连携", toastKey, "msg.combo.barrage"
+	chips[1] = []int{cDouble}
+	applyChip 1, cRapid
+	tStr "U24 组成连射时提示连携", toastKey, "msg.combo.salvo"
+	applyChip 1, cEngine
+	tStr "U24 普通芯片提示芯片效果", toastKey, "msg.chip.engine"
+	chips[1] = nil
+
+	tDone "chips_fire"
+}

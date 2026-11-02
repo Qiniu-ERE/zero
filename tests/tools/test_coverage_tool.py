@@ -159,6 +159,20 @@ class Logs(Fixture):
             lines, ok = cov.compare({"main.spx:reset", "Tank.spx:fire", "main.spx:addScore"}, bp)
             self.assertTrue(ok, lines)
 
+    def test_v6_plan_ids_gate(self):
+        # v6 的用例清单（docs/v6/TEST_PLAN.md）里的 ID 少一个测试就不通过
+        plan = self.write("v6.md", "| ID | 测什么 |\n|---|---|\n| U01 | 精英 |\n| U02 | 出兵 |\n", base=self.dir)
+        log = self.write("run.log", "COV main.spx:reset\nTEST PASS U01 精英\n", base=self.dir)
+        pts = cov.all_points(self.game)
+        with mock.patch.object(cov, "TEST_PLAN_V6", plan), mock.patch.object(cov, "all_points", lambda: pts), \
+                mock.patch.object(cov, "messages", lambda: []):
+            text, ok = cov.report([log])
+            self.assertFalse(ok)
+            self.assertIn("U02", text.split("v6 用例清单里还没有测试的 ID")[1])
+            self.write("run.log", "TEST PASS U01 精英\nTEST PASS U02 出兵\n", base=self.dir)
+            text, ok = cov.report([log])
+            self.assertTrue(ok, text)
+
 
 if __name__ == "__main__":
     unittest.main()

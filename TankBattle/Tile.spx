@@ -37,9 +37,9 @@ func apply() {
 	}
 }
 
-// 砖墙和 grid 保持一致：被打碎就消失，裂开就换造型
+// 砖墙、钢墙和 grid 保持一致：被打碎就消失（钢墙被 v6 的穿甲弹打掉），裂开就换造型
 func sync() {
-	if kind == 1 && grid[idx] == 0 {
+	if (kind == 1 || kind == 2) && grid[idx] == 0 {
 		destroy
 		return
 	}
@@ -55,7 +55,7 @@ onCloned => {
 }
 
 onMsg "gridChanged", => {
-	if kind == 1 {
+	if kind == 1 || kind == 2 {
 		sync
 	}
 }

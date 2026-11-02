@@ -23,9 +23,9 @@ X0 = PX + 8
 MUTED = B.MUTED
 P1 = B.TANKS["player"]
 P2 = B.TANKS["player2"]
-PURPLE = "#c46bff"  # 精英：敌方车身 + 紫色标识
+PURPLE = B.ELITE  # 精英：敌方车身 + 紫色标识
 FOE_RED = "#ff3b30"  # 敌方标识色：警示条、炮塔“眼睛”、子弹
-HULL = ("#5b6271", "#2a2e37", "#8a93a6")  # 敌方统一的枪灰色车身
+HULL = B.HULL  # 敌方统一的枪灰色车身
 CYAN = "#3ee8ff"
 GOLD = "#ffe27a"
 GREEN = "#2ee88a"
@@ -77,41 +77,8 @@ def tank_icon(colors, x, y, size, rot=0, heavy=False):
 
 
 # ---------- 敌我区分：我方亮色圆炮塔 + 脚下光圈 + 1P/2P 标签；敌方枪灰切角车身 + 红色标识，种类靠外形 ----------
-def foe_body(accent=FOE_RED, kind="basic"):
-    """朝上的敌方坦克（24x24），返回 (defs, body)。kind: basic / fast / heavy"""
-    main, dark, light = HULL
-    defs = B.rad("sh", [(0, "#000", 0.45), (0.7, "#000", 0.2), (1, "#000", 0)])
-    s = ['<ellipse cx="12.8" cy="13.4" rx="11.2" ry="10.6" fill="url(#sh)"/>']
-    hx, hw = {"fast": (7.4, 9.2), "heavy": (5.2, 13.6)}.get(kind, (5.8, 12.4))
-    tw = 4.6 if kind == "fast" else 5.5
-    for x in (hx - tw + 0.4, hx + hw - 0.4):  # 履带
-        s.append(f'<rect x="{x:.1f}" y="2.5" width="{tw}" height="20" rx="1.2" fill="#141418"/>')
-        for i in range(7):
-            s.append(f'<rect x="{x + 0.5:.1f}" y="{3.4 + i * 2.8:.1f}" width="{tw - 1}" height="1.3" fill="{accent}" fill-opacity="0.35"/>')
-    c = 2.6  # 切角车身，和我方的圆角车身区分
-    x1, y1, x2, y2 = hx, 4.5, hx + hw, 21.5
-    pts = f"{x1 + c},{y1} {x2 - c},{y1} {x2},{y1 + c} {x2},{y2 - c} {x2 - c},{y2} {x1 + c},{y2} {x1},{y2 - c} {x1},{y1 + c}"
-    s.append(f'<polygon points="{pts}" fill="{dark}"/>')
-    s.append(f'<polygon points="{pts}" fill="{main}" transform="translate(0 -0.8)"/>')
-    s.append(f'<rect x="{x1 + 1.2}" y="5.6" width="{hw - 2.4}" height="1.8" fill="{accent}"/>')  # 车头警示条
-    if kind == "heavy":  # 重型：两侧装甲板 + 铆钉
-        for x in (x1 + 0.8, x2 - 3.4):
-            s.append(f'<rect x="{x:.1f}" y="9" width="2.6" height="10" rx="0.5" fill="{dark}"/>')
-            s.append(f'<circle cx="{x + 1.3:.1f}" cy="10.5" r="0.6" fill="{accent}"/><circle cx="{x + 1.3:.1f}" cy="17.5" r="0.6" fill="{accent}"/>')
-    if kind == "fast":  # 快速：车尾两道箭头
-        s.append(f'<path d="M9.4 18.6l2.6-1.8 2.6 1.8M9.4 21l2.6-1.8 2.6 1.8" stroke="{accent}" stroke-width="0.9" fill="none"/>')
-    bw = 4.6 if kind == "heavy" else 3.2
-    s.append(f'<rect x="{12 - bw / 2}" y="0.8" width="{bw}" height="11" fill="{dark}"/>')
-    s.append(f'<rect x="{12 - bw / 2 - 0.6}" y="0" width="{bw + 1.2}" height="2.2" fill="{accent}"/>')  # 红色炮口
-    s.append(hex_fill(12, 13, 5.4, dark) + hex_fill(12, 12.4, 4.8, main))  # 六角炮塔
-    s.append(f'<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="{accent}"/>')  # “眼睛”
-    s.append(f'<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="#ffffff" fill-opacity="0.35"/>')
-    return defs, "".join(s)
-
-
-def hex_fill(cx, cy, r, fill):
-    pts = " ".join(f"{cx + math.cos(math.radians(i * 60)) * r:.2f},{cy + math.sin(math.radians(i * 60)) * r:.2f}" for i in range(6))
-    return f'<polygon points="{pts}" fill="{fill}"/>'
+# 敌方造型和游戏用同一个函数（tools/assets/build.py 的 foe_body）
+foe_body = B.foe_body
 
 
 def foe(r, c, heading=0, kind="basic", accent=FOE_RED):
@@ -169,34 +136,11 @@ def chip_at(x, y, k, dark=False):
 
 # ---------- 芯片（升级）图标：24x24 的线条图，画在 (x, y) 处，缩放 k ----------
 def _icon_body(key, col):
-    st = f'stroke="{col}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"'
-    if key == "rapid":    # 子弹加速：子弹 + 速度线
-        return f'<circle cx="16" cy="12" r="4" fill="{col}"/><path d="M3 8h7M2 12h8M3 16h7" {st}/>'
-    if key == "double":   # 双发
-        return f'<circle cx="8" cy="15" r="3.4" fill="{col}"/><circle cx="16" cy="9" r="3.4" fill="{col}"/><path d="M8 22v-3M16 16v-3" {st}/>'
-    if key == "pierce":   # 穿甲弹：箭头穿过钢块
-        return f'<rect x="8" y="7" width="8" height="10" rx="1.2" fill="{col}" fill-opacity="0.3" stroke="{col}" stroke-width="1.4"/><path d="M2 12h20M18 8l4 4-4 4" {st}/>'
-    if key == "bounce":   # 跳弹
-        return f'<path d="M3 20l8-14 8 14" {st}/><path d="M2 21h20" stroke="{col}" stroke-width="1.4" stroke-opacity="0.5"/><circle cx="19" cy="20" r="2.4" fill="{col}"/>'
-    if key == "shield":   # 护盾：挡一发
-        return f'<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" fill="{col}" fill-opacity="0.25" stroke="{col}" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2.2 2.2L15.5 10" {st}/>'
-    if key == "engine":   # 加速
-        return f'<path d="M5 5l7 7-7 7M12 5l7 7-7 7" {st}/>'
-    if key == "float":    # 浮桥：能过水
-        return f'<path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 20c2-2 4-2 6 0s4 2 6 0 4-2 6 0" {st}/><rect x="7" y="4" width="10" height="7" rx="2" fill="{col}"/>'
-    if key == "fortify":  # 铲子：基地钢墙
-        return f'<path d="M12 6l2 2.6 3.8-1.2-2 3.8 2.6 1.3-4.5 1.2L12 17l-1.9-3.3-4.5-1.2 2.6-1.3-2-3.8 3.8 1.2z" fill="{col}"/><rect x="2.5" y="2.5" width="19" height="19" rx="2" fill="none" stroke="{col}" stroke-width="1.6" stroke-dasharray="3 1.6"/>'
-    if key == "bomb":     # 炸弹：清掉场上敌人
-        return f'<circle cx="11" cy="14" r="7" fill="{col}"/><path d="M15 8l3-3M19 3l1 1M21 6h1" {st}/>'
-    if key == "freeze":   # 冻结：敌人停 5 秒
-        return f'<path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 3 3-3M9 20l3-3 3 3" {st}/>'
-    if key == "stealth":  # 草丛隐身
-        return f'<path d="M2 13s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z" {st}/><circle cx="12" cy="13" r="2.6" fill="{col}"/><path d="M4 22l16-18" {st}/>'
-    if key == "magnet":   # 磁铁：自动吸芯片
-        return f'<path d="M6 4v8a6 6 0 0 0 12 0V4" stroke="{col}" stroke-width="3.4" fill="none"/><path d="M4.4 4h3.2M16.4 4h3.2" stroke="#ffffff" stroke-width="3.4"/>'
+    """芯片图标和游戏用同一套（tools/assets/build.py 的 chip_icon_body）；锁只在效果图里用"""
     if key == "lock":
+        st = f'stroke="{col}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"'
         return f'<rect x="6" y="11" width="12" height="9" rx="2" fill="{col}"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3" {st}/>'
-    raise KeyError(key)
+    return B.chip_icon_body(key, col)
 
 
 def icon(key, x, y, size, col):
@@ -757,7 +701,7 @@ def iff(lang):
     s.append(img(B.bullet_m("#ff8a80", FOE_RED), 440, 249, 9, 9))
     # 底部：以前 vs 现在
     s.append('<rect x="16" y="298" width="448" height="48" rx="9" fill="#ffffff" fill-opacity="0.04" stroke="#263046" stroke-width="0.6"/>')
-    s.append(tank_icon(P2, 26, 306, 16) + tank_icon(B.TANKS["heavy"], 44, 306, 16, heavy=True))
+    s.append(tank_icon(P2, 26, 306, 16) + tank_icon(("#6fd06a", "#2e6e2a", "#d2f5cf"), 44, 306, 16, heavy=True))  # 右边是 v5 的重型敌人
     s.append(text(66, 317.5, t["i_before"], 6.6, MUTED, True))
     s.append(tank_icon(P2, 26, 326, 16) + foe_icon(44, 326, 16, "heavy"))
     s.append(text(66, 337.5, t["i_after"], 6.6, GREEN, True))

@@ -1,4 +1,5 @@
 import (
+	"math"
 	"strconv"
 	"strings"
 )
@@ -40,6 +41,16 @@ const (
 
 	kTouchPad = 17 // 触屏模式的方向键（手机 App 里替换右侧的按键说明）
 	kPauseBtn = 18 // 顶栏的暂停按钮
+	kAlly     = 19 // v6 敌我区分：我方坦克脚下的光圈和头顶的“1P · Lv3”标签（slot 1 是 1P，2 是 2P），每帧跟着坦克走
+	kChip     = 20 // v6 右侧面板的芯片格：slot 0~2 是 1P 的三个位置，3~5 是 2P 的
+	kPick     = 21 // v6 三选一：slot 0~2 是三张卡片，3 是刷新按钮，4 是“1P / 2P”标签（双人时）
+	kDrop     = 22 // v6 战场上掉落的芯片（精英被击毁后出现，每帧跟着舞台的 dropX / dropY）
+	kGarage   = 23 // v6 车库里会变的部分：slot 0 指挥官等级，1 经验条，2 下一个解锁，3 涂装预览，10~21 芯片图鉴，30~34 涂装，40~42 任务，43~45 任务进度
+	kWallet   = 24 // v6 车库里金币数的一个字符位（金色，左对齐）
+	kDailyTag = 25 // v6 每日挑战结算时弹窗上方的标签：正式成绩 / 练习
+	kRanks    = 26 // v6 排行榜画面：slot 0~1 选项卡，2 范围说明，3 状态（读取中 / 离线 / 没上线 / 没人上榜），10~33 每行的芯片，40~47 每行的底，48 “我的名次”
+	kLbNum    = 27 // v6 排行榜里数字的一个字符位：slot = 行 × 100 + 第几个数字 × 10 + 第几个字符（见舞台的 lbText）；第 9 行是分享战报，第 10 行是助战码输入
+	kShare    = 28 // v6 分享战报：slot 0~2 芯片，3 全球名次那一行（联网了才有）
 )
 
 // ---------- 创建 ----------
@@ -59,6 +70,17 @@ func number(k int, x, y float64, n int) {
 	baseY = y
 	for i := 0; i < n; i++ {
 		slot = i
+		clone
+	}
+}
+
+// 排行榜里的一个数字（v6）：n 个字符位，slot 从 base 开始（base = 行 × 100 + 第几个数字 × 10）
+func lbNum(x, y float64, base, n int) {
+	kind = kLbNum
+	baseX = x
+	baseY = y
+	for i := 0; i < n; i++ {
+		slot = base + i
 		clone
 	}
 }
@@ -103,6 +125,60 @@ func screenLayer() {
 func hit(name string, x, y float64) bool {
 	// BEGIN GENERATED hit
 	switch name {
+	case "pick.1":
+		return x >= -194 && x <= -74 && y >= -62 && y <= 88
+	case "pick.2":
+		return x >= -60 && x <= 60 && y >= -62 && y <= 88
+	case "pick.3":
+		return x >= 74 && x <= 194 && y >= -62 && y <= 88
+	case "pick.reroll":
+		return x >= -95 && x <= 95 && y >= -110 && y <= -86
+	case "gr.sk.1":
+		return x >= -224 && x <= -198 && y >= -62 && y <= -36
+	case "gr.sk.2":
+		return x >= -196 && x <= -170 && y >= -62 && y <= -36
+	case "gr.sk.3":
+		return x >= -168 && x <= -142 && y >= -62 && y <= -36
+	case "gr.sk.4":
+		return x >= -140 && x <= -114 && y >= -62 && y <= -36
+	case "gr.sk.5":
+		return x >= -112 && x <= -86 && y >= -62 && y <= -36
+	case "gr.sk.6":
+		return x >= -84 && x <= -58 && y >= -62 && y <= -36
+	case "gr.back":
+		return x >= -224 && x <= -114 && y >= -160 && y <= -136
+	case "lb.tab.1":
+		return x >= -224 && x <= -132 && y >= 118 && y <= 138
+	case "lb.tab.2":
+		return x >= -126 && x <= -34 && y >= 118 && y <= 138
+	case "lb.back":
+		return x >= 114 && x <= 224 && y >= 118 && y <= 138
+	case "as.1":
+		return x >= -57 && x <= -21 && y >= 18 && y <= 44
+	case "as.2":
+		return x >= -15 && x <= 21 && y >= 18 && y <= 44
+	case "as.3":
+		return x >= 27 && x <= 63 && y >= 18 && y <= 44
+	case "as.4":
+		return x >= -57 && x <= -21 && y >= -14 && y <= 12
+	case "as.5":
+		return x >= -15 && x <= 21 && y >= -14 && y <= 12
+	case "as.6":
+		return x >= 27 && x <= 63 && y >= -14 && y <= 12
+	case "as.7":
+		return x >= -57 && x <= -21 && y >= -46 && y <= -20
+	case "as.8":
+		return x >= -15 && x <= 21 && y >= -46 && y <= -20
+	case "as.9":
+		return x >= 27 && x <= 63 && y >= -46 && y <= -20
+	case "as.del":
+		return x >= -57 && x <= -21 && y >= -78 && y <= -52
+	case "as.0":
+		return x >= -15 && x <= 21 && y >= -78 && y <= -52
+	case "as.ok":
+		return x >= 27 && x <= 63 && y >= -78 && y <= -52
+	case "as.back":
+		return x >= -55 && x <= 55 && y >= -136 && y <= -110
 	case "home.start":
 		return x >= -224 && x <= -54 && y >= 46 && y <= 96
 	case "home.coop":
@@ -111,6 +187,14 @@ func hit(name string, x, y float64) bool {
 		return x >= -224 && x <= -54 && y >= -46 && y <= -8
 	case "home.levels":
 		return x >= -224 && x <= -54 && y >= -90 && y <= -52
+	case "home.daily":
+		return x >= -40 && x <= 22 && y >= -126 && y <= -82
+	case "home.garage":
+		return x >= 26 && x <= 88 && y >= -126 && y <= -82
+	case "home.ranks":
+		return x >= 92 && x <= 154 && y >= -126 && y <= -82
+	case "home.assist":
+		return x >= 158 && x <= 220 && y >= -126 && y <= -82
 	case "lv.1":
 		return x >= -224 && x <= -120 && y >= 16 && y <= 100
 	case "lv.2":
@@ -198,6 +282,9 @@ func widths(st string) (float64, float64) {
 	if st == "C" {
 		return 8.386, 4.732
 	}
+	if st == "L" {
+		return 4.492, 2.535
+	}
 	// END GENERATED widths
 	return 0, 0
 }
@@ -218,7 +305,36 @@ func withCommas(n int) string {
 func refreshNumber() {
 	s := withCommas(score)
 	st := "S"
-	if kind == kBest {
+	idx := slot // 这是数字的第几个字符
+	right := kind == kBest
+	if kind == kLbNum {
+		row, field := slot/100, (slot/10)%10
+		idx = slot % 10
+		st = "L"
+		if row <= 8 && state == stRanks {
+			s = lbText(row, field)
+			if n, err := strconv.Atoi(s); err == nil && field != 1 {
+				s = withCommas(n) // 指挥官编号不加千分位
+			}
+			right = field != 1 // 指挥官编号左对齐，其余右对齐
+		} else if row == 9 && state == stShare {
+			s = shareText(field) // 分享战报：左对齐；得分用大号金色
+			if field == 1 || field == 3 {
+				if n, err := strconv.Atoi(s); err == nil {
+					s = withCommas(n)
+				}
+			}
+			if field == 0 || field == 1 || field == 5 {
+				st = "C" // 期数、得分、助战码用大号金色
+			}
+		} else if row == 10 && state == stAssist {
+			s = assistInput // 助战码输入
+			st = "S"
+		} else {
+			hide
+			return
+		}
+	} else if kind == kBest {
 		s = withCommas(best)
 		st = "B"
 	} else if kind == kCoin {
@@ -228,8 +344,15 @@ func refreshNumber() {
 			hide
 			return
 		}
+	} else if kind == kWallet {
+		s = withCommas(wallet)
+		st = "C"
+		if state != stGarage {
+			hide
+			return
+		}
 	}
-	if slot >= len(s) {
+	if idx >= len(s) {
 		hide
 		return
 	}
@@ -241,16 +364,16 @@ func refreshNumber() {
 		if s[i:i+1] == "," {
 			w = cw
 		}
-		if i < slot {
+		if i < idx {
 			off += w
 		}
 		total += w
 	}
 	x := baseX + off
-	if kind == kBest {
-		x = baseX - total + off // 最高分右对齐
+	if right {
+		x = baseX - total + off // 右对齐（最高分、排行榜的名次和分数）
 	}
-	ch := s[slot : slot+1]
+	ch := s[idx : idx+1]
 	if ch == "," {
 		ch = "comma"
 	}
@@ -269,7 +392,9 @@ func refresh() {
 			hide // 触屏模式：按键说明的位置换成方向键（双人的按键说明也不显示）
 			return
 		}
-		if key == "stage" && stage == customStage {
+		if key == "stage" && stage == dailyStage {
+			k = "stage.daily"
+		} else if key == "stage" && stage == customStage {
 			k = "stage.custom"
 			if coop {
 				k += ".co"
@@ -283,21 +408,66 @@ func refresh() {
 			k = "hint.p1"
 		} else if coop && key == "hint.fire" {
 			k = "hint.p2"
-		} else if !coop && (key == "tag.1p" || key == "tag.2p") {
+		} else if !coop && (key == "tag.1p" || key == "tag.2p" || key == "tag.c1" || key == "tag.c2") {
 			hide
+			return
+		} else if touchUI && (key == "chips" || key == "tag.c1" || key == "tag.c2") {
+			hide // 触屏模式：芯片格的位置是方向键（等级看坦克头顶的标签）
 			return
 		}
 		setCostume k + "_" + langCode()
 		show
-	case kScore, kBest, kCoin:
+	case kScore, kBest, kCoin, kWallet, kLbNum:
 		refreshNumber
+	case kRanks:
+		refreshRanks
+	case kShare:
+		if state != stShare {
+			hide
+			return
+		}
+		if slot == 3 {
+			if shareText(3) != "" {
+				hide // 有全球名次时显示数字
+				return
+			}
+			setCostume "sh_norank_" + langCode()
+		} else if slot >= len(dailyBuild) {
+			hide
+			return
+		} else {
+			setCostume "ci_" + chipKey(dailyBuild[slot])
+		}
+		show
+	case kGarage:
+		refreshGarage
 	case kPip:
 		if slot < killed {
 			setCostume "pip_off"
+		} else if slot >= totalEnemy-(eliteCount()-elitesKilled) {
+			setCostume "pip_elite" // 还没击毁的精英（v6）排在最后，紫色
 		} else {
 			setCostume "pip_on"
 		}
 		show
+	case kChip:
+		refreshChip
+	case kDailyTag:
+		if state != stResult || stage != dailyStage {
+			hide
+			return
+		}
+		if dailyOfficial && touchUI {
+			setCostume "dtag_offt_" + langCode() // 手机上没有 S 键：点标签分享战报
+		} else if dailyOfficial {
+			setCostume "dtag_off_" + langCode()
+		} else {
+			setCostume "dtag_prac_" + langCode()
+		}
+		setLayer Front
+		show
+	case kPick:
+		refreshPick
 	case kLife:
 		c := lifeLook(lives, slot, false)
 		if c == "" {
@@ -370,6 +540,236 @@ func refresh() {
 	}
 }
 
+// 我方标识：对局中（含暂停）跟着自己的坦克；坦克死了、2P 不在、不在对局里就隐藏。
+// 返回现在是否显示。刚出现时放到最前面（盖住草丛，玩家藏进草丛也知道自己在哪）；
+// 之后不再改图层，所以暂停、结算的弹窗出现时会盖住它
+func allyStep(shown bool) bool {
+	on, x, y := allyAt(slot)
+	if !on {
+		if shown {
+			hide
+		}
+		return false
+	}
+	setXYpos x, y
+	c := "ally_" + strconv.Itoa(slot) + "_" + strconv.Itoa(lvl[slot]) // 等级变了才换造型（key 记着当前的造型）
+	if c != key {
+		key = c
+		setCostume c
+	}
+	if !shown {
+		setLayer Front
+		show
+	}
+	return true
+}
+
+// 战场上的芯片：对局中（含暂停）显示在 dropX / dropY，最后 3 秒闪烁
+func dropStep(shown bool) bool {
+	if dropLeft <= 0 || (state != stPlay && state != stPause) {
+		if shown {
+			hide
+		}
+		return false
+	}
+	setXYpos dropX, dropY
+	if dropLeft < 3 && int(dropLeft*6)%2 == 0 {
+		setGraphicEffect GhostEffect, 70
+	} else {
+		clearGraphicEffects
+	}
+	if !shown {
+		setCostume "drop"
+		setLayer Front
+		show
+	}
+	return true
+}
+
+// 右侧面板的芯片格：第 slot/3+1 个玩家的第 slot%3 个位置。触屏模式（方向键在这里）和单人时的 2P 行不显示
+func refreshChip() {
+	who := slot/3 + 1
+	i := slot % 3
+	if touchUI || (who == 2 && !coop) {
+		hide
+		return
+	}
+	c := "ci_empty"
+	if i < len(chips[who]) {
+		c = "ci_" + chipKey(chips[who][i])
+	}
+	setCostume c
+	x := 111.0 + float64(i)*17
+	if coop {
+		x += 16 // 左边留出「1P / 2P」标签
+	}
+	y := 22.0
+	if who == 2 {
+		y = 6
+	}
+	setXYpos x, y
+	show
+}
+
+// 排行榜画面会变的部分（只在排行榜里显示）。图层在 "raise" / "raiseTop" 里调：每行的底在下，数字和芯片在上
+func refreshRanks() {
+	if state != stRanks {
+		hide
+		return
+	}
+	ok := lbStatus == lbOK
+	c := ""
+	switch {
+	case slot <= 1:
+		on := "off"
+		if slot == lbTab {
+			on = "on"
+		}
+		c = "lbtab_" + strconv.Itoa(slot) + "_" + on + "_" + langCode()
+	case slot == 2:
+		c = "lbscope_" + strconv.Itoa(lbTab) + "_" + langCode()
+	case slot == 3:
+		if ok && len(lbTags) > 0 {
+			hide
+			return
+		}
+		if ok {
+			c = "lbst_empty_" + langCode()
+		} else {
+			c = "lbst_" + strconv.Itoa(lbStatus) + "_" + langCode()
+		}
+	case slot >= 10 && slot < 40:
+		row, j := (slot-10)/3, (slot-10)%3
+		if !ok || row >= len(lbChips) || j >= len(lbChips[row]) {
+			hide
+			return
+		}
+		c = "ci_" + chipKey(lbChips[row][j])
+	case slot >= 40 && slot <= 47:
+		row := slot - 40
+		if !ok || row >= len(lbTags) {
+			hide
+			return
+		}
+		medal, me := 0, 0
+		if row < 3 {
+			medal = row + 1
+		}
+		if lbMine[row] {
+			me = 1
+		}
+		c = "lbrow_" + strconv.Itoa(medal) + "_" + strconv.Itoa(me) + "_" + langCode()
+	case slot == 48:
+		if !ok {
+			hide
+			return
+		}
+		if lbMyRank == 0 {
+			c = "lbme_none_" + langCode()
+		} else {
+			c = "lbme_" + langCode()
+		}
+	}
+	setCostume c
+	show
+}
+
+// 车库里会变的部分（只在车库里显示）
+func refreshGarage() {
+	if state != stGarage {
+		hide
+		return
+	}
+	c := ""
+	switch {
+	case slot == 0:
+		c = "cmd_" + strconv.Itoa(cmdLevel) + "_" + langCode()
+	case slot == 1:
+		have, need := xpInLevel()
+		c = "xp_" + strconv.Itoa(have*20/need)
+	case slot == 2:
+		if nextUnlock() == 0 {
+			c = "nx_all_" + langCode()
+		} else {
+			c = "nx_" + chipKey(nextUnlock()) + "_" + langCode()
+		}
+	case slot == 3:
+		c = "skp_" + strconv.Itoa(skin)
+	case slot >= 10 && slot <= 21:
+		id := slot - 9
+		if chipUnlocked(id) {
+			c = "cx_" + chipKey(id) + "_" + langCode()
+		} else {
+			c = "cxl_" + chipKey(id) + "_" + langCode()
+		}
+	case slot >= 30 && slot <= 35:
+		i := slot - 30
+		if i == skin {
+			c = "sk_" + strconv.Itoa(i) + "_sel"
+		} else if skinsOwned[i] {
+			c = "sk_" + strconv.Itoa(i) + "_own"
+		} else {
+			c = "sk_" + strconv.Itoa(i) + "_lock"
+		}
+	case slot >= 40 && slot <= 42:
+		i := slot - 40
+		k := taskIDs[i]
+		done := "0"
+		if taskProg[i] >= taskTarget(k) {
+			done = "1"
+		}
+		c = "tk_" + strconv.Itoa(k) + "_" + done + "_" + langCode()
+	case slot >= 43 && slot <= 45:
+		i := slot - 43
+		k := taskIDs[i]
+		c = "tp_" + strconv.Itoa(taskProg[i]*10/taskTarget(k))
+	case slot == 50: // 赛季和段位
+		c = "ssn_" + strconv.Itoa(int(math.Min(float64(seasonNo), 12))) + "_" + strconv.Itoa(tierOf(seasonPts)) + "_" + langCode()
+	case slot == 51:
+		have, need := tierProgress(seasonPts)
+		c = "sp_" + strconv.Itoa(have*20/need)
+	case slot == 52:
+		if today() <= 0 {
+			hide
+			return
+		}
+		c = "sd_" + strconv.Itoa(seasonLeft(today())) + "_" + langCode()
+	}
+	setCostume c
+	setLayer Front
+	show
+}
+
+// 三选一的卡片、刷新按钮、谁在选（只在三选一时显示）
+func refreshPick() {
+	if state != stPick {
+		hide
+		return
+	}
+	if slot <= 2 {
+		if slot >= len(pickOpts) {
+			hide
+			return
+		}
+		id := pickOpts[slot]
+		c := "pc_" + chipKey(id)
+		if pickCombo(id) {
+			c += "_combo"
+		}
+		setCostume c + "_" + langCode()
+	} else if slot == 3 {
+		setCostume "reroll_" + rerollLook() + "_" + langCode()
+	} else {
+		if !coop {
+			hide
+			return
+		}
+		setCostume "pickwho_" + strconv.Itoa(pickWho)
+	}
+	setLayer Front
+	show
+}
+
 // 编辑器小部件：位置和造型跟着舞台的编辑状态走
 func refreshEditor() {
 	if state != stEdit {
@@ -436,8 +836,11 @@ func clickAd() {
 
 // 点击全屏 / 弹窗画面上的按钮
 func clickScreen() {
-	x := mouseX
-	y := mouseY
+	clickAt mouseX, mouseY
+}
+
+// 点在舞台坐标 (x, y)：按画面判断按了哪个按钮（测试直接调用它模拟点击）
+func clickAt(x, y float64) {
 	switch state {
 	case stHome:
 		if hit("home.start", x, y) {
@@ -448,7 +851,51 @@ func clickScreen() {
 			openEditor
 		} else if hit("home.levels", x, y) {
 			openLevels
+		} else if hit("home.garage", x, y) {
+			openGarage
+		} else if hit("home.daily", x, y) {
+			playDaily
+		} else if hit("home.ranks", x, y) {
+			openRanks
+		} else if hit("home.assist", x, y) {
+			openAssist
 		}
+	case stAssist:
+		for n := 0; n <= 9; n++ {
+			if hit("as."+strconv.Itoa(n), x, y) {
+				assistKey n
+				return
+			}
+		}
+		if hit("as.del", x, y) {
+			assistKey -1
+		} else if hit("as.ok", x, y) {
+			assistConfirm
+		} else if hit("as.back", x, y) {
+			goHome
+		}
+	case stRanks:
+		if hit("lb.tab.1", x, y) {
+			lbShow 0
+		} else if hit("lb.tab.2", x, y) {
+			lbShow 1
+		} else if hit("lb.back", x, y) {
+			goHome
+		}
+	case stGarage:
+		for n := 0; n < skinCount; n++ {
+			if hit("gr.sk."+strconv.Itoa(n+1), x, y) {
+				buySkin n
+				return
+			}
+		}
+		if hit("gr.back", x, y) {
+			goHome
+		}
+	case stShare:
+		panelOff()
+		state = stResult // 点一下回到结算
+		showResult
 	case stLevels:
 		for n := 1; n <= lastStage; n++ {
 			if hit("lv."+strconv.Itoa(n), x, y) {
@@ -487,6 +934,16 @@ func clickScreen() {
 		} else if hit("revive.giveup", x, y) {
 			endGame false
 		}
+	case stPick:
+		for n := 1; n <= 3; n++ {
+			if hit("pick."+strconv.Itoa(n), x, y) {
+				pickChoose(n - 1)
+				return
+			}
+		}
+		if hit("pick.reroll", x, y) {
+			pickReroll
+		}
 	case stResult:
 		if hit("result.ad", x, y) && !doubled {
 			watchAd rewardDouble
@@ -501,6 +958,18 @@ func clickScreen() {
 // ---------- 事件 ----------
 
 onCloned => {
+	uiClones++
+	if kind == kAlly || kind == kDrop {
+		shown := false
+		for {
+			waitNextFrame
+			if kind == kAlly {
+				shown = allyStep(shown)
+			} else {
+				shown = dropStep(shown)
+			}
+		}
+	}
 	refresh
 	if kind != kToast {
 		return
@@ -514,6 +983,14 @@ onCloned => {
 				hide
 			}
 		}
+	}
+}
+
+// 离开车库、排行榜这些画面：它们的小部件删掉，把克隆的名额让给地图和敌人（全部精灵最多 300 个克隆）
+onMsg "panelOff", => {
+	if isCloned && (kind == kGarage || kind == kWallet || kind == kRanks || kind == kLbNum || kind == kShare) {
+		uiClones--
+		destroy
 	}
 }
 
@@ -553,7 +1030,14 @@ onMsg "edCursor", => {
 }
 
 onMsg "raise", => {
-	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin) {
+	if isCloned && (kind == kAd || kind == kLang || kind == kToast || kind == kCoin || kind == kPick || kind == kGarage || kind == kWallet || kind == kDailyTag || kind == kShare || (kind == kRanks && (slot < 10 || slot >= 40))) {
+		setLayer Front
+	}
+}
+
+// 第二层：排行榜的数字和芯片要在每行的底上面（"raise" 之后再广播）
+onMsg "raiseTop", => {
+	if isCloned && (kind == kLbNum || (kind == kRanks && slot >= 10 && slot < 40)) {
 		setLayer Front
 	}
 }
@@ -585,6 +1069,8 @@ onClick => {
 		clickAd
 	case kPauseBtn:
 		pauseGame
+	case kDailyTag:
+		openShare // 点“正式成绩”标签打开分享战报（不是正式成绩时 openShare 什么都不做）
 	case kScreen, kEdSel, kEdSwitch, kEdStatus, kEdCursor, kEdMark:
 		clickScreen // 编辑器的小部件盖在按钮上面，点击时按鼠标位置判断按了什么
 	}

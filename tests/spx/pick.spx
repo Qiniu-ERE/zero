@@ -1,0 +1,180 @@
+// 三选一和坦克等级（U08~U17），见 docs/v6/TEST_PLAN.md
+// timeout: 90
+onStart => {
+	wait 3
+
+	// U08 开过去就捡到：战场冻结，进入三选一，三块不重复
+	tQuiet
+	Player.setXYpos cellX(6), cellY(8)
+	dropX, dropY, dropLeft = cellX(6), cellY(8), 10
+	wait 0.2
+	tInt "U08 捡到芯片 → 三选一", state, stPick
+	tCheck "U08 三选一时战场冻结", gameOver
+	tNum "U08 捡到后芯片从战场消失", dropLeft, 0
+	tInt "U08 三选一有三块", len(pickOpts), 3
+	tCheck "U08 三块不重复", pickOpts[0] != pickOpts[1] && pickOpts[1] != pickOpts[2] && pickOpts[0] != pickOpts[2]
+	tInt "U08 是 1P 在选", pickWho, 1
+	tStr "U08 三选一的画面", screen, "pick"
+
+	// U09 选第 2 块：升级芯片装上、Lv2；战场解冻
+	first := pickOpts[1]
+	for chipTactical(first) { // 要测升级芯片：遇到战术芯片就重新抽
+		pickRoll()
+		first = pickOpts[1]
+	}
+	pickChoose 1
+	tInt "U09 选完回到对局", state, stPlay
+	tCheck "U09 战场解冻", !gameOver
+	tInt "U09 升到 Lv2", lvl[1], 2
+	tCheck "U09 装上了选的那块", hasChip(1, first)
+	tStr "U09 画面关掉", screen, ""
+
+	// U10 抽芯片：只抽解锁了的、没装上的；按稀有度，传奇最少
+	chips[1] = nil // U09 可能正好装上了穿甲弹（装上的不会再抽到），先清空
+	cmdLevel = 1
+	counts := make([]int, chipCount+1)
+	bad := 0
+	pickWho = 1
+	for t := 0; t < 300; t++ {
+		pickRoll()
+		for _, id := range pickOpts {
+			counts[id]++
+			if !chipUnlocked(id) || hasChip(1, id) {
+				bad++
+			}
+		}
+	}
+	tInt "U10 指挥官 Lv1 时不会抽到没解锁的、已经装上的芯片", bad, 0
+	tInt "U10 浮桥履带没解锁（Lv3 解锁）", counts[cFloat], 0
+	tInt "U10 迷彩没解锁（Lv5 解锁）", counts[cStealth], 0
+	tInt "U10 磁吸没解锁（Lv8 解锁）", counts[cMagnet], 0
+	tCheck "U10 传奇（穿甲弹）比普通（涡轮引擎）少", counts[cPierce] < counts[cEngine]
+	tCheck "U10 传奇也会出现", counts[cPierce] > 0
+	cmdLevel = 8
+	seen := false
+	for t := 0; t < 200 && !seen; t++ {
+		pickRoll()
+		for _, id := range pickOpts {
+			if id == cMagnet {
+				seen = true
+			}
+		}
+	}
+	tCheck "U10 指挥官 Lv8 解锁磁吸后会抽到", seen
+	cmdLevel = 1
+
+	// U11 战术芯片立即生效，不占位置、不升级
+	pickWho = 1
+	n := lvl[1]
+	state = stPick
+	gameOver = true
+	pickOpts = []int{cFreeze, cRapid, cEngine}
+	pickChoose 0
+	tInt "U11 战术芯片不升级", lvl[1], n
+	tCheck "U11 冰冻立即生效", freezeLeft > 4
+	freezeLeft = 0
+
+	// U12 满级（Lv4）再捡到：直接 +500 分，不弹三选一
+	chips[1] = []int{cRapid, cShield, cEngine}
+	lvl[1] = 4
+	score = 0
+	Player.setXYpos cellX(3), cellY(8)
+	dropX, dropY, dropLeft = cellX(3), cellY(8), 10
+	wait 0.2
+	tInt "U12 满级不弹三选一", state, stPlay
+	tInt "U12 满级换 500 分", score, 500
+	tNum "U12 芯片被捡走", dropLeft, 0
+
+	// U13 被击毁：掉 1 级，最后选的那块失效（第一发被能量护盾挡下）
+	Player.shield = 0
+	hitWho = 1
+	broadcast "playerHit"
+	wait 0.2
+	tInt "U13 第一发被能量护盾挡下，还是 Lv4", lvl[1], 4
+	tCheck "U13 护盾挡下后开始恢复", shieldCD[1] > 29
+	broadcast "playerHit"
+	wait 0.2
+	tInt "U13 被击毁掉到 Lv3", lvl[1], 3
+	tCheck "U13 最后选的（涡轮引擎）失效", !hasChip(1, cEngine)
+	tCheck "U13 前面选的还在", hasChip(1, cRapid) && hasChip(1, cShield)
+	chips[1] = nil
+	lvl[1] = 1
+	loseLevel 1
+	tInt "U13 Lv1 被击毁还是 Lv1", lvl[1], 1
+
+	// U14 等级跨关保留；战败重打本关回到进关时；暂停里重新开始也回到进关时；从主页进关回到 Lv1
+	playStage 1
+	wait 0.3
+	tInt "U14 从主页进关是 Lv1", lvl[1], 1
+	chips[1] = []int{cRapid, cDouble}
+	lvl[1] = 3
+	won = true
+	again
+	wait 0.3
+	tInt "U14 过关后到第 2 关", stage, 2
+	tInt "U14 等级带到下一关", lvl[1], 3
+	chips[1] = append(chips[1], cEngine)
+	lvl[1] = 4
+	pauseGame
+	startGame // 暂停菜单里的“重新开始本关”
+	wait 0.3
+	tInt "U14 重新开始本关：回到进关时的 Lv3", lvl[1], 3
+	chips[1] = append(chips[1], cEngine)
+	lvl[1] = 4
+	won = false
+	again // 战败后重打本关
+	wait 0.3
+	tInt "U14 战败重打：回到进关时的 Lv3", lvl[1], 3
+	tCheck "U14 战败重打：芯片也回到进关时", hasChip(1, cRapid) && hasChip(1, cDouble) && !hasChip(1, cEngine)
+	playStage 3
+	wait 0.3
+	tInt "U14 从主页 / 选关进关：回到 Lv1", lvl[1], 1
+
+	// U15 刷新（免费版）：看激励视频，看完换一组、回到三选一；每关只能刷新一次
+	tCalm
+	pickWho = 1
+	pickRoll()
+	state = stPick
+	gameOver = true
+	setScreen "pick"
+	tStr "U15 免费版刷新按钮是看视频", rerollLook(), "ad"
+	pickReroll
+	tInt "U15 刷新 → 播放激励视频", state, stAd
+	tCheck "U15 看完视频回到三选一", tWaitState(stPick, 8)
+	tCheck "U15 刷新过了", rerollUsed
+	tStr "U15 刷新按钮变成“已刷新”", rerollLook(), "used"
+	tInt "U15 还是三块", len(pickOpts), 3
+	toastKey = ""
+	pickReroll
+	tInt "U15 第二次刷新不播视频", state, stPick
+	tStr "U15 提示这一关已经刷新过", toastKey, "msg.reroll.used"
+
+	// U16 买了去广告 / 商店版：免费刷新，不看视频；新的一关可以再刷新
+	startGame
+	wait 0.3
+	tCheck "U16 新的一关可以再刷新", !rerollUsed
+	tCalm
+	adFree = true
+	pickWho = 1
+	pickRoll()
+	state = stPick
+	gameOver = true
+	tStr "U16 去广告后刷新按钮是免费的", rerollLook(), "free"
+	pickReroll
+	tInt "U16 免费刷新不播视频", state, stPick
+	tCheck "U16 免费刷新也只能一次", rerollUsed
+	adFree = false
+	pickChoose 0
+
+	// U17 路演演示（自动驾驶）捡到芯片：直接装第一块，不弹三选一（不会卡住演示）
+	tQuiet
+	autopilot = true
+	Player.setXYpos cellX(6), cellY(8)
+	dropX, dropY, dropLeft = cellX(6), cellY(8), 10
+	wait 0.2
+	tInt "U17 演示时不弹三选一", state, stPlay
+	tCheck "U17 演示时也生效（升级或者战术芯片）", lvl[1] == 2 || chipTactical(pickOpts[0])
+	autopilot = false
+
+	tDone "pick"
+}

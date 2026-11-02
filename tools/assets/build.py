@@ -165,11 +165,15 @@ def broken_m():
 # ---------- 坦克（spx 和 Scratch 一样：造型按朝右画，heading 90 时不旋转） ----------
 TANKS = {
     "player": ("#ffd23a", "#b8860b", "#fff3b0"),
-    "player2": ("#4fe3c1", "#1f7a66", "#c9fff1"),  # 2P：青绿色，和三种敌人（红、蓝、绿）都区分开
-    "basic": ("#ff5a4a", "#9c1f16", "#ffc2b8"),
-    "fast": ("#4aa8ff", "#1c4f8f", "#c8e6ff"),
-    "heavy": ("#6fd06a", "#2e6e2a", "#d2f5cf"),
+    "player2": ("#4fe3c1", "#1f7a66", "#c9fff1"),  # 2P：青绿色
 }
+# v6 敌我区分（docs/v6/PLAN.md 第一节）：我方亮色、圆角车身、圆炮塔；敌方统一枪灰色切角车身、六角炮塔，
+# 标识色红色（警示条、炮口、“眼睛”），种类看外形（快速窄、重型带装甲板）；精英的标识色换成紫色。
+# 深灰和红色只留给敌方，我方的颜色和涂装都不能用
+FOE_RED = "#ff3b30"
+ELITE = "#c46bff"
+HULL = ("#5b6271", "#2a2e37", "#8a93a6")  # 敌方车身：主色、暗部、亮部
+FOE_KINDS = ("basic", "fast", "heavy")
 
 
 def tank_body(main, dark, light, heavy=False):
@@ -198,6 +202,74 @@ def tank_m(main, dark, light, heavy=False):
     return svg(C, C, f'<g transform="rotate(90 12 12)">{body}</g>', defs)
 
 
+def hex_fill(cx, cy, r, fill):
+    pts = " ".join(f"{cx + math.cos(math.radians(i * 60)) * r:.2f},{cy + math.sin(math.radians(i * 60)) * r:.2f}" for i in range(6))
+    return f'<polygon points="{pts}" fill="{fill}"/>'
+
+
+def foe_body(accent=FOE_RED, kind="basic"):
+    """朝上的敌方坦克（24x24），返回 (defs, body)。kind：basic / fast / heavy"""
+    main, dark, light = HULL
+    defs = rad("sh", [(0, "#000", 0.45), (0.7, "#000", 0.2), (1, "#000", 0)])
+    s = ['<ellipse cx="12.8" cy="13.4" rx="11.2" ry="10.6" fill="url(#sh)"/>']
+    hx, hw = {"fast": (7.4, 9.2), "heavy": (5.2, 13.6)}.get(kind, (5.8, 12.4))
+    tw = 4.6 if kind == "fast" else 5.5
+    for x in (hx - tw + 0.4, hx + hw - 0.4):  # 履带
+        s.append(f'<rect x="{x:.1f}" y="2.5" width="{tw}" height="20" rx="1.2" fill="#141418"/>')
+        for i in range(7):
+            s.append(f'<rect x="{x + 0.5:.1f}" y="{3.4 + i * 2.8:.1f}" width="{tw - 1}" height="1.3" fill="{accent}" fill-opacity="0.35"/>')
+    c = 2.6  # 切角车身，和我方的圆角车身区分
+    x1, y1, x2, y2 = hx, 4.5, hx + hw, 21.5
+    pts = f"{x1 + c},{y1} {x2 - c},{y1} {x2},{y1 + c} {x2},{y2 - c} {x2 - c},{y2} {x1 + c},{y2} {x1},{y2 - c} {x1},{y1 + c}"
+    s.append(f'<polygon points="{pts}" fill="{dark}"/>')
+    s.append(f'<polygon points="{pts}" fill="{main}" transform="translate(0 -0.8)"/>')
+    s.append(f'<rect x="{x1 + 1.2}" y="5.6" width="{hw - 2.4}" height="1.8" fill="{accent}"/>')  # 车头警示条
+    if kind == "heavy":  # 重型：两侧装甲板 + 铆钉
+        for x in (x1 + 0.8, x2 - 3.4):
+            s.append(f'<rect x="{x:.1f}" y="9" width="2.6" height="10" rx="0.5" fill="{dark}"/>')
+            s.append(f'<circle cx="{x + 1.3:.1f}" cy="10.5" r="0.6" fill="{accent}"/><circle cx="{x + 1.3:.1f}" cy="17.5" r="0.6" fill="{accent}"/>')
+    if kind == "fast":  # 快速：车尾两道箭头
+        s.append(f'<path d="M9.4 18.6l2.6-1.8 2.6 1.8M9.4 21l2.6-1.8 2.6 1.8" stroke="{accent}" stroke-width="0.9" fill="none"/>')
+    bw = 4.6 if kind == "heavy" else 3.2
+    s.append(f'<rect x="{12 - bw / 2}" y="0.8" width="{bw}" height="11" fill="{dark}"/>')
+    s.append(f'<rect x="{12 - bw / 2 - 0.6}" y="0" width="{bw + 1.2}" height="2.2" fill="{accent}"/>')  # 红色炮口
+    s.append(hex_fill(12, 13, 5.4, dark) + hex_fill(12, 12.4, 4.8, main))  # 六角炮塔
+    s.append(f'<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="{accent}"/>')  # “眼睛”
+    s.append('<rect x="9.2" y="11.4" width="5.6" height="1.8" rx="0.9" fill="#ffffff" fill-opacity="0.35"/>')
+    return defs, "".join(s)
+
+
+def foe_m(kind, accent=FOE_RED):
+    defs, body = foe_body(accent, kind)
+    return svg(C, C, f'<g transform="rotate(90 12 12)">{body}</g>', defs)
+
+
+# 经典画风（1985 像素风）的敌人：和玩家同一个像素坦克的外形，统一银灰色 + 红色“眼睛”；精英是紫色。
+# 种类看外形：快速坦克车身窄、车尾两道箭头，重型坦克炮管粗、车身两侧有装甲板
+PIXEL_FOE = ("#404048", "#9a9aa2", "#e0e0e6", FOE_RED)
+PIXEL_ELITE = ("#4a2070", "#9a5ad0", "#ecd2ff", "#ffffff")
+
+
+def foe_classic(kind, palette=PIXEL_FOE):
+    dark, mid, light, eye = palette
+    s = [f'<rect x="1" y="1" width="20" height="7" fill="{dark}"/>', f'<rect x="1" y="16" width="20" height="7" fill="{dark}"/>']
+    for x in (3, 7, 11, 15):
+        s.append(f'<rect x="{x}" y="2" width="2" height="5" fill="{light}"/><rect x="{x}" y="17" width="2" height="5" fill="{light}"/>')
+    if kind == "fast":
+        s.append(f'<rect x="4" y="8" width="15" height="8" fill="{mid}"/>')
+        s.append(f'<path d="M2 9.5l2 2.5-2 2.5M5 9.5l2 2.5-2 2.5" stroke="{eye}" stroke-width="1" fill="none"/>')
+    else:
+        s.append(f'<rect x="4" y="7" width="15" height="10" fill="{mid}"/>')
+    if kind == "heavy":
+        s.append(f'<rect x="5" y="7" width="10" height="2" fill="{dark}"/><rect x="5" y="15" width="10" height="2" fill="{dark}"/>')
+    s.append(f'<circle cx="11" cy="12" r="4.5" fill="{light}" stroke="{dark}" stroke-width="1.2"/>')
+    bh = 4 if kind == "heavy" else 3
+    s.append(f'<rect x="12" y="{12 - bh / 2}" width="11" height="{bh}" fill="{light}" stroke="{dark}" stroke-width="0.8"/>')
+    s.append(f'<rect x="21" y="{12 - bh / 2}" width="2" height="{bh}" fill="{eye}"/>')  # 炮口
+    s.append(f'<rect x="10" y="11" width="2.4" height="2" fill="{eye}"/>')  # “眼睛”
+    return svg(C, C, "".join(s))
+
+
 def player2_classic():
     """经典画风的 2P：把 1P 的像素坦克换成绿色（和 FC 原版一样）"""
     with open(os.path.join(ASSETS, "sprites", "Player", "player.svg"), encoding="utf-8") as f:
@@ -207,12 +279,24 @@ def player2_classic():
     return s
 
 
+def enemy_index():
+    """Enemy 精灵的造型表：三种敌人 × 普通 / 精英 × 经典 / 现代"""
+    p = os.path.join(ASSETS, "sprites", "Enemy", "index.json")
+    with open(p, encoding="utf-8") as f:
+        cfg = json.load(f)
+    names = [k + e + m for m in ("", "_m") for e in ("", "_e") for k in FOE_KINDS]
+    cfg["costumes"] = [{"name": n, "path": n + ".svg", "x": 12, "y": 12} for n in names]
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
+
+
 def player_index():
     """Player 精灵的造型表：1P、2P × 经典、现代"""
     p = os.path.join(ASSETS, "sprites", "Player", "index.json")
     with open(p, encoding="utf-8") as f:
         cfg = json.load(f)
-    cfg["costumes"] = [{"name": n, "path": n + ".svg", "x": 12, "y": 12} for n in ("player", "player_m", "player2", "player2_m")]
+    names = ["player", "player_m", "player2", "player2_m"] + [f"player_s{i}_m" for i in range(1, len(SKINS))]
+    cfg["costumes"] = [{"name": n, "path": n + ".svg", "x": 12, "y": 12} for n in names]
     with open(p, "w", encoding="utf-8") as f:
         f.write(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n")
 
@@ -260,6 +344,7 @@ def text_costume(s, size, fill, bold, anchor, pad=1.0):
 # 标签：key -> (字号, 颜色, 粗体, 对齐)
 LABELS = {
     **{f"stage.{n}": (10, "#ffffff", True, "start") for n in range(1, 9)},
+    "stage.daily": (10, "#d9b8ff", True, "start"),
     "stage.custom": (10, "#ffffff", True, "start"),
     "enemies": (7.5, MUTED, False, "end"),
     "score": (6.8, MUTED, True, "start"),
@@ -267,6 +352,9 @@ LABELS = {
     "lives": (6.8, MUTED, True, "start"),
     "tag.1p": (7.5, "#ffd23a", True, "start"),
     "tag.2p": (7.5, "#4fe3c1", True, "start"),
+    "chips": (6.8, MUTED, True, "start"),
+    "tag.c1": (6.5, "#ffd23a", True, "start"),
+    "tag.c2": (6.5, "#4fe3c1", True, "start"),
 }
 # 按键提示：key -> 按键
 HINTS = {"hint.move": "WASD", "hint.fire": "J", "hint.style": "T", "hint.lang": "L", "hint.p1": "1P", "hint.p2": "2P"}
@@ -299,7 +387,7 @@ def toggle_costume(lang):
 
 
 # 数字样式：名字 -> (字号, 颜色)
-NUM_STYLES = {"S": (18, "#ffffff"), "B": (8, "#ffe27a"), "C": (14, "#ffe27a")}
+NUM_STYLES = {"S": (18, "#ffffff"), "B": (8, "#ffe27a"), "C": (14, "#ffe27a"), "L": (7.5, "#ffffff")}  # L：排行榜（v6）
 DIGITS = "0123456789"
 
 
@@ -321,7 +409,7 @@ def num_costumes():
 
 def icon_costumes():
     out = []
-    for name, col in (("pip_on", "#ff5a4a"), ("pip_off", "#3a4256")):
+    for name, col in (("pip_on", "#ff5a4a"), ("pip_off", "#3a4256"), ("pip_elite", ELITE)):
         out.append((name, svg(4, 8, f'<rect width="4" height="8" rx="1" fill="{col}"/>', res=HR), (2, 4)))
     defs, body = tank_body(*TANKS["player"])
     for name, op in (("life_on", 1), ("life_off", 0.22)):
@@ -334,6 +422,19 @@ def icon_costumes():
         s = f"×{n}"
         out.append((f"lifex{n}", svg(width(s, 8, True) + 2, 12, text(1, 9.2, s, 8, "#ffffff", True), res=HR), (9, 6)))
     return out
+
+
+def ally_costume(p, lv):
+    """我方标识（v6 敌我区分）：坦克脚下的光圈 + 头顶的标签“1P · Lv3”。UI 克隆每帧跟着坦克走，
+    不画进坦克造型：造型变大会改变碰撞范围。锚点是光圈中心"""
+    col = TANKS["player" if p == 1 else "player2"][0]
+    w, h, cy, r = 44, 46, 28, 15
+    tag = f"{p}P · Lv{lv}"
+    tw = width(tag, 6.5, True) + 8
+    body = (f'<circle cx="{w/2}" cy="{cy}" r="{r}" fill="{col}" fill-opacity="0.1" stroke="{col}" stroke-width="1.3"/>'
+            f'<rect x="{(w-tw)/2:.2f}" y="1" width="{tw:.2f}" height="10" rx="5" fill="{col}"/>'
+            + text(w / 2, 8.6, tag, 6.5, "#1a1405", True, "middle"))
+    return svg(w, h, body, res=HR), (w / 2, cy)
 
 
 def stage_coop_costume(key, lang):
@@ -461,6 +562,27 @@ def banner(lang):
 # 主页上的其他模式：(文案 key, 按键)。v5 去掉了“每日挑战 · 即将推出”（需要服务器和排行榜，不会做）
 # 选择关卡（v5）放在原来每日挑战的位置；按键提示是“1-8”（主页直接按数字键进关）
 HOME_MODES = [("m.coop", "C"), ("m.maker", "E"), ("m.levels", "1-8")]
+HOME_TILES = [("daily", "D", 200), ("garage", "G", 266), ("ranks", "B", 332), ("assist", "A", 398)]  # v6：(名字, 按键, x)
+HOME_TILE_W = 62
+
+
+def home_tile_icon(k, cx, cy):
+    if k == "daily":  # 日历
+        return (f'<rect x="{cx-8}" y="{cy-7}" width="16" height="14" rx="2.5" fill="{ELITE}" fill-opacity="0.25" stroke="{ELITE}" stroke-width="1.2"/>'
+                f'<path d="M{cx-8} {cy-3}h16M{cx-4} {cy-9}v4M{cx+4} {cy-9}v4" stroke="{ELITE}" stroke-width="1.2"/>'
+                + text(cx, cy + 5, "1", 6.5, "#f3dcff", True, "middle"))
+    if k == "ranks":  # 领奖台
+        return "".join(f'<rect x="{cx-10+j*7}" y="{cy+6-hh}" width="6" height="{hh}" rx="1" fill="{col}"/>'
+                       for j, (hh, col) in enumerate(((9, "#c8d2e3"), (14, "#ffe27a"), (6, "#e0915a"))))
+    if k == "garage":
+        defs, body = tank_body(*TANKS["player"])
+        defs, body = defs.replace('id="sh"', 'id="shg"'), body.replace("url(#sh)", "url(#shg)")
+        return f'<defs>{defs}</defs><g transform="translate({cx-9} {cy-9}) scale(0.75)">{body}</g>'
+    if k == "assist":  # 礼物盒：好友送的芯片
+        return (f'<rect x="{cx-8}" y="{cy-3}" width="16" height="10" rx="1.5" fill="#3ee8ff" fill-opacity="0.25" stroke="#3ee8ff" stroke-width="1.2"/>'
+                f'<rect x="{cx-9}" y="{cy-7}" width="18" height="4" rx="1" fill="#3ee8ff" fill-opacity="0.5"/>'
+                f'<path d="M{cx} {cy-7}v14M{cx} {cy-7}c-3-4-7-2-4 0M{cx} {cy-7}c3-4 7-2 4 0" fill="none" stroke="#ffe27a" stroke-width="1.2"/>')
+    return ""
 
 
 def home(lang):
@@ -491,6 +613,17 @@ def home(lang):
         s.append(f'<rect x="{186-10-cw-6-nw:.2f}" y="{y+8}" width="{nw:.2f}" height="11" rx="5.5" fill="#3ee8ff"/>')
         s.append(text(186 - 10 - cw - 6 - nw / 2, y + 15.6, tr("new", lang), 5.8, "#06232b", True, "middle"))
         s.append(f'<g transform="translate({186-10-cw:.2f},{y+8.5})">{c}</g>')
+    # v6 的入口：右下角的小卡片（每日挑战、车库、排行榜、助战码，见 HOME_TILES）。手机上靠点卡片进入
+    tw = HOME_TILE_W
+    for k, key, x in HOME_TILES:
+        button(f"home.{k}", x, 262, tw, 44)
+        s.append(f'<rect x="{x+0.4}" y="262.4" width="{tw-0.8}" height="43.2" rx="8" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.7"/>')
+        s.append(home_tile_icon(k, x + tw / 2, 278))
+        c, cw = chip(0, 0, key, dark=True)
+        if 8 + width(tr(f"home.{k}", lang), 7.5, True) + 4 > tw - 6 - cw:
+            sys.exit(f"主页卡片的文字太长，会压到按键提示：{tr(f'home.{k}', lang)}")
+        s.append(text(x + 8, 298, tr(f"home.{k}", lang), 7.5, "#e6ecf5", True))
+        s.append(f'<g transform="translate({x+tw-6-cw:.2f},290)">{c}</g>')
     # 路演演示模式提示（选关的“1-8”已经在选择关卡卡片上）
     c, cw = chip(16, 290, "P")
     s.append(c + text(16 + cw + 5, 297.4, tr("home.demo", lang), 7, "#7f8ba3"))
@@ -830,6 +963,477 @@ def screen_costumes():
     return out
 
 
+# ---------- v6 芯片：图标、三选一卡片、右侧面板的芯片格、战场上掉落的芯片（docs/v6/PLAN.md 第二节） ----------
+# 顺序和 main.spx 的 chipKey 一致（编号 1~12）
+CHIP_KEYS = ("rapid", "double", "pierce", "bounce", "shield", "engine", "float", "stealth", "magnet", "fortify", "bomb", "freeze")
+CHIP_RARITY = {"pierce": 3, "double": 2, "bounce": 2, "float": 2, "bomb": 2, "freeze": 2}  # 其余是 1（普通）
+CHIP_TACTICAL = ("fortify", "bomb", "freeze")
+RARITY_COL = {1: "#8fb3ff", 2: ELITE, 3: "#ffb020"}
+CHIP_COL = {"rapid": "#ffd54a", "double": "#ffd54a", "pierce": "#ff8a3a", "bounce": "#ffd54a", "shield": "#5ad1ff",
+            "engine": "#2ee88a", "float": "#5ad1ff", "stealth": "#2ee88a", "magnet": "#ff7ab8", "fortify": "#c8d2e3",
+            "bomb": "#ff5a4a", "freeze": "#9fe8ff"}
+COMBO_PARTNER = {"pierce": "bounce", "bounce": "pierce", "rapid": "double", "double": "rapid"}
+
+
+def chip_icon_body(key, col):
+    """芯片图标：24x24 的线条图"""
+    st = f'stroke="{col}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"'
+    return {
+        "rapid": f'<circle cx="16" cy="12" r="4" fill="{col}"/><path d="M3 8h7M2 12h8M3 16h7" {st}/>',
+        "double": f'<circle cx="8" cy="15" r="3.4" fill="{col}"/><circle cx="16" cy="9" r="3.4" fill="{col}"/><path d="M8 22v-3M16 16v-3" {st}/>',
+        "pierce": f'<rect x="8" y="7" width="8" height="10" rx="1.2" fill="{col}" fill-opacity="0.3" stroke="{col}" stroke-width="1.4"/><path d="M2 12h20M18 8l4 4-4 4" {st}/>',
+        "bounce": f'<path d="M3 20l8-14 8 14" {st}/><path d="M2 21h20" stroke="{col}" stroke-width="1.4" stroke-opacity="0.5"/><circle cx="19" cy="20" r="2.4" fill="{col}"/>',
+        "shield": f'<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" fill="{col}" fill-opacity="0.25" stroke="{col}" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2.2 2.2L15.5 10" {st}/>',
+        "engine": f'<path d="M5 5l7 7-7 7M12 5l7 7-7 7" {st}/>',
+        "float": f'<path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 20c2-2 4-2 6 0s4 2 6 0 4-2 6 0" {st}/><rect x="7" y="4" width="10" height="7" rx="2" fill="{col}"/>',
+        "stealth": f'<path d="M2 13s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z" {st}/><circle cx="12" cy="13" r="2.6" fill="{col}"/><path d="M4 22l16-18" {st}/>',
+        "magnet": f'<path d="M6 4v8a6 6 0 0 0 12 0V4" stroke="{col}" stroke-width="3.4" fill="none"/><path d="M4.4 4h3.2M16.4 4h3.2" stroke="#ffffff" stroke-width="3.4"/>',
+        "fortify": f'<path d="M12 6l2 2.6 3.8-1.2-2 3.8 2.6 1.3-4.5 1.2L12 17l-1.9-3.3-4.5-1.2 2.6-1.3-2-3.8 3.8 1.2z" fill="{col}"/><rect x="2.5" y="2.5" width="19" height="19" rx="2" fill="none" stroke="{col}" stroke-width="1.6" stroke-dasharray="3 1.6"/>',
+        "bomb": f'<circle cx="11" cy="14" r="7" fill="{col}"/><path d="M15 8l3-3M19 3l1 1M21 6h1" {st}/>',
+        "freeze": f'<path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 3 3-3M9 20l3-3 3 3" {st}/>',
+    }[key]
+
+
+def chip_icon(key, x, y, size):
+    return f'<g transform="translate({x:.2f},{y:.2f}) scale({size / 24:.4f})">{chip_icon_body(key, CHIP_COL[key])}</g>'
+
+
+def chip_badge(key, s=14):
+    """右侧面板的芯片格（s x s），边框是稀有度的颜色"""
+    rc = RARITY_COL[CHIP_RARITY.get(key, 1)]
+    body = (f'<rect x="0.4" y="0.4" width="{s-0.8}" height="{s-0.8}" rx="{s*0.22:.2f}" fill="{rc}" fill-opacity="0.16" stroke="{rc}" stroke-opacity="0.85" stroke-width="0.7"/>'
+            + chip_icon(key, s * 0.15, s * 0.15, s * 0.7))
+    return svg(s, s, body, res=HR), (s / 2, s / 2)
+
+
+def chip_empty(s=14):
+    body = (f'<rect x="0.4" y="0.4" width="{s-0.8}" height="{s-0.8}" rx="{s*0.22:.2f}" fill="none" stroke="#3a4256" stroke-width="0.7" stroke-dasharray="2 1.6"/>'
+            + text(s / 2, s / 2 + 2.6, "+", 7, "#3a4256", True, "middle"))
+    return svg(s, s, body, res=HR), (s / 2, s / 2)
+
+
+def chip_drop():
+    """精英被击毁后掉在战场上的芯片：紫色六边形 + 星，外面一圈光"""
+    defs = rad("cg", [(0, ELITE, 0.75), (0.5, ELITE, 0.25), (1, ELITE, 0)])
+    pts = " ".join(f"{16 + math.cos(math.radians(30 + i * 60)) * 8:.2f},{16 + math.sin(math.radians(30 + i * 60)) * 8:.2f}" for i in range(6))
+    star = []
+    for i in range(10):
+        a = math.radians(-90 + i * 36)
+        r = 4.8 if i % 2 == 0 else 2.16
+        star.append(f"{16 + math.cos(a) * r:.2f},{16.4 + math.sin(a) * r:.2f}")
+    body = (f'<circle cx="16" cy="16" r="16" fill="url(#cg)"/><polygon points="{pts}" fill="#2a0f45" stroke="{ELITE}" stroke-width="1.3"/>'
+            f'<polygon points="{" ".join(star)}" fill="#f3dcff"/>')
+    return svg(32, 32, body, defs, res=HR), (16, 16)
+
+
+PK_CW, PK_CH, PK_GAP, PK_Y = 120, 150, 14, 92  # 三选一的卡片
+PK_X0 = (W - 3 * PK_CW - 2 * PK_GAP) / 2
+PK_REROLL = (W / 2 - 95, 266, 190, 24)
+
+
+def pick_card(key, lang, combo=False):
+    """三选一的一张卡片（不含按键数字，按键画在底图上）。锚点是卡片中心"""
+    w, h = PK_CW, PK_CH
+    rar = CHIP_RARITY.get(key, 1)
+    rc = RARITY_COL[rar]
+    s = [f'<rect x="0.8" y="0.8" width="{w-1.6}" height="{h-1.6}" rx="11" fill="url(#card)" stroke="{rc}" stroke-width="1.2"/>']
+    lab = tr(f"rar.{rar}", lang)
+    pw = width(lab, 5.6, True) + 8
+    s.append(f'<rect x="10" y="10" width="{pw:.2f}" height="10" rx="5" fill="{rc}"/>' + text(10 + pw / 2, 17.2, lab, 5.6, "#120a1f", True, "middle"))
+    s.append(f'<circle cx="{w/2}" cy="56" r="25" fill="{rc}" fill-opacity="0.12"/>')
+    s.append(chip_icon(key, w / 2 - 18, 38, 36))
+    name, desc = tr(f"chip.{key}", lang), tr(f"chip.{key}.d", lang)
+    if width(name, 12, True) > w - 12 or width(desc, 6.4) > w - 10:
+        sys.exit(f"芯片卡片的文字太长：{name} / {desc}")
+    s.append(text(w / 2, 102, name, 12, "#ffffff", True, "middle"))
+    s.append(text(w / 2, 116, desc, 6.4, "#c8d2e3", False, "middle"))
+    if key in CHIP_TACTICAL:
+        s.append(text(w / 2, 136, tr("tactical", lang), 5.8, "#8fb3ff", True, "middle"))
+    if combo:
+        lab = tr(f"pk.combo.{key}", lang)
+        if width(lab, 5.6, True) > w - 24:
+            sys.exit(f"连携提示太长：{lab}")
+        s.append(f'<rect x="10" y="126" width="{w-20}" height="16" rx="5" fill="#ff8a3a" fill-opacity="0.16"/>')
+        s.append(text(w / 2, 137, lab, 5.6, "#ffc08a", True, "middle"))
+    return svg(w, h, "".join(s), lin("card", "#1b2335", "#10151f"), res=2), (w / 2, h / 2)
+
+
+def pick_screen(lang):
+    """三选一的底图：压暗的战场、标题、三个卡片位置下面的按键。卡片、刷新按钮、1P / 2P 标签是 UI 的 kPick 克隆"""
+    s = [f'<rect width="{W}" height="{H}" fill="#07040d" fill-opacity="0.74"/>']
+    s.append(text(W / 2, 64, tr("pk.title", lang), 17, "#ffffff", True, "middle"))
+    s.append(text(W / 2, 80, tr("pk.sub", lang), 7, "#c8b4e8", False, "middle"))
+    for i in range(3):
+        x = PK_X0 + i * (PK_CW + PK_GAP)
+        button(f"pick.{i+1}", x, PK_Y, PK_CW, PK_CH)
+        c, cw = chip(0, 0, str(i + 1))
+        s.append(f'<g transform="translate({x + PK_CW / 2 - cw / 2:.2f},{PK_Y + PK_CH + 6})">{c}</g>')
+    x, y, w, h = PK_REROLL
+    button("pick.reroll", x, y, w, h)
+    s.append(text(W / 2, 320, tr("pk.keys", lang), 6.8, "#c8d2e3", True, "middle"))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def reroll_button(kind, lang):
+    """三选一的刷新按钮：ad 看视频（广告蓝），free 免费，used 本关已刷新。锚点是中心"""
+    w, h = PK_REROLL[2], PK_REROLL[3]
+    lab = tr(f"pk.reroll.{kind}", lang)
+    if kind == "ad":
+        b, bw = ad_badge(10, 7.5, lang)
+        s = (f'<rect x="0.5" y="0.5" width="{w-1}" height="{h-1}" rx="{(h-1)/2}" fill="none" stroke="{GBLUE}" stroke-width="1"/>'
+             + b + play_icon(bw + 20, h / 2, "#8ab4f8", 0.9) + text(w / 2 + 12, 15.5, lab, 8, "#8ab4f8", True, "middle"))
+    elif kind == "free":
+        s = (f'<rect x="0.5" y="0.5" width="{w-1}" height="{h-1}" rx="{(h-1)/2}" fill="#ffffff" fill-opacity="0.06" stroke="#3ee8ff" stroke-opacity="0.7" stroke-width="0.8"/>'
+             + text(w / 2 - 6, 15.5, lab, 8, "#9fdcea", True, "middle"))
+    else:
+        s = (f'<rect x="0.5" y="0.5" width="{w-1}" height="{h-1}" rx="{(h-1)/2}" fill="#ffffff" fill-opacity="0.03" stroke="#2c3850" stroke-width="0.6"/>'
+             + text(w / 2, 15.5, lab, 8, "#5a6680", True, "middle"))
+    if kind != "used":
+        c, cw = chip(0, 0, "R")
+        s += f'<g transform="translate({w - 10 - cw:.2f},7)">{c}</g>'
+    return svg(w, h, s, res=HR), (w / 2, h / 2)
+
+
+def pick_who(p):
+    col = TANKS["player" if p == 1 else "player2"][0]
+    tw = width(f"{p}P", 9, True) + 14
+    body = f'<rect width="{tw:.2f}" height="15" rx="7.5" fill="{col}"/>' + text(tw / 2, 11, f"{p}P", 9, "#1a1405", True, "middle")
+    return svg(tw, 15, body, res=HR), (tw / 2, 7.5)
+
+
+def daily_tag(key, lang):
+    s = tr(key, lang)
+    w = width(s, 7, True) + 16
+    body = f'<rect width="{w:.2f}" height="14" rx="7" fill="{ELITE}"/>' + text(w / 2, 9.8, s, 7, "#1a0b2b", True, "middle")
+    return svg(w, 14, body, res=HR), (w / 2, 7)
+
+
+def chip_costumes():
+    out = [("drop", *chip_drop()), ("ci_empty", *chip_empty())]
+    out += [(f"ci_{k}", *chip_badge(k)) for k in CHIP_KEYS]
+    out += [(f"pickwho_{p}", *pick_who(p)) for p in (1, 2)]
+    out += [(f"dtag_{k}_{lang}", *daily_tag(f"dtag.{k}", lang)) for k in ("off", "prac", "offt") for lang in LANGS]
+    for lang in LANGS:
+        for k in CHIP_KEYS:
+            out.append((f"pc_{k}_{lang}", *pick_card(k, lang), 2))
+            if k in COMBO_PARTNER:
+                out.append((f"pc_{k}_combo_{lang}", *pick_card(k, lang, True), 2))
+        out.append((f"pick_{lang}", *pick_screen(lang), 2))
+        for kind in ("ad", "free", "used"):
+            out.append((f"reroll_{kind}_{lang}", *reroll_button(kind, lang)))
+    return out
+
+
+# ---------- v6 车库：指挥官等级、芯片图鉴、涂装、今日任务（docs/v6/PLAN.md 第三节） ----------
+# 涂装（1P，只换现代画风的外观）：都是亮色，深灰和红色留给敌方（tests/tools/test_garage.py 检查）
+SKINS = [TANKS["player"], ("#ff9a3a", "#8a3d00", "#ffe0b8"), ("#eef4ff", "#7f8fb0", "#ffffff"),
+         ("#ff7ab8", "#8a1f55", "#ffd6ea"), ("#8fd14f", "#3f6e1a", "#e2ffc8"),
+         ("#5ab8ff", "#1c4f8f", "#d6ecff")]  # 最后一款是赛季涂装（S1 天空蓝，黄金段位送，不卖）
+SKIN_PRICES = [0, 1500, 2000, 2500, 3000, 0]  # 和 main.spx 的 skinPrice 一致
+SEASON_SKIN = 5
+CHIP_UNLOCK = {"float": 3, "stealth": 5, "magnet": 8}  # 和 main.spx 的 chipUnlockLv 一致
+TASK_TARGETS = [30, 3, 2, 3, 1, 1, 1, 1]  # 任务 1~8 的目标，和 main.spx 的 taskTarget 一致
+MAX_CMD = 30
+GR_CELL = (200, 74, 60, 46, 66, 52)   # 图鉴格子：左上角、宽高、横竖间距
+GR_SKIN = (16, 216, 26, 28)            # 涂装格子：左上角、边长、间距
+GR_TASK = (200, 250, 260, 18, 22)      # 任务行：左上角、宽高、行距
+GR_BACK = (16, 316, 110, 24)
+
+
+def tank_icon(colors, size, rot=0):
+    """独立的坦克小图（size x size）"""
+    defs, body = tank_body(*colors)
+    k = size / 24
+    return svg(size, size, f'<g transform="rotate({rot} {size/2} {size/2}) scale({k:.4f})">{body}</g>', defs, res=HR)
+
+
+def garage_screen(lang):
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    s.append(text(16, 30, tr("gr.title", lang), 16, "#ffffff", True))
+    s.append('<rect x="16" y="42" width="170" height="150" rx="10" fill="#ffffff" fill-opacity="0.04" stroke="#263046" stroke-width="0.7"/>')
+    s.append('<rect x="28" y="66" width="146" height="5" rx="2.5" fill="#ffffff" fill-opacity="0.1"/>')
+    s.append('<ellipse cx="101" cy="172" rx="58" ry="11" fill="#3ee8ff" fill-opacity="0.1" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>')
+    s.append(text(16, 210, tr("gr.skins", lang), 7, MUTED, True))
+    x0, y0, cs, gap = GR_SKIN
+    for i in range(len(SKINS)):
+        button(f"gr.sk.{i+1}", x0 + i * gap, y0, cs, cs)
+    s.append('<circle cx="22" cy="281" r="5.5" fill="url(#gold)"/><circle cx="22" cy="281" r="3.5" fill="none" stroke="#a86a00" stroke-width="0.8"/>')
+    s.append(text(16, 300, tr("gr.coins.d", lang), 5.8, MUTED))
+    s.append(text(200, 54, tr("gr.codex", lang), 9, "#ffffff", True))
+    s.append(text(200, 66, tr("gr.codex.d", lang), 5.8, MUTED))
+    s.append(text(200, 244, tr("gr.tasks", lang), 7, MUTED, True))
+    s.append(text(460, 244, tr("gr.tasks.d", lang), 5.8, MUTED, False, "end"))
+    x, y, w, h = GR_BACK
+    button("gr.back", x, y, w, h)
+    s.append(f'<rect x="{x+0.3}" y="{y+0.3}" width="{w-0.6}" height="{h-0.6}" rx="{h/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>')
+    s.append(text(x + 14, y + 15.5, tr("lv.back", lang), 8.5, "#c8d2e3", True))
+    c, cw = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({x+w-10-cw:.2f},{y+7})">{c}</g>')
+    c, cw = chip(0, 0, "1-6")
+    s.append(f'<g transform="translate({186-cw:.2f},203)">{c}</g>')
+    s.append('<rect x="200" y="324" width="264" height="22" rx="7" fill="#ffffff" fill-opacity="0.04" stroke="#263046" stroke-width="0.6"/>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def codex_cell(key, lang, unlocked):
+    w, h = GR_CELL[2], GR_CELL[3]
+    rc = RARITY_COL[CHIP_RARITY.get(key, 1)]
+    if unlocked:
+        s = (f'<rect x="0.4" y="0.4" width="{w-0.8}" height="{h-0.8}" rx="7" fill="#ffffff" fill-opacity="0.05" stroke="{rc}" stroke-opacity="0.7" stroke-width="0.7"/>'
+             + chip_icon(key, 20, 6, 20) + text(30, 39, tr(f"chip.{key}", lang), 6.2, "#e6ecf5", True, "middle"))
+    else:
+        lock = f'<rect x="24" y="16" width="12" height="9" rx="2" fill="#3a4256"/><path d="M26.5 16v-3a3.5 3.5 0 0 1 7 0v3" stroke="#3a4256" stroke-width="2" fill="none"/>'
+        s = (f'<rect x="0.4" y="0.4" width="{w-0.8}" height="{h-0.8}" rx="7" fill="#ffffff" fill-opacity="0.02" stroke="#263046" stroke-width="0.7"/>'
+             + lock + text(30, 39, tr("gr.locklv", lang).format(n=CHIP_UNLOCK[key]), 6, "#5a6680", True, "middle"))
+    return svg(w, h, s, res=HR), (w / 2, h / 2)
+
+
+def skin_cell(i, st):
+    """涂装格子（30x30）下面带价格；st：sel 正在用、own 已拥有、lock 没买"""
+    cs = GR_SKIN[2]
+    sel = st == "sel"
+    s = [f'<rect x="0.6" y="0.6" width="{cs-1.2}" height="{cs-1.2}" rx="6" fill="#ffffff" fill-opacity="{0.1 if sel else 0.04}" stroke="{"#3ee8ff" if sel else "#263046"}" stroke-width="{1.2 if sel else 0.6}"/>']
+    defs, body = tank_body(*SKINS[i])
+    s.append(f'<g transform="translate(1 1)">{body}</g>')
+    if st == "lock":
+        s.append(f'<rect x="0.6" y="0.6" width="{cs-1.2}" height="{cs-1.2}" rx="6" fill="#07090f" fill-opacity="0.55"/>')
+        if i == SEASON_SKIN:
+            s.append(text(cs / 2, 37, "S1", 5.6, "#ffb020", True, "middle"))
+        else:
+            s.append(f'<circle cx="4" cy="35" r="2.6" fill="url(#gold)"/>')
+            s.append(text(8, 37.2, str(SKIN_PRICES[i]), 5.4, "#ffe27a", True))
+    return svg(cs + 2, 44, "".join(s), defs + lin("gold", "#ffe27a", "#f29a00"), res=HR), (cs / 2, cs / 2)
+
+
+def task_row(k, done, lang):
+    w, h = GR_TASK[2], GR_TASK[3]
+    col = "#2ee88a" if done else "#e6ecf5"
+    s = [f'<rect width="{w}" height="{h}" rx="5" fill="{"#2ee88a" if done else "#ffffff"}" fill-opacity="{0.12 if done else 0.04}"/>',
+         text(8, 12, tr(f"tk.{k}", lang), 6.6, col, True)]
+    if done:
+        s.append(f'<path d="M{w-16} 9l3 3 6-6" fill="none" stroke="#2ee88a" stroke-width="1.6"/>')
+    else:
+        s.append(f'<circle cx="{w-12}" cy="9" r="3.4" fill="url(#gold)"/>' + text(w - 18, 11.5, "+50", 5.6, "#ffe27a", True, "end"))
+    return svg(w, h, "".join(s), lin("gold", "#ffe27a", "#f29a00"), res=HR), (0, 0)
+
+
+def bar(n, total, w, h, fill):
+    body = f'<rect width="{w}" height="{h}" rx="{h/2}" fill="#ffffff" fill-opacity="0.1"/>'
+    if n:
+        body += f'<rect width="{w*n/total:.2f}" height="{h}" rx="{h/2}" fill="{fill}"/>'
+    return svg(w, h, body, lin("xpg", ELITE, "#ff7ab8", vertical=False), res=HR), (0, h / 2)
+
+
+def garage_costumes():
+    out = []
+    for lang in LANGS:
+        out.append((f"garage_{lang}", *garage_screen(lang), 2))
+        for n in range(1, MAX_CMD + 1):
+            out.append((f"cmd_{n}_{lang}", *text_costume(tr("gr.cmd", lang).format(n=n), 10, "#ffe27a", True, "start")))
+        for i, k in enumerate(CHIP_KEYS):
+            out.append((f"cx_{k}_{lang}", *codex_cell(k, lang, True)))
+            if k in CHIP_UNLOCK:
+                out.append((f"cxl_{k}_{lang}", *codex_cell(k, lang, False)))
+                out.append((f"nx_{k}_{lang}", *text_costume(tr("gr.next", lang).format(chip=tr(f"chip.{k}", lang), n=CHIP_UNLOCK[k]), 6, "#d9b8ff", False, "start")))
+        out.append((f"nx_all_{lang}", *text_costume(tr("gr.next.all", lang), 6, "#d9b8ff", False, "start")))
+        for k in range(1, len(TASK_TARGETS) + 1):
+            for done in (0, 1):
+                out.append((f"tk_{k}_{done}_{lang}", *task_row(k, done, lang)))
+    for n in range(21):
+        out.append((f"xp_{n}", *bar(n, 20, 146, 5, "url(#xpg)")))
+    for n in range(11):
+        out.append((f"tp_{n}", *bar(n, 10, 60, 4, "#2ee88a" if n == 10 else ELITE)))
+    for i in range(len(SKINS)):
+        out.append((f"skp_{i}", tank_icon(SKINS[i], 70, 20), (35, 35)))
+        for st in ("sel", "own", "lock"):
+            out.append((f"sk_{i}_{st}", *skin_cell(i, st)))
+    return out
+
+
+# ---------- v6 排行榜画面（docs/v6/PLAN.md 第五节） ----------
+# 会变的部分（选项卡、每行、数字、芯片）是 UI 的 kRanks / kLbNum 克隆，坐标和 main.spx 的 buildHud 一致
+LB_TABS = [(16, 42, 92, 20), (114, 42, 92, 20)]
+LB_ROW_Y, LB_ROW_H, LB_ROW_STEP = 106, 22, 26
+LB_ME_Y = 326
+LB_BACK = (354, 42, 110, 20)
+MEDALS = {1: "#ffd23a", 2: "#c8d2e3", 3: "#e0915a"}
+
+
+def ranks_screen(lang):
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    s.append(text(16, 30, tr("lb.title", lang), 16, "#ffffff", True))
+    for i, (x, y, w, h) in enumerate(LB_TABS):
+        button(f"lb.tab.{i+1}", x, y, w, h)
+    x, y, w, h = LB_BACK
+    button("lb.back", x, y, w, h)
+    s.append(f'<rect x="{x+0.3}" y="{y+0.3}" width="{w-0.6}" height="{h-0.6}" rx="{h/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>')
+    s.append(text(x + 12, y + 13.5, tr("lv.back", lang), 8, "#c8d2e3", True))
+    c, cw = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({x+w-8-cw:.2f},{y+5})">{c}</g>')
+    y = LB_ROW_Y - 6
+    s.append(text(28, y, tr("lb.col.rank", lang), 6, MUTED, True, "middle"))
+    s.append(text(48, y, tr("lb.col.player", lang), 6, MUTED, True))
+    s.append(text(250, y, tr("lb.col.build", lang), 6, MUTED, True))
+    s.append(text(456, y, tr("lb.col.score", lang), 6, MUTED, True, "end"))
+    s.append(text(W / 2, 318, tr("lb.foot", lang), 5.8, MUTED, False, "middle"))
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def lb_tab(i, on, lang):
+    w, h = LB_TABS[i][2], LB_TABS[i][3]
+    lab = tr(f"lb.tab{i}", lang)
+    body = (f'<rect x="0.3" y="0.3" width="{w-0.6}" height="{h-0.6}" rx="{h/2}" fill="{"#3ee8ff" if on else "#ffffff"}" fill-opacity="{1 if on else 0.05}" stroke="{"none" if on else "#2c3850"}" stroke-width="0.6"/>'
+            + text(w / 2 - 6, 13.6, lab, 8, "#06232b" if on else "#c8d2e3", True, "middle"))
+    c, cw = chip(0, 0, str(i + 1), dark=on)
+    body += f'<g transform="translate({w-6-cw:.2f},5)">{c}</g>'
+    return svg(w, h, body, res=HR), (w / 2, h / 2)
+
+
+def lb_row(medal, me, lang):
+    """排行榜的一行（448 x 22，锚点左上角）：底色、名次的奖牌、“指挥官 #”（编号由数字克隆接在后面）"""
+    w, h = 448, LB_ROW_H
+    fill, op, stroke = ("#ffd23a", 0.1, "#ffd23a") if me else ("#ffffff", 0.035, "#263046")
+    s = [f'<rect x="0.35" y="0.35" width="{w-0.7}" height="{h-0.7}" rx="6" fill="{fill}" fill-opacity="{op}" stroke="{stroke}" stroke-opacity="{0.7 if me else 1}" stroke-width="0.7"/>']
+    if medal:
+        s.append(f'<circle cx="12" cy="{h/2}" r="7" fill="{MEDALS[medal]}" fill-opacity="0.35"/>')
+    lab = tr("lb.cmdr", lang)
+    if 32 + width(lab, 7.5, True) > 83:
+        sys.exit(f"排行榜里的“指挥官 #”太长：{lab}")
+    s.append(text(83, 15, lab, 7.5, "#ffd23a" if me else "#ffffff", True, "end"))  # 编号从 x = 84 起
+    return svg(w, h, "".join(s), res=HR), (0, 0)
+
+
+def lb_me(lang, none=False):
+    w, h = 448, LB_ROW_H
+    s = [f'<rect x="0.35" y="0.35" width="{w-0.7}" height="{h-0.7}" rx="6" fill="#3ee8ff" fill-opacity="0.08" stroke="#3ee8ff" stroke-opacity="0.5" stroke-width="0.7"/>']
+    if none:
+        s.append(text(12, 15, tr("lb.me.none", lang), 7.5, "#9fdcea", True))
+    else:
+        s.append(text(12, 15, tr("lb.me", lang), 7.5, "#9fdcea", True))
+        s.append(text(108, 15, tr("lb.me.rank", lang), 7, MUTED, True))     # 名次右对齐在 x = 104 前面
+        s.append(text(150, 15, tr("lb.me.of", lang), 7, MUTED, True))       # 总人数右对齐在 x = 224
+        s.append(text(228, 15, tr("lb.me.people", lang), 7, MUTED, True))
+        s.append(text(300, 15, tr("lb.me.best", lang), 7, MUTED, True))
+    return svg(w, h, "".join(s), res=HR), (0, 0)
+
+
+def lb_status(k, lang):
+    s = tr(f"lb.st.{k}", lang)
+    w = width(s, 8.5, True) + 30
+    body = f'<rect width="{w:.2f}" height="26" rx="13" fill="#0b0f18" fill-opacity="0.9" stroke="#3ee8ff" stroke-opacity="0.45" stroke-width="0.8"/>' + text(w / 2, 16.6, s, 8.5, "#c8d2e3", True, "middle")
+    return svg(w, 26, body, res=HR), (w / 2, 13)
+
+
+def ranks_costumes():
+    out = []
+    for lang in LANGS:
+        out.append((f"ranks_{lang}", *ranks_screen(lang), 2))
+        for i in range(2):
+            for on in (False, True):
+                out.append((f"lbtab_{i}_{'on' if on else 'off'}_{lang}", *lb_tab(i, on, lang)))
+            out.append((f"lbscope_{i}_{lang}", *text_costume(tr(f"lb.scope{i}", lang), 6.4, MUTED, False, "start")))
+        for medal in range(4):
+            for me in (0, 1):
+                out.append((f"lbrow_{medal}_{me}_{lang}", *lb_row(medal, me, lang)))
+        out.append((f"lbme_{lang}", *lb_me(lang)))
+        out.append((f"lbme_none_{lang}", *lb_me(lang, True)))
+        for k in ("0", "2", "3", "empty"):
+            out.append((f"lbst_{k}_{lang}", *lb_status(k, lang)))
+    return out
+
+
+# ---------- v6 赛季、分享战报、助战码（docs/v6/PLAN.md 第四节） ----------
+TIER_COL = ["#e0915a", "#c8d2e3", "#ffd23a", "#7ee0d0", "#8fb3ff", "#ff7ab8"]
+SEASON_DAYS = 42
+SH_VX = 236  # 分享卡片上数值的 x（和 main.spx 的 buildHud 一致）
+
+
+def season_label(n, t, lang):
+    s = tr("ss.name", lang).format(n=n)
+    tier = tr(f"tier.{t}", lang)
+    w1 = width(s, 8, True)
+    tw = width(tier, 6.5, True) + 10
+    body = (text(1, 9, s, 8, "#ffb020", True)
+            + f'<rect x="{w1+6:.2f}" y="1" width="{tw:.2f}" height="10" rx="5" fill="{TIER_COL[t]}"/>'
+            + text(w1 + 6 + tw / 2, 8.4, tier, 6.5, "#14100a", True, "middle"))
+    return svg(w1 + 8 + tw, 13, body, res=HR), (1, 9)
+
+
+def share_screen(lang):
+    """分享战报：竖版卡片（玩家截图发给朋友）。数值由 UI 克隆显示在 x = SH_VX"""
+    s = [f'<rect width="{W}" height="{H}" fill="#05070c"/>']
+    x0, y0, cw, ch = 150, 14, 180, 300
+    s.append(f'<rect x="{x0}" y="{y0}" width="{cw}" height="{ch}" rx="14" fill="url(#bgH)" stroke="{ELITE}" stroke-width="1"/>')
+    s.append(f'<rect x="{x0}" y="{y0}" width="{cw}" height="30" rx="14" fill="{ELITE}" fill-opacity="0.16"/>')
+    s.append(text(x0 + 14, y0 + 19, tr("title", lang) + " 2026 · " + tr("stage.daily", lang), 7.5, "#ffffff", True))
+    defs, body = tank_body(*TANKS["player"])
+    s.append(f'<defs>{defs}</defs><g transform="translate(296 40) rotate(20 12 12) scale(1.1)">{body}</g>')
+    for y, key in ((64, "sh.no"), (90, "sh.score"), (112, "sh.secs"), (136, "sh.rank"), (160, "sh.streak"), (184, "sh.build"), (214, "sh.code")):
+        lab = tr(key, lang)
+        if 164 + width(lab, 7, True) > SH_VX - 4:
+            sys.exit(f"分享卡片的标签太长：{lab}")
+        s.append(text(164, y, lab, 7, MUTED, True))
+    s.append(f'<path d="M164 {y0+212}H316" stroke="#2c3850" stroke-width="0.6"/>')
+    for i, line in enumerate(tr("sh.cta", lang).split("\n")):
+        s.append(text(W / 2, y0 + 230 + i * 11, line, 6, "#d9b8ff", False, "middle"))
+    s.append(text(W / 2, y0 + 268, tr("sh.shot", lang), 7, "#ffffff", True, "middle"))
+    c, cw2 = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({W/2-cw2/2:.2f},{y0+ch+12})">{c}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+AS_BOX_Y = 92                      # 助战码输入框的上边（数字由 UI 克隆显示，见 main.spx 的 buildAssist）
+AS_PAD = (183, 136, 36, 26, 6)     # 数字键盘：左上角 x、y，键宽、键高、间距（3 列 x 4 行）
+AS_PAD_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "del", "0", "ok"]
+
+
+def assist_screen(lang):
+    """输入助战码：键盘、鼠标、触屏都能用（手机上没有键盘，靠屏幕上的数字键盘）"""
+    s = [f'<rect width="{W}" height="{H}" fill="url(#bgH)"/>']
+    s.append(text(W / 2, 52, tr("as.title", lang), 16, "#ffffff", True, "middle"))
+    s.append(text(W / 2, 70, tr("as.sub", lang), 7.5, "#9fdcea", False, "middle"))
+    s.append(f'<rect x="196" y="{AS_BOX_Y}" width="88" height="34" rx="8" fill="#ffffff" fill-opacity="0.06" stroke="#3ee8ff" stroke-width="1"/>')
+    x0, y0, kw, kh, gap = AS_PAD
+    for i, k in enumerate(AS_PAD_KEYS):
+        x, y = x0 + (i % 3) * (kw + gap), y0 + (i // 3) * (kh + gap)
+        button(f"as.{k}", x, y, kw, kh)
+        if k == "ok":
+            s.append(f'<rect x="{x}" y="{y}" width="{kw}" height="{kh}" rx="7" fill="url(#cta)"/>')
+            s.append(f'<path d="M{x+kw/2-6} {y+kh/2}l4 4 8-8" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')
+            continue
+        s.append(f'<rect x="{x+0.4}" y="{y+0.4}" width="{kw-0.8}" height="{kh-0.8}" rx="7" fill="#ffffff" fill-opacity="0.07" stroke="#2c3850" stroke-width="0.8"/>')
+        if k == "del":  # 退格
+            cx, cy = x + kw / 2, y + kh / 2
+            s.append(f'<path d="M{cx-9} {cy}l5-6h12v12h-12z" fill="none" stroke="#c8d2e3" stroke-width="1.2" stroke-linejoin="round"/>'
+                     f'<path d="M{cx-1} {cy-3}l6 6M{cx+5} {cy-3}l-6 6" stroke="#c8d2e3" stroke-width="1.2"/>')
+        else:
+            s.append(text(x + kw / 2, y + kh / 2 + 4, k, 12, "#ffffff", True, "middle"))
+    s.append(text(W / 2, y0 + 4 * (kh + gap) + 6, tr("as.keys", lang), 6.5, MUTED, True, "middle"))
+    bx, by, bw, bh = W / 2 - 55, 290, 110, 26
+    button("as.back", bx, by, bw, bh)
+    s.append(f'<rect x="{bx+0.3}" y="{by+0.3}" width="{bw-0.6}" height="{bh-0.6}" rx="{bh/2}" fill="#ffffff" fill-opacity="0.05" stroke="#2c3850" stroke-width="0.6"/>')
+    s.append(text(bx + 14, by + 16.5, tr("lv.back", lang), 8.5, "#c8d2e3", True))
+    c, cw = chip(0, 0, "Esc")
+    s.append(f'<g transform="translate({bx+bw-10-cw:.2f},{by+8})">{c}</g>')
+    return svg(W, H, "".join(s), defs_ui(), res=2), (W / 2, H / 2)
+
+
+def season_costumes():
+    out = []
+    for lang in LANGS:
+        for n in range(1, 13):
+            for t in range(6):
+                out.append((f"ssn_{n}_{t}_{lang}", *season_label(n, t, lang)))
+        for d in range(1, SEASON_DAYS + 1):
+            out.append((f"sd_{d}_{lang}", *text_costume(tr("ss.left", lang).format(n=d), 6.4, MUTED, False, "end")))
+        out.append((f"share_{lang}", *share_screen(lang), 2))
+        out.append((f"assist_{lang}", *assist_screen(lang), 2))
+        out.append((f"sh_norank_{lang}", *text_costume(tr("sh.norank", lang), 6.4, "#9fdcea", False, "start")))
+    for n in range(21):
+        out.append((f"sp_{n}", *bar(n, 20, 60, 5, "url(#xpg)")))
+    return out
+
+
 def stage_xy(x, y):
     """SVG 坐标 -> 舞台坐标"""
     return x - W / 2, H / 2 - y
@@ -873,6 +1477,11 @@ def build_hud():
     nums, widths = num_costumes()
     costumes += nums
     costumes += icon_costumes()
+    costumes += [(f"ally_{p}_{lv}", *ally_costume(p, lv)) for p in (1, 2) for lv in range(1, 5)]
+    costumes += chip_costumes()
+    costumes += garage_costumes()
+    costumes += ranks_costumes()
+    costumes += season_costumes()
     costumes += ed_widgets()
     update_generated_block(os.path.join(ROOT, "TankBattle", "UI.spx"), [
         f'\tif st == "{st}" {{\n\t\treturn {dw:.3f}, {cw:.3f}\n\t}}\n' for st, (dw, cw) in widths.items()])
@@ -907,15 +1516,18 @@ def main():
         write("sprites/Player/player_m.svg", tank_m(*TANKS["player"])),
         write("sprites/Player/player2_m.svg", tank_m(*TANKS["player2"])),
         write("sprites/Player/player2.svg", player2_classic()),
-        write("sprites/Enemy/basic_m.svg", tank_m(*TANKS["basic"])),
-        write("sprites/Enemy/fast_m.svg", tank_m(*TANKS["fast"])),
-        write("sprites/Enemy/heavy_m.svg", tank_m(*TANKS["heavy"], heavy=True)),
+        *[write(f"sprites/Player/player_s{i}_m.svg", tank_m(*SKINS[i])) for i in range(1, len(SKINS))],
+        *[write(f"sprites/Enemy/{k}_m.svg", foe_m(k)) for k in FOE_KINDS],
+        *[write(f"sprites/Enemy/{k}_e_m.svg", foe_m(k, ELITE)) for k in FOE_KINDS],
+        *[write(f"sprites/Enemy/{k}.svg", foe_classic(k)) for k in FOE_KINDS],
+        *[write(f"sprites/Enemy/{k}_e.svg", foe_classic(k, PIXEL_ELITE)) for k in FOE_KINDS],
         write("sprites/PBullet/bullet_m.svg", bullet_m("#ffe27a", "#ffb000")),
         write("sprites/EBullet/bullet_m.svg", bullet_m("#ff8a7a", "#ff2a2a")),
     ]
     for i in range(3):
         out.append(write(f"sprites/Boom/b{i+1}_m.svg", boom_m(i)))
     player_index()
+    enemy_index()
     stage_index()
     hud = build_hud()
     print(f"generated {len(out)} art files, {hud} HUD costumes")

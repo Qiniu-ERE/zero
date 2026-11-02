@@ -1,0 +1,192 @@
+// 排行榜客户端（R01~R09），见 docs/v6/TEST_PLAN.md。服务端的规则在 tests/tools/test_leaderboard.py（R10~R29）
+// server: true
+// timeout: 90
+onStart => {
+	wait 3
+	server := os.Getenv("TB_LB")
+	tCheck "R01 测试脚本起了本机的排行榜服务", strings.HasPrefix(server, "http://127.0.0.1:")
+
+	// R01 上传的成绩是合法的 JSON，字段齐全（芯片只算升级芯片，等级 = 芯片数 + 1）
+	chips[1] = []int{cRapid, cShield}
+	var m map[string]interface{}
+	rec := lbRecord("daily", 20800, 1234, 95, dailyStage)
+	tCheck "R01 成绩是合法的 JSON", json.Unmarshal([]byte(rec), &m) == nil
+	tStr "R01 玩家 ID", m["player"].(string), playerID
+	tStr "R01 区（海外榜）", m["region"].(string), "global"
+	tInt "R01 分数", jsonInt(m, "score"), 1234
+	tInt "R01 用时", jsonInt(m, "secs"), 95
+	tInt "R01 关卡", jsonInt(m, "stage"), dailyStage
+	tInt "R01 等级", jsonInt(m, "level"), 3
+	tInt "R01 芯片两块", len(m["chips"].([]interface{})), 2
+	tInt "R01 第 20800 天在第 2970 周", weekOf(20800), 2970
+	chips[1] = nil
+
+	// R02 没有配置服务器：不排队、排行榜显示“还没上线”
+	lbBase = ""
+	lbQueue = nil
+	lbEnqueue rec
+	tInt "R02 没有服务器不排队", len(lbQueue), 0
+	goHome
+	openRanks
+	tInt "R02 打开排行榜", state, stRanks
+	tInt "R02 显示“服务还没上线”", lbStatus, lbNoServer
+	escKey
+	tInt "R02 Esc 回主页", state, stHome
+
+	// R03 离线：上传失败，成绩留在队列里（存档里也有），状态是离线
+	lbBase = "http://127.0.0.1:1" // 没有服务的端口
+	lbEnqueue rec
+	for t := 0; t < 50 && lbBusy; t++ {
+		wait 0.1
+	}
+	tCheck "R03 后台任务结束", !lbBusy
+	tInt "R03 失败的成绩还在队列里", len(lbQueue), 1
+	tCheck "R03 记下离线", !lbOnline
+	b, _ := os.ReadFile(saveFile())
+	tCheck "R03 队列写进存档", strings.Contains(string(b), "lb.queue={")
+
+	// R04 联网后补传：队列清空，服务器上有成绩
+	dayOverride = 20800
+	lbBase = server
+	lbFlush()
+	for t := 0; t < 50 && lbBusy; t++ {
+		wait 0.1
+	}
+	tInt "R04 联网后补传，队列清空", len(lbQueue), 0
+	tCheck "R04 记下在线", lbOnline
+	b, _ = os.ReadFile(saveFile())
+	tCheck "R04 存档里的队列也清掉了", !strings.Contains(string(b), "lb.queue=")
+
+	// R05 读榜：再传几个别人的成绩，排行榜按分数排、标出自己、显示自己的名次
+	// （服务器按真实日期收成绩：用服务器告诉的今天）
+	lbHealth server
+	tCheck "R05 服务器告诉今天是第几天", lbDoneDay > 20000
+	d := lbDoneDay
+	lbDoneDay = 0
+	dayOverride = d
+	others := []string{"a000000000000001", "b000000000000002", "c000000000000003"}
+	for i, p := range others {
+		body := strings.Replace(lbRecord("daily", d, 2000+i*1000, 120, dailyStage), playerID, p, 1)
+		tInt "R05 别人的成绩传上去 "+strconv.Itoa(i+1), lbPost(server+"/v1/score", body), 200
+	}
+	chips[1] = []int{cPierce}
+	tInt "R05 自己的成绩传上去", lbPost(server+"/v1/score", lbRecord("daily", d, 3500, 150, dailyStage)), 200
+	chips[1] = nil
+	lbTab = 0
+	openRanks
+	for t := 0; t < 50 && lbStatus == lbLoading; t++ {
+		wait 0.1
+	}
+	tInt "R05 读到了", lbStatus, lbOK
+	tInt "R05 一共 4 人", lbTotal, 4
+	tInt "R05 第一名 4000 分", lbScores[0], 4000
+	tInt "R05 第二名是自己（3500）", lbScores[1], 3500
+	tCheck "R05 标出自己那一行", lbMine[1] && !lbMine[0]
+	tInt "R05 自己的名次", lbMyRank, 2
+	tInt "R05 自己的最好成绩", lbMyBest, 3500
+	tInt "R05 第一名的编号（ID 前 4 位 % 10000）", lbTags[0], 0xc000%10000
+	tInt "R05 我的编号算法和服务端一样", lbTags[1], myTag()
+	tInt "R05 读到自己的芯片组合", lbChips[1][0], cPierce
+	tStr "R05 第 3 行的名次文字", lbText(2, 0), "3"
+	tStr "R05 我的名次文字", lbText(8, 0), "2"
+	tStr "R05 总人数文字", lbText(8, 3), "4"
+	tStr "R05 没有的行不显示", lbText(6, 2), ""
+
+	// R06 切到全球周榜：本周还没人 → 空榜，我的名次为 0；旧请求的结果作废
+	lbShow 1
+	g := lbGen
+	for t := 0; t < 50 && lbStatus == lbLoading; t++ {
+		wait 0.1
+	}
+	tInt "R06 周榜读到了", lbStatus, lbOK
+	tInt "R06 周榜还没有人", lbTotal, 0
+	tInt "R06 不在周榜上", lbMyRank, 0
+	// 没上榜时底部那一行是“你还没上这个榜”的整句话：名次、总人数、最好成绩都不显示数字
+	// （以前名次显示成 "-"，数字字体里没有这个字符，克隆留着别的造型；总人数和 0 分叠在这句话上。本机模拟上线时发现）
+	tStr "R06 没上榜：不显示名次", lbText(8, 0), ""
+	tStr "R06 没上榜：不显示最好成绩", lbText(8, 2), ""
+	tStr "R06 没上榜：不显示总人数", lbText(8, 3), ""
+	lbDoneFetch = g - 1 // 假装上一个请求现在才回来
+	lbPoll
+	tInt "R06 旧请求的结果作废（选项卡没变）", lbTab, 1
+	tInt "R06 旧请求的结果作废（还是空榜）", lbTotal, 0
+	goHome
+
+	// R07 打完一关（单人战役）自动上传周榜；双人、路演演示、太短的都不传
+	playStage 1
+	wait 0.3
+	tCalm
+	runSecs = 60
+	score = 900
+	endGame true
+	for t := 0; t < 50 && lbBusy; t++ {
+		wait 0.1
+	}
+	r := lbGet(server + "/v1/rank?region=global&board=weekly&period=" + strconv.Itoa(weekOf(d)) + "&player=" + playerID)
+	tInt "R07 周榜上有自己", jsonInt(r, "score"), 900
+	n0 := len(lbQueue)
+	lbBusy = true // 先不让它传，看排不排队
+	coop = true
+	endGame true
+	tInt "R07 双人不上榜", len(lbQueue), n0
+	coop = false
+	autopilot = true
+	endGame true
+	tInt "R07 路演演示不上榜", len(lbQueue), n0
+	autopilot = false
+	runSecs = 5
+	endGame true
+	tInt "R07 太短的不上榜", len(lbQueue), n0
+	lbBusy = false
+
+	// R08 每日挑战：正式成绩上传，练习不上传
+	dailyDay = 0
+	playDaily
+	wait 0.3
+	tCalm
+	runSecs = 100
+	score = 5100
+	endGame false
+	for t := 0; t < 50 && lbBusy; t++ {
+		wait 0.1
+	}
+	r = lbGet(server + "/v1/rank?region=global&board=daily&period=" + strconv.Itoa(d) + "&player=" + playerID)
+	tInt "R08 每日挑战正式成绩传上去了（比原来的 3500 高）", jsonInt(r, "score"), 5100
+	lbBusy = true
+	n0 = len(lbQueue)
+	again
+	wait 0.3
+	tCalm
+	runSecs = 100
+	score = 9000
+	endGame true
+	tInt "R08 练习局不上传", len(lbQueue), n0
+	lbBusy = false
+
+	// R09 队列最多 20 条（太多就丢掉最早的），重启后还在
+	lbBase = "http://127.0.0.1:1"
+	lbBusy = true
+	lbQueue = nil
+	for i := 0; i < 25; i++ {
+		lbEnqueue lbRecord("weekly", weekOf(d), i, 30, 1)
+	}
+	tInt "R09 队列最多 20 条", len(lbQueue), lbQueueMax
+	tCheck "R09 丢掉的是最早的", strings.Contains(lbQueue[0], `"score":5,`)
+	lbQueue = nil
+	initSave
+	tInt "R09 重启后队列还在", len(lbQueue), lbQueueMax
+	lbBusy = false
+	lbBase = ""
+
+	// R05 网页版拿不到本机时间：用服务器告诉的日期
+	dayOverride = -1
+	serverDay = 0
+	tInt "R05 拿不到本机时间时是 0", today(), 0
+	lbDoneDay = 20900
+	lbPoll
+	tInt "R05 用服务器告诉的日期", today(), 20900
+	dayOverride = 0
+	serverDay = 0
+
+	tDone "board"
+}

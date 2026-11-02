@@ -23,6 +23,36 @@
       "path": "player2_m.svg",
       "x": 12,
       "y": 12
+    },
+    {
+      "name": "player_s1_m",
+      "path": "player_s1_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "player_s2_m",
+      "path": "player_s2_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "player_s3_m",
+      "path": "player_s3_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "player_s4_m",
+      "path": "player_s4_m.svg",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "player_s5_m",
+      "path": "player_s5_m.svg",
+      "x": 12,
+      "y": 12
     }
   ],
   "costumeIndex": 0,

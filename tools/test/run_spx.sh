@@ -7,6 +7,9 @@
 #       tools/test/run_spx.sh tests/spx/grid.spx   # 只跑一组
 #       TEST_WORK=目录 tools/test/run_spx.sh        # 工作目录（会先清空），默认 $TMPDIR/tankbattle-test-<仓库路径的校验和>
 #
+# 测试文件里可以写：// timeout: 秒数（这一组的超时）、// touch: true（触屏模式）、
+#                   // server: true（v6：先在本机起一个排行榜服务，地址在环境变量 TB_LB）
+#
 # 做法（详见 docs/v4/TEST_PLAN.md 第二节）：每组测试复制一份工程，把 prelude.spx 的断言函数插到
 # 副本 main.spx 的第一个 func 前面（类文件里 func 必须写在事件处理之前），把测试脚本追加到末尾，
 # 用 spx run -headless 运行。仓库里的游戏不会被改动。
@@ -54,6 +57,21 @@ for suite in "$@"; do
 	fi
 	{ printf '\n// ---- 测试：%s ----\n' "${name}"; cat "$suite"; } >> "$main"
 
+	# 测试文件里写一行 “// server: true”：先在本机起一个排行榜服务（server/leaderboard.py，临时数据库），
+	# 地址放在环境变量 TB_LB 里，测试脚本把 lbBase 指向它（v6 排行榜的端到端测试）
+	lbpid=""
+	TB_LB=""
+	if grep -q '^// server: true' "$suite"; then
+		port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
+		python3 "$ROOT/server/leaderboard.py" --port "$port" --db "$dir/lb.sqlite" > "$dir/server.log" 2>&1 &
+		lbpid=$!
+		TB_LB="http://127.0.0.1:$port"
+		for _ in 1 2 3 4 5 6 7 8 9 10; do
+			curl -s "$TB_LB/v1/health" > /dev/null 2>&1 && break
+			sleep 0.3
+		done
+	fi
+	export TB_LB
 	# 地图编辑器的存档写到 os.UserConfigDir()，指向临时目录，不碰玩家自己的存档
 	log="$dir/run.log"
 	(cd "$dir/TankBattle" && HOME="$dir/home" XDG_CONFIG_HOME="$dir/home/.config" APPDATA="$dir/home/AppData" \
@@ -71,6 +89,7 @@ for suite in "$@"; do
 		kill $pid 2>/dev/null || true
 	fi
 	wait $pid 2>/dev/null || true
+	[ -z "$lbpid" ] || { kill "$lbpid" 2>/dev/null; wait "$lbpid" 2>/dev/null || true; }
 
 	pass=$(grep -a -c '^TEST PASS' "${log}" || true)
 	fail=$(grep -a -c '^TEST FAIL' "${log}" || true)

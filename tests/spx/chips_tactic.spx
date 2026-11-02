@@ -1,0 +1,133 @@
+// 战术芯片和双人（U30~U34），见 docs/v6/TEST_PLAN.md
+// timeout: 90
+onStart => {
+	wait 3
+
+	// U30 钢铁堡垒：基地四周 5 格变钢墙 15 秒，到时间恢复成砖墙；暂停时不倒计时；再捡一次重新计时
+	playStage 1
+	wait 0.5
+	tCalm
+	ring := baseRing()
+	applyChip 1, cFortify
+	steel := 0
+	for _, i := range ring {
+		if grid[i] == 2 {
+			steel++
+		}
+	}
+	tInt "U30 基地四周 5 格变钢墙", steel, 5
+	tInt "U30 钢铁堡垒不占位置", lvl[1], 1
+	pauseGame
+	wait 1
+	tCheck "U30 暂停时不倒计时", fortifyLeft > 14.9
+	resumeGame
+	fortifyLeft = 1
+	applyChip 1, cFortify
+	tNum "U30 再捡一次重新计时 15 秒", fortifyLeft, 15
+	fortifyLeft = 0.3
+	wait 0.6
+	brick := 0
+	for _, i := range ring {
+		if grid[i] == 1 {
+			brick++
+		}
+	}
+	tInt "U30 到时间恢复成 5 块完整的砖墙", brick, 5
+	tNum "U30 倒计时结束", fortifyLeft, 0
+	// 钢墙被穿甲弹打掉后，到时间也补回砖墙
+	applyChip 1, cFortify
+	grid[ring[1]] = 0
+	fortifyLeft = 0.2
+	wait 0.5
+	tInt "U30 被打掉的钢墙到时间补回砖墙", grid[ring[1]], 1
+	// 钢铁堡垒期间复活：先恢复成砖墙
+	applyChip 1, cFortify
+	revive
+	tNum "U30 复活时结束钢铁堡垒", fortifyLeft, 0
+	tInt "U30 复活后基地四周是砖墙", grid[ring[0]], 1
+
+	// U31 空袭：场上的敌人全部被击毁，照样加分；精英照样掉芯片；打掉最后一辆就过关
+	tQuiet
+	score, killed = 0, 0
+	Enemy.spawn cellX(2), cellY(2), 0
+	Enemy.spawn cellX(10), cellY(2), 2
+	Enemy.spawn cellX(6), cellY(4), 11
+	enemiesAlive = 3
+	wait 0.3
+	dropLeft = 0
+	applyChip 1, cBomb
+	wait 0.3
+	tInt "U31 空袭击毁 3 辆", killed, 3
+	tInt "U31 空袭照样加分（100 + 400 + 500）", score, 1000
+	tInt "U31 场上没有敌人了", enemiesAlive, 0
+	tCheck "U31 精英照样掉芯片", dropLeft > 9
+	tQuiet
+	killed = totalEnemy - 1
+	Enemy.spawn cellX(6), cellY(4), 0
+	enemiesAlive = 1
+	wait 0.3
+	state = stPick
+	gameOver = true
+	pickWho = 1
+	pickOpts = []int{cBomb, cRapid, cEngine}
+	pickChoose 0
+	wait 0.3
+	tInt "U31 空袭打掉最后一辆 → 过关", state, stResult
+	tCheck "U31 空袭打掉最后一辆 → 胜利", won
+
+	// U32 冰冻：敌人 5 秒不动、不开火，但能被打中；到时间又动起来
+	tQuiet
+	Enemy.spawn cellX(6), cellY(4), 1 // 快速坦克
+	enemiesAlive = 1
+	wait 0.3
+	applyChip 1, cFreeze
+	tNum "U32 冰冻 5 秒", freezeLeft, 5
+	freezeLeft = 1.5
+	killed = 0
+	wait 0.2
+	PBullet.fire cellX(6), cellY(8), 0, 1
+	wait 0.8
+	tInt "U32 冰冻时照样能被打中", killed, 1
+	tQuiet
+	Enemy.spawn cellX(6), cellY(4), 1
+	enemiesAlive = 1
+	wait 0.2
+	freezeLeft = 1
+	wait 0.6
+	tCheck "U32 冰冻时没有敌人子弹", len(ebPos) == 0
+	wait 2
+	tNum "U32 冰冻结束", math.Max(freezeLeft, 0), 0
+
+	// U33 双人：各自捡、各自升级，2P 的子弹按 2P 的芯片算
+	newGame 1, true
+	wait 0.5
+	tCalm
+	for i := range grid {
+		grid[i] = 0
+	}
+	chips[1], chips[2] = nil, nil
+	lvl[1], lvl[2] = 1, 1
+	wait 0.2
+	dropX, dropY, dropLeft = p2x, p2y, 10
+	wait 0.2
+	tInt "U33 2P 开过去捡到 → 三选一", state, stPick
+	tInt "U33 是 2P 在选", pickWho, 2
+	pickOpts = []int{cDouble, cRapid, cEngine}
+	pickChoose 0
+	tInt "U33 2P 升到 Lv2", lvl[2], 2
+	tInt "U33 1P 还是 Lv1", lvl[1], 1
+	tInt "U33 2P 同时 2 发", bulletLimit(2), 2
+	tInt "U33 1P 还是 1 发", bulletLimit(1), 1
+
+	// U34 三选一时不能暂停；Esc 没有反应（必须选一块）
+	state = stPick
+	gameOver = true
+	pauseGame
+	tInt "U34 三选一时不能暂停", state, stPick
+	escKey
+	tInt "U34 三选一时按 Esc 没有反应", state, stPick
+	pickChoose 2
+	tInt "U34 选完回到对局", state, stPlay
+
+	tDone "chips_tactic"
+}

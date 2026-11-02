@@ -1,5 +1,7 @@
 import (
+	"encoding/json"
 	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -83,6 +85,87 @@ var (
 	tgtY      float64
 	tgtDist   float64
 	tgtAge    float64 // 距离上次汇报过了多久，太久说明目标已经没了
+
+	// v6 局内升级（docs/v6/PLAN.md 第二节）：打精英坦克掉芯片，三选一。下标 1 是 1P，2 是 2P（0 不用）
+	lvl          [3]int     // 坦克等级 1~4（= 1 + 已装的升级芯片数）
+	chips        [3][]int   // 已装的升级芯片（按选择的先后），最多 3 块
+	snapChips    [3][]int   // 进入本关时的芯片：战败重打、暂停里重新开始本关时恢复成这样
+	shieldCD     [3]float64 // 能量护盾：挡下一发后还要多久才恢复（秒）
+	shooter      int        // 正在判定的玩家子弹是谁打的（PBullet 调 bulletHit 之前设好，穿甲弹靠它）
+	elitesKilled int        // 本关已击毁的精英
+	dropX        float64    // 场上的芯片在哪（同一时间只有一块）
+	dropY        float64
+	dropLeft     float64 // 芯片还有几秒消失；0 表示场上没有芯片
+	pickWho      int     // 谁在三选一
+	pickOpts     []int   // 三选一的三块芯片
+	rerollUsed   bool    // 本关已经刷新过一次
+	adFree       bool    // 买了去广告（$0.99）：三选一的刷新不用看视频。接上内购 SDK 后由购买回调设置，现在没有入口
+	freezeLeft   float64 // 冰冻：敌人还要停几秒
+	fortifyLeft  float64 // 钢铁堡垒：基地四周的钢墙还剩几秒
+	cmdLevel     int     // 指挥官等级（局外成长，车库里升级）：决定哪些芯片已经解锁
+
+	// v6 局外成长：车库与存档（docs/v6/PLAN.md 第三节），存在 save.txt
+	playerID    string // 随机的 16 位十六进制 ID（第一次启动时生成）：排行榜用它区分玩家，不收集个人信息
+	cmdXP       int    // 指挥官经验（累计）
+	wallet      int    // 金币：每局结算的金币存进来，用来买涂装
+	skinsOwned  []bool // 有哪些涂装（下标是涂装编号，0 是默认的金色）
+	skin        int    // 1P 现在用的涂装（只换现代画风的外观；2P 一直是青绿色，方便分清）
+	taskDay     int    // 今日任务是哪一天的
+	taskIDs     []int  // 今天的 3 个任务
+	taskProg    []int  // 3 个任务的进度
+	dayOverride int    // 测试用：指定“今天”是第几天（0 表示按真实时间，负数表示拿不到时间）
+	panel       string // 现在建好的是哪个画面的小部件（"" 表示没有，见 panelOff）
+	uiClones    int    // 现在有多少个 UI 克隆（测试克隆预算用）
+
+	// v6 每日挑战（docs/v6/PLAN.md 第四节）
+	dailyDayNow   int     // 正在打的是哪一天的每日挑战
+	dailySeed     int     // 每日挑战的随机数状态：敌人出场用（dailyRand）
+	dailyChipSeed int     // 每日挑战的随机数状态：三选一用（dailyChipRand），和敌人分开，抽到的芯片才不会受出兵快慢影响
+	dailySecs     float64 // 这一局用了多久（战场冻结时不算）
+	dailyDay      int     // 哪一天已经有了正式成绩（存档）
+	dailyScore    int     // 那天的正式成绩（存档）
+	dailyOfficial bool    // 刚结束的这一局是不是正式成绩
+	runSecs       float64 // 从进关开始打了多久（战场冻结时不算；过关后接着算）：上传成绩时用
+
+	// v6 排行榜（docs/v6/PLAN.md 第五节）
+	lbBase    string   // 排行榜服务的地址，开始时等于常量 lbURL（测试里指向本机临时起的服务）；"" 表示不联网
+	lbQueue   []string // 还没传上去的成绩（JSON，存档里也有，联网后补传）
+	lbBusy    bool     // 后台正在上传
+	lbOnline  bool     // 最近一次联网成功了
+	lbTab     int      // 排行榜画面的选项卡：0 每日挑战，1 全球周榜
+	lbGen     int      // 读榜请求的编号：切换选项卡后，旧请求的结果作废
+	lbStatus  int      // lbLoading / lbOK / lbOffline / lbNoServer
+	lbTags    []int    // 榜上前 8 名的“指挥官 #编号”
+	lbScores  []int
+	lbMine    []bool   // 这一行是不是自己
+	lbChips   [][]int  // 每一行的芯片组合
+	lbMyRank  int      // 自己的名次（0 表示不在榜上）
+	lbTotal   int      // 这个榜一共多少人
+	lbMyBest  int      // 自己在这个榜上的最好成绩
+	serverDay int      // 服务器告诉的今天（网页版拿不到本机时间时用）
+
+	// v6 赛季、分享战报、助战码（docs/v6/PLAN.md 第四节）
+	seasonNo      int    // 存档里的赛季
+	seasonPts     int    // 这个赛季的积分
+	streak        int    // 连续打每日挑战的天数（只展示）
+	streakDay     int    // 上次打每日挑战是哪一天
+	dailyBestSecs int    // 每日挑战正式成绩那一局的用时（秒，分享卡片上显示）
+	assistInput   string // 正在输入的助战码
+	assistGift    int    // 好友送的助战芯片：下一局开局时装上（0 表示没有）
+	dailyBuild    []int  // 每日挑战正式成绩那一局的芯片（分享卡片上显示）
+
+	// 后台 goroutine 写、舞台每帧收（lbPoll）
+	lbDoneSend   bool
+	lbDoneLeft   []string
+	lbDoneFetch  int
+	lbDoneDay    int
+	lbNextTags   []int
+	lbNextScores []int
+	lbNextMine   []bool
+	lbNextChips  [][]int
+	lbNextRank   int
+	lbNextTotal  int
+	lbNextBest   int
 )
 
 const (
@@ -94,9 +177,15 @@ const (
 	stEdit   = 5 // 自己做地图
 	stPause  = 6 // 对局暂停（Esc 或顶栏的暂停按钮）
 	stLevels = 7 // 选择关卡（v5：鼠标、触屏也能选关）
+	stPick   = 8 // v6：捡到芯片，三选一（战场冻结）
+	stGarage = 9 // v6：车库
+	stRanks  = 10 // v6：排行榜
+	stShare  = 11 // v6：分享战报（每日挑战结算后）
+	stAssist = 12 // v6：输入好友的助战码
 
 	rewardRevive = 1 // 激励视频奖励：复活
 	rewardDouble = 2 // 激励视频奖励：金币翻倍
+	rewardReroll = 3 // 激励视频奖励：三选一刷新一次（v6）
 
 	adSeconds     = 5 // 模拟激励视频的时长
 	reviveSeconds = 7 // 复活询问的倒计时
@@ -114,6 +203,68 @@ const (
 	padY       = 8.0
 	padR       = 58.0 // 方向键的响应半径
 	customStage = 9     // 自制地图试玩时的关卡编号
+	dailyStage  = 10    // 每日挑战的关卡编号（v6）
+	dailyEpoch  = 20757 // 每日挑战第 1 期的前一天（2026-11-01 是第 20758 天）
+	xpDaily     = 100   // 完成每日挑战的经验
+
+	// 排行榜：服务还没部署，lbURL 是空的（游戏里显示“排行榜服务还没上线”）。部署后打包时用 LB_URL=https://... 填上（tools/export/build.sh 只改打包副本）
+	lbURL       = ""
+	lbRegion    = "global" // 海外榜；国内的包打包时用 LB_REGION=cn（国内榜，数据存境内）
+	gameVersion = "6.0.0"
+	lbQueueMax  = 20
+	lbLoading   = 0
+	lbOK        = 1
+	lbOffline   = 2
+	lbNoServer  = 3
+
+	seasonDays = 42 // 6 周一季
+	seasonSkin = 5  // 赛季涂装（黄金段位送）
+	ptsDaily   = 50 // 每日挑战正式成绩：50 + 得分 / 200
+	ptsClear   = 20 // 战役过一关
+	storeBuild  = false // 商店版（PC 买断，没有广告）：tools/export/build.sh --store 改成 true。v6 起三选一每局免费刷新 1 次
+)
+
+// v6 芯片（docs/v6/PLAN.md 2.3）：1~9 是升级芯片（占一个位置、升一级），10~12 是战术芯片（立即生效、不占位置）
+const (
+	cRapid   = 1  // 疾速弹：子弹速度 +40%
+	cDouble  = 2  // 双联炮：同时 2 发子弹
+	cPierce  = 3  // 穿甲弹：能打穿钢墙
+	cBounce  = 4  // 跳弹：打到墙反弹一次
+	cShield  = 5  // 能量护盾：挡住 1 发，30 秒恢复
+	cEngine  = 6  // 涡轮引擎：移动速度 +25%
+	cFloat   = 7  // 浮桥履带：能开过水面
+	cStealth = 8  // 迷彩：在草丛里不会被敌人子弹打中
+	cMagnet  = 9  // 磁吸：芯片自动飞过来
+	cFortify = 10 // 钢铁堡垒：基地四周变钢墙 15 秒
+	cBomb    = 11 // 空袭：场上的敌人全部炸掉
+	cFreeze  = 12 // 冰冻：敌人原地停 5 秒
+
+	chipCount   = 12
+	maxLevel    = 4
+	dropSecs    = 10.0 // 芯片掉落后几秒内要捡
+	maxBonus    = 500  // 满级后再捡到芯片：直接加分
+	elitePoints = 300  // 精英比同类坦克多的分数
+	shieldSecs  = 30.0
+	freezeSecs  = 5.0
+	fortifySecs = 15.0
+
+	// 局外成长
+	maxCmdLevel = 30
+	xpKill      = 2  // 击毁一辆敌人的经验
+	xpElite     = 10 // 击毁精英额外的经验
+	xpClear     = 50 // 过关的经验
+	skinCount   = 6 // 0 默认，1~4 金币买，5 赛季奖励
+	taskCount   = 8 // 每日任务的种类
+	taskReward  = 50
+
+	tkKill   = 1 // 每日任务：击毁 30 辆敌人
+	tkElite  = 2 // 击毁 3 辆精英
+	tkClear  = 3 // 通关 2 关
+	tkChip   = 4 // 捡到 3 块芯片
+	tkCoop   = 5 // 打一局双人合作
+	tkCombo  = 6 // 凑出一个连携
+	tkCustom = 7 // 试玩一张自制地图
+	tkDaily  = 8 // 完成每日挑战
 )
 
 // 关卡地图（13 x 13，每格 24 像素）
@@ -123,6 +274,9 @@ const (
 func levelMap() []string {
 	if stage == customStage {
 		return edRows()
+	}
+	if stage == dailyStage {
+		return dailyRows(dailyDayNow)
 	}
 	switch stage {
 	case 2: // 水乡迷宫：大片水面分割战场，坦克要绕路，子弹却能隔河对射
@@ -259,6 +413,8 @@ func levelMap() []string {
 // 本关的敌军配置：重型坦克占比（%）、快速坦克占比（%）、出兵间隔（秒）、场上最多几辆
 func stageTune() (int, int, float64, int) {
 	switch stage {
+	case dailyStage: // 每日挑战：和第 7 关差不多难
+		return 30, 45, 1.5, 5
 	case 2:
 		return 20, 30, 2.0, 4
 	case 3:
@@ -282,14 +438,18 @@ func stageTip() string {
 	if stage == customStage {
 		return "msg.ed.play"
 	}
+	if stage == dailyStage {
+		return "msg.daily"
+	}
 	if stage == 1 {
 		return "msg.start"
 	}
 	return "msg.stage" + strconv.Itoa(stage)
 }
 
-// 玩家子弹的朝向：2P 的子弹存的是朝向 + 1000（见 PBullet.fire）
+// 玩家子弹的朝向：2P 的子弹存的是朝向 + 1000（见 PBullet.fire），反弹过的再加 10000 × 次数（v6 跳弹）
 func bulletDir(f int) int {
+	f = pbStrip(f)
 	if f >= 500 {
 		return f - 1000
 	}
@@ -346,12 +506,1367 @@ func touchZone(x, y float64) int {
 	return -1 // 顶栏、右侧面板（暂停、语言、广告卡等按钮都在这里）
 }
 
+// 我方标识（v6 敌我区分）：第 p 个玩家（1 或 2）的光圈和标签要不要显示、显示在哪。
+// 只在对局中（含暂停）显示；坦克死了（报的位置很远）或者 2P 不在就不显示
+func allyAt(p int) (bool, float64, float64) {
+	x, y := p1x, p1y
+	if p == 2 {
+		x, y = p2x, p2y
+	}
+	on := (state == stPlay || state == stPause) && x < 9000 && (p == 1 || (coop && p2Exists))
+	return on, x, y
+}
+
 // (x, y) 离哪辆玩家坦克更近：1 或 2
 func nearestPlayer(x, y float64) int {
 	if p2Exists && math.Abs(x-p2x)+math.Abs(y-p2y) < math.Abs(x-p1x)+math.Abs(y-p1y) {
 		return 2
 	}
 	return 1
+}
+
+// ---------- v6 局内升级：精英、芯片、三选一（docs/v6/PLAN.md 第二节） ----------
+
+// 芯片的英文名：造型和文案 key 都用它（"chip.rapid"、"pc_rapid_zh"、"ci_rapid"）
+func chipKey(id int) string {
+	return []string{"", "rapid", "double", "pierce", "bounce", "shield", "engine", "float", "stealth", "magnet", "fortify", "bomb", "freeze"}[id]
+}
+
+// 战术芯片：立即生效，不占位置、不升级
+func chipTactical(id int) bool {
+	return id >= cFortify
+}
+
+// 稀有度：1 普通，2 稀有，3 传奇。三选一时出现的权重是 6 : 3 : 1
+func chipRarity(id int) int {
+	switch id {
+	case cPierce:
+		return 3
+	case cDouble, cBounce, cFloat, cBomb, cFreeze:
+		return 2
+	}
+	return 1
+}
+
+// 指挥官几级解锁这块芯片（车库，docs/v6/PLAN.md 第三节）。一开始就有 9 块
+func chipUnlockLv(id int) int {
+	switch id {
+	case cFloat:
+		return 3
+	case cStealth:
+		return 5
+	case cMagnet:
+		return 8
+	}
+	return 1
+}
+
+func chipUnlocked(id int) bool {
+	return cmdLevel >= chipUnlockLv(id)
+}
+
+func hasChip(who, id int) bool {
+	for _, c := range chips[who] {
+		if c == id {
+			return true
+		}
+	}
+	return false
+}
+
+// 连携：两块芯片都装上时有额外效果。弹幕（穿甲弹 + 跳弹）：反弹 2 次；连射（疾速弹 + 双联炮）：同时 3 发
+func comboBarrage(who int) bool {
+	return hasChip(who, cPierce) && hasChip(who, cBounce)
+}
+
+func comboSalvo(who int) bool {
+	return hasChip(who, cRapid) && hasChip(who, cDouble)
+}
+
+// 场上同时最多几发子弹
+func bulletLimit(who int) int {
+	if comboSalvo(who) {
+		return 3
+	}
+	if hasChip(who, cDouble) {
+		return 2
+	}
+	return 1
+}
+
+// 子弹速度（像素/秒）
+func bulletSpeed(who int) float64 {
+	if hasChip(who, cRapid) {
+		return 260 * 1.4
+	}
+	return 260
+}
+
+// 子弹能反弹几次
+func bounceLimit(who int) int {
+	if comboBarrage(who) {
+		return 2
+	}
+	if hasChip(who, cBounce) {
+		return 1
+	}
+	return 0
+}
+
+// 坦克移动速度（像素/秒）
+func moveSpeed(who int) float64 {
+	if hasChip(who, cEngine) {
+		return 60 * 1.25
+	}
+	return 60
+}
+
+// 玩家坦克中心在 (x, y) 时会不会压到东西：装了浮桥履带时水面能开过去
+func playerBlocked(x, y float64, who int) bool {
+	if !hasChip(who, cFloat) {
+		return tankBlocked(x, y)
+	}
+	h := 11.0
+	for _, p := range [][2]float64{{x - h, y - h}, {x + h, y - h}, {x - h, y + h}, {x + h, y + h}} {
+		v := cellAt(p[0], p[1])
+		if v != 0 && v != 5 && v != 4 {
+			return true
+		}
+	}
+	return false
+}
+
+// 迷彩：装了迷彩、并且坦克中心在草丛里，敌人子弹打不中
+func stealthed(who int) bool {
+	x, y := p1x, p1y
+	if who == 2 {
+		x, y = p2x, p2y
+	}
+	return hasChip(who, cStealth) && cellAt(x, y) == 5
+}
+
+// 能量护盾挡下这一发：返回 true 表示挡住了（坦克不会被击毁），护盾 30 秒后恢复
+func shieldBlock(who int) bool {
+	if !hasChip(who, cShield) || shieldCD[who] > 0 {
+		return false
+	}
+	shieldCD[who] = shieldSecs
+	sfx "armor"
+	toast "msg.shield", 1.2
+	return true
+}
+
+// 本关第 n 辆（从 0 数）出场的敌人是不是精英：第 4、11 辆；第 4 关起还有第 18 辆
+func eliteSlot(n int) bool {
+	return n == 3 || n == 10 || (n == 17 && stage >= 4 && stage != customStage) // 每日挑战也是 3 辆
+}
+
+// 本关一共几辆精英
+func eliteCount() int {
+	n := 0
+	for i := 0; i < totalEnemy; i++ {
+		if eliteSlot(i) {
+			n++
+		}
+	}
+	return n
+}
+
+// 精英被击毁：在它的位置掉一块芯片（场上原来的芯片被替换），10 秒内去捡
+func eliteDown(x, y float64) {
+	elitesKilled++
+	gainXP xpElite
+	taskAdd tkElite, 1
+	dropX = x
+	dropY = y
+	dropLeft = dropSecs
+	broadcast "hud"
+}
+
+// 新的一关：等级和芯片回到进关时的样子，其他 v6 状态清零
+func resetRun() {
+	for w := 1; w <= 2; w++ {
+		chips[w] = append([]int{}, snapChips[w]...)
+		lvl[w] = 1 + len(chips[w])
+		shieldCD[w] = 0
+	}
+	elitesKilled = 0
+	dropLeft = 0
+	freezeLeft = 0
+	fortifyLeft = 0
+	rerollUsed = false
+	pickWho = 0
+}
+
+// 记下现在的芯片：之后战败重打本关时恢复成这样
+func snapRun() {
+	for w := 1; w <= 2; w++ {
+		snapChips[w] = append([]int{}, chips[w]...)
+	}
+}
+
+// 从主页、选关、自制地图开局：等级回到 Lv1
+func clearRun() {
+	for w := 1; w <= 2; w++ {
+		snapChips[w] = nil
+	}
+}
+
+// 坦克被击毁：掉 1 级，最后选的那块芯片失效
+func loseLevel(who int) {
+	n := len(chips[who])
+	if n == 0 {
+		return
+	}
+	chips[who] = chips[who][:n-1]
+	lvl[who] = 1 + len(chips[who])
+	broadcast "hud"
+}
+
+// 三选一：从解锁了、还没装上的芯片里按稀有度权重抽 3 块（不重复）
+func pickRoll() {
+	cand := []int{}
+	for id := 1; id <= chipCount; id++ {
+		if (chipUnlocked(id) || stage == dailyStage) && !hasChip(pickWho, id) { // 每日挑战全部芯片都有，大家公平
+			cand = append(cand, id)
+		}
+	}
+	pickOpts = []int{}
+	for len(pickOpts) < 3 && len(cand) > 0 {
+		total := 0
+		for _, id := range cand {
+			total += []int{0, 6, 3, 1}[chipRarity(id)]
+		}
+		r := chipRand(total)
+		k := 0
+		for i, id := range cand {
+			r -= []int{0, 6, 3, 1}[chipRarity(id)]
+			if r < 0 {
+				k = i
+				break
+			}
+		}
+		pickOpts = append(pickOpts, cand[k])
+		rest := []int{}
+		for i, id := range cand {
+			if i != k {
+				rest = append(rest, id)
+			}
+		}
+		cand = rest
+	}
+}
+
+// 0 ~ n-1 的随机整数（三选一用）
+func chipRand(n int) int {
+	if stage == dailyStage {
+		return dailyChipRand(n) // 每日挑战：同一天大家抽到的一样
+	}
+	r := int(rand(0, n-1)) // XBuilder 的 spx v3.3.0 里 rand(int, int) 返回 float64
+	if r >= n {
+		r = n - 1
+	}
+	return r
+}
+
+// 玩家 who 捡到了芯片：满级直接加分；否则战场冻结，弹出三选一（路演演示时直接装第一块）
+func pickChip(who int) {
+	dropLeft = 0
+	taskAdd tkChip, 1
+	if lvl[who] >= maxLevel {
+		score += maxBonus
+		if score > best && !autopilot {
+			best = score
+		}
+		broadcast "hud"
+		toast "msg.chip.max", 1.5
+		return
+	}
+	pickWho = who
+	pickRoll()
+	if autopilot {
+		applyChip who, pickOpts[0]
+		return
+	}
+	state = stPick
+	gameOver = true
+	sfx "start"
+	setScreen "pick"
+}
+
+// 三选一选了第 i 块（0~2）
+func pickChoose(i int) {
+	if state != stPick || i < 0 || i >= len(pickOpts) {
+		return
+	}
+	state = stPlay
+	setScreen ""
+	gameOver = false // 先解冻再生效：空袭可能打掉最后一辆，要能判胜利
+	applyChip pickWho, pickOpts[i]
+}
+
+// 三选一的这块芯片和已经装上的能不能组成连携（卡片上显示连携提示）
+func pickCombo(id int) bool {
+	switch id {
+	case cPierce:
+		return hasChip(pickWho, cBounce)
+	case cBounce:
+		return hasChip(pickWho, cPierce)
+	case cRapid:
+		return hasChip(pickWho, cDouble)
+	case cDouble:
+		return hasChip(pickWho, cRapid)
+	}
+	return false
+}
+
+// 三选一里刷新一次（每关 1 次）：商店版和买了去广告的免费刷新，免费版看激励视频
+func pickReroll() {
+	if state != stPick {
+		return
+	}
+	if rerollUsed {
+		toast "msg.reroll.used", 1.2
+		return
+	}
+	if storeBuild || adFree {
+		rerollUsed = true
+		pickRoll()
+		setScreen "pick"
+		return
+	}
+	watchAd rewardReroll
+}
+
+// 三选一的刷新按钮是哪种：ad 看视频、free 免费、used 本关已刷新
+func rerollLook() string {
+	if rerollUsed {
+		return "used"
+	}
+	if storeBuild || adFree {
+		return "free"
+	}
+	return "ad"
+}
+
+// 芯片生效：升级芯片装上并升一级；战术芯片立即生效
+func applyChip(who, id int) {
+	switch id {
+	case cFortify:
+		fortify()
+	case cBomb:
+		broadcast "bomb"
+	case cFreeze:
+		freezeLeft = freezeSecs
+	}
+	if chipTactical(id) {
+		toast "msg.chip."+chipKey(id), 1.5
+		return
+	}
+	chips[who] = append(chips[who], id)
+	lvl[who] = 1 + len(chips[who])
+	broadcast "hud"
+	if (id == cPierce || id == cBounce) && comboBarrage(who) {
+		toast "msg.combo.barrage", 2
+		taskAdd tkCombo, 1
+	} else if (id == cRapid || id == cDouble) && comboSalvo(who) {
+		toast "msg.combo.salvo", 2
+		taskAdd tkCombo, 1
+	} else {
+		toast "msg.chip."+chipKey(id), 1.5
+	}
+}
+
+// 基地四周的 5 格（上方三格和左右两格）
+func baseRing() []int {
+	return []int{baseIdx - cols - 1, baseIdx - cols, baseIdx - cols + 1, baseIdx - 1, baseIdx + 1}
+}
+
+// 把格子 i 换成 k 类型（换掉原来的 Tile 克隆）
+func setCell(i, k int) {
+	edChanged = i
+	broadcastAndWait "tileGone"
+	grid[i] = k
+	if k != 0 {
+		Tile.build cellX(i%cols), cellY(i/cols), k, i
+	}
+}
+
+// 钢铁堡垒：基地四周变成钢墙 15 秒（再捡一次就重新计时）
+func fortify() {
+	if fortifyLeft <= 0 {
+		for _, i := range baseRing() {
+			setCell i, 2
+		}
+	}
+	fortifyLeft = fortifySecs
+}
+
+// 钢铁堡垒到时间：四周恢复成完整的砖墙（钢墙被穿甲弹打掉的也补上）
+func endFortify() {
+	fortifyLeft = 0
+	m := levelMap()
+	for _, i := range baseRing() {
+		k := 0
+		if m[i/cols][i%cols] == 'B' {
+			k = 1
+		}
+		setCell i, k
+	}
+}
+
+// 每帧（战场冻结时不算）：护盾恢复、冰冻和钢铁堡垒倒计时、场上芯片的消失倒计时、磁吸和拾取
+func chipTick(dt float64) {
+	if gameOver {
+		return
+	}
+	if stage == dailyStage {
+		dailySecs += dt // 每日挑战的用时
+	}
+	runSecs += dt
+	for w := 1; w <= 2; w++ {
+		if shieldCD[w] > 0 {
+			shieldCD[w] -= dt
+		}
+	}
+	if freezeLeft > 0 {
+		freezeLeft -= dt
+	}
+	if fortifyLeft > 0 {
+		fortifyLeft -= dt
+		if fortifyLeft <= 0 {
+			endFortify()
+		}
+	}
+	if dropLeft <= 0 {
+		return
+	}
+	dropLeft -= dt
+	if dropLeft <= 0 {
+		dropLeft = 0
+		return
+	}
+	for w := 1; w <= 2; w++ {
+		x, y := p1x, p1y
+		if w == 2 {
+			if !coop || !p2Exists {
+				continue
+			}
+			x, y = p2x, p2y
+		}
+		if x > 9000 {
+			continue // 坦克被击毁了
+		}
+		if hasChip(w, cMagnet) {
+			d := math.Hypot(x-dropX, y-dropY)
+			if d > 1 {
+				step := math.Min(d, 150*dt)
+				dropX += (x - dropX) / d * step
+				dropY += (y - dropY) / d * step
+			}
+		}
+		if math.Abs(dropX-x) < 18 && math.Abs(dropY-y) < 18 {
+			pickChip w
+			return
+		}
+	}
+}
+
+// 玩家子弹的朝向 f 里还记着谁打的、反弹过几次：f = 朝向 + 1000（2P）+ 10000 × 反弹次数
+func pbStrip(f int) int {
+	for f >= 5000 {
+		f -= 10000
+	}
+	return f
+}
+
+func pbBounces(f int) int {
+	n := 0
+	for f >= 5000 {
+		f -= 10000
+		n++
+	}
+	return n
+}
+
+func pbWho(f int) int {
+	if pbStrip(f) >= 500 {
+		return 2
+	}
+	return 1
+}
+
+// 反弹：朝向反过来，反弹次数加 1
+func pbBounce(f int) int {
+	d := bulletDir(f)
+	nd := d + 180
+	if nd > 180 {
+		nd -= 360
+	}
+	return f - d + nd + 10000
+}
+
+// ---------- v6 局外成长：存档、指挥官等级、金币、涂装、每日任务（docs/v6/PLAN.md 第三节） ----------
+
+// 存档放在哪里（PC 版）：和自制地图同一个目录。网页版没有文件系统，返回 ""（进度只在这次运行里有效）
+func saveFile() string {
+	dir, err := os.UserConfigDir()
+	if err != nil || dir == "" {
+		return ""
+	}
+	return dir + "/TankBattle/save.txt"
+}
+
+func joinInts(a []int) string {
+	s := []string{}
+	for _, n := range a {
+		s = append(s, strconv.Itoa(n))
+	}
+	return strings.Join(s, ",")
+}
+
+func splitInts(s string) []int {
+	out := []int{}
+	for _, p := range strings.Split(s, ",") {
+		if n, err := strconv.Atoi(strings.TrimSpace(p)); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// 存档：纯文本 key=value，第一行是版本号
+func saveText() string {
+	owned := []int{}
+	for i, ok := range skinsOwned {
+		if ok {
+			owned = append(owned, i)
+		}
+	}
+	lines := []string{"v=1", "id=" + playerID, "xp=" + strconv.Itoa(cmdXP), "coins=" + strconv.Itoa(wallet),
+		"skin=" + strconv.Itoa(skin), "skins=" + joinInts(owned),
+		"task.day=" + strconv.Itoa(taskDay), "task.ids=" + joinInts(taskIDs), "task.prog=" + joinInts(taskProg),
+		"daily.day=" + strconv.Itoa(dailyDay), "daily.score=" + strconv.Itoa(dailyScore),
+		"daily.secs=" + strconv.Itoa(dailyBestSecs), "streak=" + strconv.Itoa(streak), "streak.day=" + strconv.Itoa(streakDay),
+		"season=" + strconv.Itoa(seasonNo), "season.pts=" + strconv.Itoa(seasonPts)}
+	for _, q := range lbQueue {
+		lines = append(lines, "lb.queue="+q) // 没传上去的成绩，一条一行
+	}
+	return strings.Join(lines, "\n") + "\n"
+}
+
+func saveGame() {
+	f := saveFile()
+	if f == "" {
+		return
+	}
+	os.MkdirAll(f[:len(f)-len("/save.txt")], 0755)
+	os.WriteFile(f, []byte(saveText()), 0644)
+}
+
+// 读存档文本：版本号不对或者读不出来返回 false（当作新玩家，不会崩溃）；认不出的行跳过
+func loadText(text string) bool {
+	lines := strings.Split(strings.TrimSpace(text), "\n")
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "v=1" {
+		return false
+	}
+	newSave()
+	for _, line := range lines[1:] {
+		kv := strings.SplitN(strings.TrimSpace(line), "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		k, v := kv[0], kv[1]
+		n, _ := strconv.Atoi(v)
+		switch k {
+		case "id":
+			if len(v) == 16 {
+				playerID = v
+			}
+		case "xp":
+			cmdXP = int(math.Max(0, float64(n)))
+		case "coins":
+			wallet = int(math.Max(0, float64(n)))
+		case "skin":
+			skin = n
+		case "skins":
+			for _, i := range splitInts(v) {
+				if i >= 0 && i < skinCount {
+					skinsOwned[i] = true
+				}
+			}
+		case "task.day":
+			taskDay = n
+		case "task.ids":
+			taskIDs = splitInts(v)
+		case "task.prog":
+			taskProg = splitInts(v)
+		case "daily.day":
+			dailyDay = n
+		case "daily.score":
+			dailyScore = n
+		case "daily.secs":
+			dailyBestSecs = n
+		case "streak":
+			streak = n
+		case "streak.day":
+			streakDay = n
+		case "season":
+			seasonNo = n
+		case "season.pts":
+			seasonPts = n
+		case "lb.queue":
+			if strings.HasPrefix(v, "{") && len(lbQueue) < lbQueueMax {
+				lbQueue = append(lbQueue, v)
+			}
+		}
+	}
+	if skin < 0 || skin >= skinCount || !skinsOwned[skin] {
+		skin = 0
+	}
+	if !tasksValid() {
+		taskDay = 0 // 任务数据不完整：重新抽今天的任务
+	}
+	cmdLevel = levelForXP(cmdXP)
+	return true
+}
+
+// 新玩家：随机 ID、默认涂装，其余从 0 开始
+func newSave() {
+	playerID = newID()
+	cmdXP = 0
+	cmdLevel = 1
+	wallet = 0
+	skinsOwned = make([]bool, skinCount)
+	skinsOwned[0] = true
+	skin = 0
+	taskDay = 0
+	taskIDs = nil
+	taskProg = nil
+	dailyDay = 0
+	dailyScore = 0
+	lbQueue = nil
+	dailyBestSecs = 0
+	streak = 0
+	streakDay = 0
+	seasonNo = 0
+	seasonPts = 0
+}
+
+// 16 位十六进制的随机 ID（只用来区分玩家，不含任何个人信息）
+func newID() string {
+	s := ""
+	for i := 0; i < 16; i++ {
+		s += string("0123456789abcdef"[int(rand(0, 15))])
+	}
+	return s
+}
+
+// 启动时读存档；没有存档（或者网页版）就新建
+func initSave() {
+	f := saveFile()
+	ok := false
+	if f != "" {
+		if b, err := os.ReadFile(f); err == nil {
+			ok = loadText(string(b))
+		}
+	}
+	if !ok {
+		newSave()
+		saveGame()
+	}
+	refreshTasks()
+	refreshSeason()
+}
+
+// 指挥官从 l 级升到 l+1 级要多少经验
+func xpNeed(l int) int {
+	return 100 + 50*(l-1)
+}
+
+func levelForXP(xp int) int {
+	l := 1
+	for l < maxCmdLevel && xp >= xpNeed(l) {
+		xp -= xpNeed(l)
+		l++
+	}
+	return l
+}
+
+// 当前等级里已经有多少经验、这一级一共要多少（满级时返回 1, 1）
+func xpInLevel() (int, int) {
+	xp := cmdXP
+	l := 1
+	for l < maxCmdLevel && xp >= xpNeed(l) {
+		xp -= xpNeed(l)
+		l++
+	}
+	if l >= maxCmdLevel {
+		return 1, 1
+	}
+	return xp, xpNeed(l)
+}
+
+// 加经验（路演演示不算）。升级时提示，解锁了芯片就提示解锁了哪块
+func gainXP(n int) {
+	if autopilot {
+		return
+	}
+	old := cmdLevel
+	cmdXP += n
+	cmdLevel = levelForXP(cmdXP)
+	if cmdLevel <= old {
+		return
+	}
+	for id := 1; id <= chipCount; id++ {
+		if chipUnlockLv(id) > old && chipUnlockLv(id) <= cmdLevel {
+			toast "msg.unlock."+chipKey(id), 2.5
+			saveGame()
+			return
+		}
+	}
+	toast "msg.cmd.up", 2
+	saveGame()
+}
+
+// 下一块要解锁的芯片（0 表示全部解锁了）
+func nextUnlock() int {
+	best := 0
+	for id := 1; id <= chipCount; id++ {
+		if !chipUnlocked(id) && (best == 0 || chipUnlockLv(id) < chipUnlockLv(best)) {
+			best = id
+		}
+	}
+	return best
+}
+
+// 涂装的价格（金币），0 号是默认的金色
+func skinPrice(i int) int {
+	return []int{0, 1500, 2000, 2500, 3000, 0}[i]
+}
+
+// 点了第 i 款涂装：有了就换上，没有就用金币买（钱不够提示）
+func buySkin(i int) {
+	if i < 0 || i >= skinCount {
+		return
+	}
+	if skinsOwned[i] {
+		skin = i
+		toast "msg.skin.on", 1.2
+	} else if i == seasonSkin {
+		toast "msg.season.locked", 1.8 // 赛季涂装不卖，到黄金段位送
+		return
+	} else if wallet >= skinPrice(i) {
+		wallet -= skinPrice(i)
+		skinsOwned[i] = true
+		skin = i
+		toast "msg.skin.bought", 1.5
+	} else {
+		toast "msg.coins.short", 1.5
+		return
+	}
+	saveGame()
+	broadcast "hud"
+}
+
+// 现在的 Unix 时间（秒）。spx 的解释器里没有 time.Now（为了录制回放保持确定），
+// 所以写一个临时文件再读它的修改时间；没有文件系统（网页版）时返回 0
+func nowSec() int {
+	f := os.TempDir() + "/tankbattle_clock"
+	if os.WriteFile(f, []byte("t"), 0644) != nil {
+		return 0
+	}
+	st, err := os.Stat(f)
+	if err != nil {
+		return 0
+	}
+	return int(st.ModTime().Unix())
+}
+
+// 今天是第几天（按北京时间 UTC+8 换日）；拿不到时间时是 0。测试里可以用 dayOverride 指定
+func today() int {
+	if dayOverride > 0 {
+		return dayOverride
+	}
+	sec := 0
+	if dayOverride == 0 { // 负数：测试用，模拟拿不到本机时间（网页版）
+		sec = nowSec()
+	}
+	if sec <= 0 {
+		return serverDay // 网页版：用排行榜服务器告诉的日期（没联网是 0）
+	}
+	return (sec + 8*3600) / 86400
+}
+
+// 线性同余随机数（每日任务、每日挑战用：同一个种子在所有设备上得到同样的结果）
+func lcg(s int) int {
+	return (s*1103515245 + 12345) % 2147483648
+}
+
+// 第 d 天的 3 个任务（同一天大家一样）
+func pickTasks(d int) []int {
+	out := []int{}
+	s := d
+	for len(out) < 3 {
+		s = lcg(s)
+		k := 1 + (s/65536)%taskCount
+		dup := false
+		for _, t := range out {
+			if t == k {
+				dup = true
+			}
+		}
+		if !dup {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// 每个任务的目标：击毁 30 辆、击毁 3 辆精英、通关 2 关、捡到 3 块芯片、打一局双人、凑出一个连携、试玩一张自制地图、完成每日挑战
+func taskTarget(k int) int {
+	return []int{0, 30, 3, 2, 3, 1, 1, 1, 1}[k]
+}
+
+// 任务数据完整吗：3 个任务、编号都认识（存档被改坏了也不会出错）
+func tasksValid() bool {
+	if len(taskIDs) != 3 || len(taskProg) != 3 {
+		return false
+	}
+	for _, k := range taskIDs {
+		if k < 1 || k >= len([]int{0, 30, 3, 2, 3, 1, 1, 1, 1}) {
+			return false
+		}
+	}
+	return true
+}
+
+// 换日了（或者任务数据不完整）就抽今天的任务
+func refreshTasks() {
+	d := today()
+	if d == taskDay && tasksValid() {
+		return
+	}
+	taskDay = d
+	taskIDs = pickTasks(d)
+	taskProg = []int{0, 0, 0}
+	saveGame()
+}
+
+// 任务进度：完成时奖励金币（每个任务只奖励一次）。路演演示不算
+func taskAdd(k, n int) {
+	if autopilot {
+		return
+	}
+	refreshTasks()
+	for i := 0; i < 3; i++ {
+		if taskIDs[i] != k || taskProg[i] >= taskTarget(k) {
+			continue
+		}
+		taskProg[i] = int(math.Min(float64(taskProg[i]+n), float64(taskTarget(k))))
+		if taskProg[i] >= taskTarget(k) {
+			wallet += taskReward
+			toast "msg.task.done", 2
+			saveGame()
+		}
+	}
+}
+
+// 打开车库（主页按 G 或点“车库”）
+func openGarage() {
+	if state != stHome {
+		return
+	}
+	refreshTasks()
+	state = stGarage
+	buildGarage()
+	setScreen "garage"
+}
+
+// ---------- v6 排行榜（docs/v6/PLAN.md 第五节；服务端见 server/） ----------
+// 网络请求都在后台 goroutine 里做（不卡画面），结果只写进 lbDone* 变量；
+// 每帧在舞台上由 lbPoll 取走（游戏状态、广播、存档都只在舞台上改）
+
+// 第 d 天在第几周（周一开始，和服务端一样）
+func weekOf(d int) int {
+	return (d - 4) / 7
+}
+
+// 一条成绩的 JSON（字段见 server/README.md）
+func lbRecord(board string, period, sc, secs, stg int) string {
+	names := []string{}
+	for _, c := range chips[1] {
+		names = append(names, `"`+chipKey(c)+`"`)
+	}
+	return `{"player":"` + playerID + `","region":"` + lbRegion + `","board":"` + board + `","period":` + strconv.Itoa(period) +
+		`,"score":` + strconv.Itoa(sc) + `,"secs":` + strconv.Itoa(secs) + `,"stage":` + strconv.Itoa(stg) +
+		`,"chips":[` + strings.Join(names, ",") + `],"level":` + strconv.Itoa(1+len(chips[1])) + `,"version":"` + gameVersion + `"}`
+}
+
+// 成绩排进上传队列（存档里也记着，没联网时联网后补传）；最多留 20 条
+func lbEnqueue(rec string) {
+	if lbBase == "" {
+		return // 还没有部署排行榜服务
+	}
+	lbQueue = append(lbQueue, rec)
+	if len(lbQueue) > lbQueueMax {
+		lbQueue = lbQueue[len(lbQueue)-lbQueueMax:]
+	}
+	saveGame()
+	lbFlush()
+}
+
+// 一局结束：每日挑战的正式成绩进每日榜；单人战役进全球周榜（累计分、打到第几关）
+func lbAfterGame() {
+	if autopilot || coop || lbBase == "" {
+		return
+	}
+	secs := int(runSecs)
+	if secs < 20 {
+		return // 太短的不上传（服务端也会拒）
+	}
+	if stage == dailyStage && dailyOfficial {
+		lbEnqueue lbRecord("daily", dailyDayNow, score, secs, dailyStage)
+	} else if stage >= 1 && stage <= lastStage && score > 0 && today() > 0 {
+		lbEnqueue lbRecord("weekly", weekOf(today()), score, secs, stage)
+	}
+}
+
+// 后台上传队列里的成绩（一次只有一个后台任务）
+func lbFlush() {
+	if lbBusy || lbBase == "" || len(lbQueue) == 0 {
+		return
+	}
+	lbBusy = true
+	batch := lbQueue
+	lbQueue = nil
+	go lbSendAll(lbBase, batch)
+}
+
+// 后台：按顺序上传，遇到网络错误就停（剩下的放回队列）；服务端拒收的（400）丢掉，不再重试
+func lbSendAll(base string, batch []string) {
+	sent := 0
+	for _, rec := range batch {
+		code := lbPost(base+"/v1/score", rec)
+		if code == 0 || code == 429 || code >= 500 {
+			break
+		}
+		sent++
+	}
+	lbDoneLeft = batch[sent:]
+	lbDoneSend = true
+}
+
+// 发一个 POST，返回 HTTP 状态码（网络不通返回 0）
+func lbPost(url, body string) int {
+	c := &http.Client{Timeout: 4000000000} // 4 秒
+	resp, err := c.Post(url, "application/json", strings.NewReader(body))
+	if err != nil {
+		return 0
+	}
+	resp.Body.Close()
+	return resp.StatusCode
+}
+
+// 发一个 GET，读回 JSON（解释器里 io.ReadAll 不能用，自己循环读）；失败返回 nil
+func lbGet(url string) map[string]interface{} {
+	c := &http.Client{Timeout: 4000000000}
+	resp, err := c.Get(url)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil
+	}
+	data := []byte{}
+	buf := make([]byte, 4096)
+	for len(data) < 65536 {
+		n, e := resp.Body.Read(buf)
+		data = append(data, buf[:n]...)
+		if e != nil {
+			break
+		}
+	}
+	var m map[string]interface{}
+	if json.Unmarshal(data, &m) != nil {
+		return nil
+	}
+	return m
+}
+
+func jsonInt(m map[string]interface{}, k string) int {
+	if f, ok := m[k].(float64); ok {
+		return int(f)
+	}
+	return 0
+}
+
+// 后台：读一个榜（前 8 名）和自己的名次
+func lbFetch(gen int, base, board string, period int) {
+	q := "region=" + lbRegion + "&board=" + board + "&period=" + strconv.Itoa(period)
+	top := lbGet(base + "/v1/board?" + q + "&limit=8")
+	me := lbGet(base + "/v1/rank?" + q + "&player=" + playerID)
+	if top == nil || me == nil {
+		lbDoneFetch = -gen // 负数：这个编号的请求失败了
+		return
+	}
+	tags, scores, mine := []int{}, []int{}, []bool{}
+	rowChips := [][]int{}
+	if rows, ok := top["rows"].([]interface{}); ok {
+		for _, r := range rows {
+			row, _ := r.(map[string]interface{})
+			tags = append(tags, jsonInt(row, "tag"))
+			scores = append(scores, jsonInt(row, "score"))
+			p, _ := row["player"].(string)
+			mine = append(mine, p == playerID)
+			ids := []int{}
+			if cs, ok := row["chips"].([]interface{}); ok {
+				for _, c := range cs {
+					name, _ := c.(string)
+					for id := 1; id <= chipCount; id++ {
+						if chipKey(id) == name {
+							ids = append(ids, id)
+						}
+					}
+				}
+			}
+			rowChips = append(rowChips, ids)
+		}
+	}
+	lbNextTags, lbNextScores, lbNextMine, lbNextChips = tags, scores, mine, rowChips
+	lbNextRank, lbNextTotal, lbNextBest = jsonInt(me, "rank"), jsonInt(me, "total"), jsonInt(me, "score")
+	lbDoneFetch = gen
+}
+
+// 后台：问服务器今天是第几天（网页版拿不到本机时间时用）
+func lbHealth(base string) {
+	m := lbGet(base + "/v1/health")
+	if m != nil {
+		lbDoneDay = jsonInt(m, "day")
+	}
+}
+
+// 每帧在舞台上收后台任务的结果
+func lbPoll() {
+	if lbDoneSend {
+		lbDoneSend = false
+		lbQueue = append(append([]string{}, lbDoneLeft...), lbQueue...)
+		lbOnline = len(lbDoneLeft) == 0
+		lbBusy = false
+		saveGame()
+	}
+	if lbDoneDay > 0 {
+		serverDay = lbDoneDay
+		lbDoneDay = 0
+	}
+	if lbDoneFetch != 0 {
+		if lbDoneFetch == lbGen {
+			lbTags, lbScores, lbMine, lbChips = lbNextTags, lbNextScores, lbNextMine, lbNextChips
+			lbMyRank, lbTotal, lbMyBest = lbNextRank, lbNextTotal, lbNextBest
+			lbStatus = lbOK
+			lbOnline = true
+		} else if lbDoneFetch == -lbGen {
+			lbStatus = lbOffline
+			lbOnline = false
+		}
+		lbDoneFetch = 0
+		if state == stRanks || state == stShare {
+			broadcast "hud"
+		}
+	}
+}
+
+// 打开排行榜画面（主页按 B 或点“排行榜”）
+func openRanks() {
+	if state != stHome {
+		return
+	}
+	state = stRanks
+	buildRanks()
+	lbShow lbTab
+	setScreen "ranks"
+}
+
+// 排行榜切换到第 t 个选项卡：0 每日挑战（今天），1 全球周榜（本周）
+func lbShow(t int) {
+	lbTab = t
+	lbGen++
+	lbTags, lbScores, lbMine, lbChips = nil, nil, nil, nil
+	lbMyRank, lbTotal, lbMyBest = 0, 0, 0
+	d := today()
+	if lbBase == "" {
+		lbStatus = lbNoServer
+	} else if d <= 0 {
+		lbStatus = lbOffline
+	} else {
+		lbStatus = lbLoading
+		lbFlush() // 顺便把排队的成绩传上去
+		if t == 0 {
+			go lbFetch(lbGen, lbBase, "daily", d)
+		} else {
+			go lbFetch(lbGen, lbBase, "weekly", weekOf(d))
+		}
+	}
+	broadcast "hud"
+}
+
+// 排行榜第 row 行（0~7；8 是“我的名次”那一行）第 field 个数字（0 名次，1 指挥官编号，2 分数，3 总人数），
+// 没有就返回 ""（不显示）
+func lbText(row, field int) string {
+	if lbStatus != lbOK {
+		return ""
+	}
+	if row == 8 {
+		if lbMyRank == 0 {
+			return "" // 没上榜：这一行是“你还没上这个榜”的整句话，不显示数字
+		}
+		switch field {
+		case 0:
+			return strconv.Itoa(lbMyRank)
+		case 2:
+			return strconv.Itoa(lbMyBest)
+		case 3:
+			return strconv.Itoa(lbTotal)
+		}
+		return ""
+	}
+	if row >= len(lbTags) {
+		return ""
+	}
+	switch field {
+	case 0:
+		return strconv.Itoa(row + 1)
+	case 1:
+		return strconv.Itoa(lbTags[row])
+	case 2:
+		return strconv.Itoa(lbScores[row])
+	}
+	return ""
+}
+
+// 自己在排行榜上显示成“指挥官 #编号”（和服务端的 tag 算法一样：ID 前 4 位十六进制 % 10000）
+func myTag() int {
+	n, _ := strconv.ParseInt(playerID[:4], 16, 64)
+	return int(n) % 10000
+}
+
+// ---------- v6 赛季、分享战报、助战码（docs/v6/PLAN.md 第四节） ----------
+
+// 第 d 天是第几个赛季（6 周一季，2026-11-01 开始 S1）
+func seasonOf(d int) int {
+	if d <= dailyEpoch {
+		return 1
+	}
+	return 1 + (d-dailyEpoch-1)/seasonDays
+}
+
+// 这个赛季还剩几天（含今天）
+func seasonLeft(d int) int {
+	if d <= dailyEpoch {
+		return seasonDays
+	}
+	return seasonDays - (d-dailyEpoch-1)%seasonDays
+}
+
+// 段位：0 青铜，1 白银，2 黄金，3 铂金，4 钻石，5 王牌
+func tierOf(pts int) int {
+	t := 0
+	for i, need := range []int{0, 300, 800, 1600, 3000, 5000} {
+		if pts >= need {
+			t = i
+		}
+	}
+	return t
+}
+
+// 离下一个段位：已有、一共要（王牌之后返回 1, 1）
+func tierProgress(pts int) (int, int) {
+	needs := []int{0, 300, 800, 1600, 3000, 5000}
+	t := tierOf(pts)
+	if t >= len(needs)-1 {
+		return 1, 1
+	}
+	return pts - needs[t], needs[t+1] - needs[t]
+}
+
+// 换季了：赛季积分清零（段位重置）
+func refreshSeason() {
+	d := today()
+	if d <= 0 {
+		return
+	}
+	s := seasonOf(d)
+	if s != seasonNo {
+		seasonNo = s
+		seasonPts = 0
+		saveGame()
+	}
+}
+
+// 加赛季积分；第一次到黄金送赛季涂装（S1 天空蓝，免费，不卖）
+func gainSeason(n int) {
+	if autopilot || n <= 0 {
+		return
+	}
+	refreshSeason()
+	old := tierOf(seasonPts)
+	seasonPts += n
+	t := tierOf(seasonPts)
+	if t > old {
+		toast "msg.tier.up", 2
+	}
+	if t >= 2 && !skinsOwned[seasonSkin] {
+		skinsOwned[seasonSkin] = true
+		toast "msg.season.skin", 2.5
+	}
+	saveGame()
+}
+
+// 连续打了几天每日挑战（只展示，断了不扣东西）
+func dailyStreakAfter(d int) int {
+	if streakDay == d {
+		return streak
+	}
+	if streakDay == d-1 {
+		return streak + 1
+	}
+	return 1
+}
+
+// 助战码：把升级芯片（编号 1~9，最多 3 块）编成 5 位数字：三位芯片 + 两位校验
+func assistCode(cs []int) string {
+	s := ""
+	sum := 0
+	for i := 0; i < 3; i++ {
+		c := 0
+		if i < len(cs) && cs[i] >= 1 && cs[i] <= 9 {
+			c = cs[i]
+		}
+		s += strconv.Itoa(c)
+		sum += c * (i + 3)
+	}
+	ck := (sum*7 + 13) % 97
+	if ck < 10 {
+		s += "0"
+	}
+	return s + strconv.Itoa(ck)
+}
+
+// 解助战码：不对返回 nil
+func assistDecode(code string) []int {
+	if len(code) != 5 {
+		return nil
+	}
+	cs := []int{}
+	digits := []int{}
+	for i := 0; i < 3; i++ {
+		c := int(code[i] - '0')
+		if c < 0 || c > 9 {
+			return nil
+		}
+		digits = append(digits, c)
+		if c > 0 {
+			cs = append(cs, c)
+		}
+	}
+	if assistCode(digits) != code || len(cs) == 0 {
+		return nil
+	}
+	return cs
+}
+
+// 打开分享战报（每日挑战结算后按 S）
+func openShare() {
+	if state != stResult || stage != dailyStage || dailyDay != dailyDayNow {
+		return // 今天还没有正式成绩
+	}
+	state = stShare
+	buildShare()
+	setScreen "share"
+	if lbBase != "" && today() > 0 { // 联网时顺便查一下全球名次
+		lbTab = 0
+		lbGen++
+		lbMyRank = 0
+		go lbFetch(lbGen, lbBase, "daily", dailyDayNow)
+	}
+}
+
+// 输入助战码（主页按 A）
+func openAssist() {
+	if state != stHome {
+		return
+	}
+	assistInput = ""
+	state = stAssist
+	buildAssist()
+	setScreen "assist"
+}
+
+// 助战码输入：数字键加一位，Backspace 删一位，Enter 确认
+func assistKey(k int) {
+	if state != stAssist {
+		return
+	}
+	if k >= 0 && k <= 9 && len(assistInput) < 5 {
+		assistInput += strconv.Itoa(k)
+	} else if k == -1 && len(assistInput) > 0 {
+		assistInput = assistInput[:len(assistInput)-1]
+	}
+	broadcast "hud"
+}
+
+func assistConfirm() {
+	if state != stAssist {
+		return
+	}
+	cs := assistDecode(assistInput)
+	if cs == nil {
+		toast "msg.assist.bad", 1.5
+		assistInput = ""
+		broadcast "hud"
+		return
+	}
+	assistGift = cs[0]
+	goHome
+	toast "msg.assist.ok", 2.5
+}
+
+// 开局时送出好友的助战芯片（战役和自制地图都行，每日挑战不行：大家要公平）
+func applyAssist() {
+	if assistGift == 0 || stage == dailyStage || autopilot {
+		return
+	}
+	id := assistGift
+	assistGift = 0
+	if hasChip(1, id) || lvl[1] >= maxLevel {
+		return
+	}
+	chips[1] = append(chips[1], id)
+	lvl[1] = 1 + len(chips[1])
+	toast "msg.assist.used", 2
+}
+
+// 分享卡片上的数字（和排行榜一样用数字克隆显示）：0 第几期，1 得分，2 用时（秒），3 全球名次，4 连续天数，5 助战码
+func shareText(field int) string {
+	switch field {
+	case 0:
+		return strconv.Itoa(dailyNo(dailyDayNow))
+	case 1:
+		return strconv.Itoa(dailyScore)
+	case 2:
+		return strconv.Itoa(dailyBestSecs)
+	case 3:
+		if lbMyRank > 0 && lbTab == 0 {
+			return strconv.Itoa(lbMyRank)
+		}
+		return ""
+	case 4:
+		return strconv.Itoa(streak)
+	case 5:
+		return assistCode(chips[1])
+	}
+	return ""
 }
 
 // ---------- 自己做地图 ----------
@@ -468,28 +1983,28 @@ func reachable(m []byte, start int) []bool {
 	return seen
 }
 
-// 检查地图（规则和 tools/levels/check.py 相同；锁定格保证了出生点和基地的位置）
-func edCheck() {
-	edProblem = 0
-	edMark = -1
+// 检查地图 m（169 个字符）：返回问题（0 可以玩，1 敌人到不了基地，2 坦克开不到敌人出生点）和出问题的格子。
+// 规则和 tools/levels/check.py 相同；锁定格保证了出生点和基地的位置。编辑器和每日挑战的地图生成都用它
+func mapProblem(m []byte) (int, int) {
 	for _, s := range []int{0, 6, 12} {
-		got := reachable(ed, s)
+		got := reachable(m, s)
 		if !got[11*cols+6] && !got[12*cols+5] && !got[12*cols+7] {
-			edProblem = 1
-			edMark = s
-			return
+			return 1, s
 		}
 	}
 	for _, p := range []int{12*cols + 4, 12*cols + 8} {
-		got := reachable(ed, p)
+		got := reachable(m, p)
 		for _, s := range []int{0, 6, 12} {
 			if !got[s] {
-				edProblem = 2
-				edMark = p
-				return
+				return 2, p
 			}
 		}
 	}
+	return 0, -1
+}
+
+func edCheck() {
+	edProblem, edMark = mapProblem(ed)
 }
 
 // 按 ed 重新摆好所有格子
@@ -634,6 +2149,124 @@ func edRandom() {
 	edBlank()
 }
 
+// ---------- v6 每日挑战（docs/v6/PLAN.md 第四节） ----------
+
+// 第 d 天的每日挑战地图：和“随机起点”同样的五种风格，但随机数用线性同余（种子是日期），
+// 所以全世界同一天是同一张图。tools/levels/daily.py 是同一个算法的 Python 版（测试比对两边逐格相同）
+func dailyRows(d int) []string {
+	wb := []int{40, 45, 30, 90, 55}
+	ws := []int{10, 50, 5, 10, 30}
+	ww := []int{45, 0, 0, 0, 5}
+	dOdd := []int{45, 50, 55, 70, 25}
+	dEven := []int{25, 20, 35, 30, 5}
+	s := d*7919 + 12345
+	next := func(n int) int {
+		s = lcg(s)
+		return (s / 65536) % n
+	}
+	m := make([]byte, rows*cols)
+	for try := 0; try < 80; try++ {
+		t := next(5)
+		for i := range m {
+			m[i] = edLockedChar(i)
+		}
+		for r := 1; r <= 12; r++ {
+			for c := 0; c <= 6; c++ {
+				dens := dEven[t]
+				if c%2 == 1 {
+					dens = dOdd[t]
+				}
+				ch := byte('.')
+				if next(100) < dens {
+					n := next(100)
+					if n < wb[t] {
+						ch = 'B'
+					} else if n < wb[t]+ws[t] {
+						ch = 'S'
+					} else if n < wb[t]+ws[t]+ww[t] {
+						ch = 'W'
+					} else {
+						ch = 'G'
+					}
+				}
+				for _, cc := range []int{c, cols - 1 - c} {
+					if !edLocked(r*cols + cc) {
+						m[r*cols+cc] = ch
+					}
+				}
+			}
+		}
+		if p, _ := mapProblem(m); p == 0 {
+			break
+		}
+		if try == 79 {
+			for i := range m {
+				m[i] = edLockedChar(i) // 80 次都不合格（实际不会发生）：用空白地图
+			}
+		}
+	}
+	out := []string{}
+	for r := 0; r < rows; r++ {
+		out = append(out, string(m[r*cols:(r+1)*cols]))
+	}
+	return out
+}
+
+// 每日挑战的编号：2026-11-01 是第 1 期
+func dailyNo(d int) int {
+	return d - dailyEpoch
+}
+
+// 每日挑战用的随机数：每局开始时按日期重置，同一天每个人抽到的一样。
+// 敌人出场和三选一用两个独立的序列：共用一个时，第几次三选一抽到什么会受“捡芯片之前出了几辆敌人”影响
+func dailyRand(n int) int {
+	dailySeed = lcg(dailySeed)
+	return (dailySeed / 65536) % n
+}
+
+func dailyChipRand(n int) int {
+	dailyChipSeed = lcg(dailyChipSeed)
+	return (dailyChipSeed / 65536) % n
+}
+
+// 开始今天的每日挑战（单人）。拿不到日期（网页版暂时没有时钟）就不能开始
+func playDaily() {
+	d := today()
+	if d <= 0 {
+		toast "msg.daily.noday", 2
+		return
+	}
+	dailyDayNow = d
+	runSecs = 0
+	coop = false
+	stage = dailyStage
+	stageScore = 0
+	reviveStage = 0
+	clearRun()
+	startGame
+}
+
+// 每日挑战结束：今天第一次打完的是正式成绩（一天一次），之后都是练习
+func dailyEnd(win bool) {
+	if dailyDay == dailyDayNow {
+		dailyOfficial = false
+		toast "msg.daily.practice", 2.5
+		return
+	}
+	dailyOfficial = true
+	streak = dailyStreakAfter(dailyDayNow)
+	streakDay = dailyDayNow
+	dailyDay = dailyDayNow
+	dailyScore = score
+	dailyBestSecs = int(dailySecs)
+	dailyBuild = append([]int{}, chips[1]...)
+	gainSeason ptsDaily + score/200
+	gainXP xpDaily
+	taskAdd tkDaily, 1
+	toast "msg.daily.done", 2.5
+	saveGame()
+}
+
 // 试玩自制地图，two 表示双人
 func playCustom(two bool) {
 	if two && touchUI {
@@ -650,6 +2283,7 @@ func playCustom(two bool) {
 	stage = customStage
 	stageScore = 0
 	reviveStage = 0
+	clearRun()
 	startGame
 }
 
@@ -803,6 +2437,87 @@ func toast(k string, secs float64) {
 	broadcast "toast"
 }
 
+// 画面小部件按需创建（v6）：spx 和 Scratch 一样，全部精灵的克隆加起来最多 300 个（超过时 clone 直接失败，
+// 地图格子和敌人就出不来）。车库、排行榜这些全屏画面的小部件只在打开时创建，离开时由 panelOff 删掉，
+// 平时常驻的只有对局要用的界面（见 tests/spx/budget.spx 的克隆预算）
+func panelOff() {
+	if panel != "" {
+		panel = ""
+		broadcastAndWait "panelOff"
+	}
+}
+
+// 车库的小部件：坐标和 tools/assets/build.py 的 GR_* 布局一致（舞台 x = svgX - 240，y = 180 - svgY）
+func buildGarage() {
+	panelOff()
+	panel = "garage"
+	UI.icon kGarage, -212, 120, 0  // 指挥官等级
+	UI.icon kGarage, -212, 111.5, 1 // 经验条
+	UI.icon kGarage, -212, 99, 2   // 下一个解锁
+	UI.icon kGarage, -139, 40, 3   // 涂装预览
+	for i := 0; i < chipCount; i++ {
+		UI.icon kGarage, -10+float64(i%4)*66, 83-float64(i/4)*52, 10+i // 芯片图鉴
+	}
+	for i := 0; i < skinCount; i++ {
+		UI.icon kGarage, -211+float64(i)*28, -49, 30+i // 涂装
+	}
+	UI.icon kGarage, -30, -158, 50 // 赛季和段位
+	UI.icon kGarage, 90, -154, 51  // 离下一个段位
+	UI.icon kGarage, 216, -158, 52 // 赛季还剩几天
+	for i := 0; i < 3; i++ {
+		UI.icon kGarage, -40, -70-float64(i)*22, 40+i  // 今日任务
+		UI.icon kGarage, 90, -79-float64(i)*22, 43+i   // 任务进度
+	}
+	UI.number kWallet, -209, -105, 9
+}
+
+// 排行榜的小部件（打开排行榜时创建）：坐标和 tools/assets/build.py 的 LB_* 布局一致
+func buildRanks() {
+	panelOff()
+	panel = "ranks"
+	UI.icon kRanks, -178, 128, 0 // 选项卡
+	UI.icon kRanks, -80, 128, 1
+	UI.icon kRanks, -224, 98, 2 // 范围说明
+	UI.icon kRanks, 0, -20, 3   // 状态
+	for r := 0; r < 8; r++ {
+		y := 180 - 106 - float64(r)*26 // 这一行的上边
+		UI.icon kRanks, -224, y, 40+r
+		for j := 0; j < 3; j++ {
+			UI.icon kRanks, 17+float64(j)*18, y-11, 10+r*3+j
+		}
+		lbNumber r, 0, -209, y-15, 1
+		lbNumber r, 1, -140, y-15, 4
+		lbNumber r, 2, 216, y-15, 7
+	}
+	UI.icon kRanks, -224, 180-326, 48 // 我的名次
+	lbNumber 8, 0, -120, 180-341, 7
+	lbNumber 8, 3, 0, 180-341, 7
+	lbNumber 8, 2, 216, 180-341, 7
+}
+
+// 分享战报的小部件（打开分享战报时创建）：坐标和 build.py 的 share_screen 一致（数值都从 x = 236 开始）
+func buildShare() {
+	panelOff()
+	panel = "share"
+	UI.lbNum -4, 180-64, 900, 4  // 第几期
+	UI.lbNum -4, 180-90, 910, 7  // 得分
+	UI.lbNum -4, 180-112, 920, 5 // 用时
+	UI.lbNum -4, 180-136, 930, 7 // 全球名次
+	UI.lbNum -4, 180-160, 940, 4 // 连续天数
+	UI.lbNum -4, 180-214, 950, 5 // 助战码
+	for i := 0; i < 3; i++ {
+		UI.icon kShare, 3+float64(i)*20, 0, i
+	}
+	UI.icon kShare, -4, 180-136, 3 // 还不知道全球名次时显示“联网后显示”
+}
+
+// 助战码输入框里的数字（打开输入画面时创建）
+func buildAssist() {
+	panelOff()
+	panel = "assist"
+	UI.lbNum -30, 180-120, 1000, 5 // 输入框在 build.py 的 AS_BOX_Y（下面是数字键盘）
+}
+
 // 搭建 HUD。坐标都是舞台坐标（中心为原点，y 向上），和 tools/assets/build.py 的布局一致
 func buildHud() {
 	// 顶栏：关卡名、敌军剩余、语言按钮
@@ -813,6 +2528,9 @@ func buildHud() {
 	}
 	UI.langButton 208, 164
 	UI.icon kPauseBtn, 176, 164, 0 // 暂停按钮（对局中显示；手机上没有 Esc 键，靠它暂停和退出）
+	UI.icon kAlly, 0, 0, 1 // 我方标识（v6 敌我区分）：1P、2P 脚下的光圈和头顶的标签
+	UI.icon kAlly, 0, 0, 2
+	UI.icon kDrop, 0, 0, 0 // 战场上掉落的芯片（v6）
 	// 右侧面板：得分、最高分、生命、按键提示
 	UI.label 104, 140, "score"
 	UI.number kScore, 104, 120, 9
@@ -825,10 +2543,17 @@ func buildHud() {
 		UI.icon kLife, 110+float64(i)*16, 68, i // 位置在刷新时按单人 / 双人调整
 		UI.icon kLife2, 124+float64(i)*16, 52, i
 	}
-	UI.label 104, 30, "hint.move" // 双人时换成 1P / 2P 的按键说明
-	UI.label 104, 14, "hint.fire"
-	UI.label 104, -2, "hint.style"
-	UI.label 104, -18, "hint.lang"
+	// 芯片格（v6）：1P 一行、双人时 2P 再一行；触屏模式不显示（方向键在这里）
+	UI.label 104, 36, "chips"
+	UI.label 104, 20, "tag.c1"
+	UI.label 104, 4, "tag.c2"
+	for i := 0; i < 6; i++ {
+		UI.icon kChip, 0, 0, i // 位置在刷新时按单人 / 双人调整
+	}
+	UI.label 104, -10, "hint.move" // 双人时换成 1P / 2P 的按键说明
+	UI.label 104, -26, "hint.fire"
+	UI.label 104, -42, "hint.style"
+	UI.label 104, -58, "hint.lang"
 	// 广告位：对局中的原生广告卡、主页横幅
 	UI.adSlot 162, -113, "card"
 	UI.adSlot 0, -152, "banner"
@@ -843,8 +2568,20 @@ func buildHud() {
 	UI.icon kEdCursor, 0, 0, 0
 	UI.icon kEdMark, 0, 0, 0
 	UI.number kCoin, -132, 35, 9
+	UI.icon kDailyTag, -72, 116, 0 // 每日挑战结算：正式成绩 / 练习
+	// 三选一（v6）：三张卡片、刷新按钮、谁在选
+	for i := 0; i < 3; i++ {
+		UI.icon kPick, -134+float64(i)*134, 13, i
+	}
+	UI.icon kPick, 0, -98, 3
+	UI.icon kPick, 0, 150, 4
 	// 战场上方的提示条
 	UI.toastBar -72, 20
+}
+
+// 排行榜第 row 行第 field 个数字：n 个字符位，(x, y) 是锚点（右对齐的是右端）
+func lbNumber(row, field int, x, y float64, n int) {
+	UI.lbNum x, y, row*100+field*10, n
 }
 
 // 生命图标第 slot 个（0~2）的造型：有 n 条命，p2 表示 2P 的图标；"" 表示不显示。
@@ -919,6 +2656,12 @@ func hitPoint(x, y float64, byPlayer bool) bool {
 		}
 		return true
 	case 2:
+		if byPlayer && hasChip(shooter, cPierce) { // 穿甲弹：钢墙一发打掉
+			grid[i] = 0
+			broadcast "gridChanged"
+			sfx "brick"
+			return true
+		}
 		if byPlayer {
 			sfx "steel"
 		}
@@ -955,11 +2698,13 @@ func bulletHit(x, y float64, d int, byPlayer bool) bool {
 func setScreen(name string) {
 	screen = name
 	broadcastAndWait "screen"
-	broadcast "raise"
+	broadcastAndWait "raise"
+	broadcast "raiseTop" // 排行榜的数字和芯片在每行的底上面（v6）
 }
 
 func goHome() {
 	state = stHome
+	panelOff()
 	autopilot = false
 	gameOver = true
 	broadcastAndWait "clear"
@@ -1008,6 +2753,9 @@ func revive() {
 		broadcast "baseChanged"
 	}
 	broadcastAndWait "reviveClear"
+	if fortifyLeft > 0 {
+		endFortify() // 先把钢铁堡垒恢复成砖墙，下面再按地图补护墙
+	}
 	m := levelMap()
 	for _, i := range []int{baseIdx - cols - 1, baseIdx - cols, baseIdx - cols + 1, baseIdx - 1, baseIdx + 1} {
 		if m[i/cols][i%cols] != 'B' || grid[i] == 1 {
@@ -1048,6 +2796,28 @@ func endGame(win bool) {
 	if win {
 		coins += 100
 	}
+	if autopilot {
+		coins = 0 // 路演演示的金币不进钱包
+	}
+	wallet += coins // v6：存进钱包，车库里买涂装
+	if win {
+		gainXP xpClear
+		if stage <= lastStage {
+			taskAdd tkClear, 1
+			gainSeason ptsClear
+		}
+	}
+	if stage == customStage {
+		taskAdd tkCustom, 1
+	}
+	if stage == dailyStage && !autopilot {
+		dailyEnd win
+	}
+	lbAfterGame()
+	if coop {
+		taskAdd tkCoop, 1
+	}
+	saveGame()
 	doubled = false
 	resultReady = false
 	broadcast "resultArm"
@@ -1116,12 +2886,21 @@ func again() {
 		openEditor // 继续编辑
 		return
 	}
+	if stage == dailyStage {
+		reviveStage = 0
+		clearRun()
+		runSecs = 0
+		startGame // 每日挑战再来一局（今天的正式成绩已经有了，这局是练习）
+		return
+	}
 	if won && stage < lastStage {
 		stage++
 		stageScore = score
+		snapRun() // 坦克等级和芯片带到下一关
 	} else if won {
 		stage = 1
 		stageScore = 0
+		clearRun()
 	}
 	reviveStage = 0 // 结算后的下一关、重打本关都可以再复活一次（只有暂停里的“重新开始本关”不清零）
 	startGame
@@ -1148,12 +2927,20 @@ func playStage(n int) {
 	stage = n
 	stageScore = 0
 	reviveStage = 0 // 从主页进关：可以重新复活一次
+	clearRun()      // 坦克等级从 Lv1 开始
+	runSecs = 0
 	startGame
 }
 
 // 确认键：主页开始、复活询问时看视频、结算时看视频翻倍
 func confirm() {
 	switch state {
+	case stAssist:
+		assistConfirm
+	case stShare:
+		panelOff()
+		state = stResult
+		showResult
 	case stHome:
 		newGame 1, false
 	case stEdit:
@@ -1193,8 +2980,12 @@ func escKey() {
 		pauseGame
 	} else if state == stPause {
 		resumeGame
-	} else if state == stLevels {
+	} else if state == stLevels || state == stGarage || state == stRanks || state == stAssist {
 		goHome
+	} else if state == stShare {
+		panelOff()
+		state = stResult // 分享战报：回到结算
+		showResult
 	}
 }
 
@@ -1262,6 +3053,48 @@ func autopilotBlocked() {
 }
 
 // 路演演示的 v3.0 部分：几个新关卡 → 双人合作 → 暂停菜单 → 地图编辑器里画一张“河流城堡”并试玩
+// 路演演示的 v6 部分：精英掉的芯片 → 捡起来三选一 → 坦克升到 Lv2（头顶标签、右侧芯片格）→ 车库 → 每日挑战。
+// 自动驾驶捡芯片时会直接装第一块（不弹三选一），所以这里由脚本摆出三选一画面，停一会儿再选第一块。
+// 演示不进存档：自动驾驶时经验、金币、任务、赛季、每日挑战正式成绩都不算
+func demoV6() {
+	autopilot = true
+	newGame 4, false // 第 4 关：钢铁堡垒，精英多
+	apTimer = 0
+	tgtAge = 9
+	wait 3
+	if state != stPlay {
+		return
+	}
+	dropX = p1x // 精英刚掉下的芯片（就在 1P 前面）
+	dropY = p1y + 34
+	dropLeft = dropSecs
+	broadcast "hud"
+	wait 1.5
+	if state == stPlay {
+		dropLeft = 0
+		pickWho = 1
+		pickRoll()
+		state = stPick
+		gameOver = true
+		sfx "start"
+		setScreen "pick"
+	}
+	wait 3.5
+	pickChoose 0
+	wait 3.5
+	goHome
+	wait 1
+	openGarage
+	wait 3.5
+	goHome
+	wait 0.5
+	autopilot = true
+	playDaily
+	apTimer = 0
+	tgtAge = 9
+	wait 5
+}
+
 func demoV3() {
 	for _, n := range []int{2, 3, 4, 8} {
 		autopilot = true
@@ -1377,6 +3210,8 @@ func enemyKilled(points int) {
 	score += points
 	killed++
 	enemiesAlive--
+	gainXP xpKill
+	taskAdd tkKill, 1
 	if score > best && !autopilot { // 路演演示（自动驾驶）的分数不算最高分
 		best = score
 	}
@@ -1392,10 +3227,17 @@ func spawnEnemy() {
 	c := (spawned % 3) * 6
 	kind := 0 // 0 普通坦克，1 快速坦克，2 重型坦克
 	n := int(rand(1, 100))
+	if stage == dailyStage {
+		n = dailyRand(100) + 1 // 每日挑战：敌人的类型和出场顺序大家一样
+	}
 	if n <= heavy {
 		kind = 2
 	} else if n <= heavy+fast {
 		kind = 1
+	}
+	if eliteSlot(spawned) {
+		kind += 10 // 精英（v6）：类型加 10，不给 Enemy 加字段（方法表上限）
+		toast "msg.elite", 2
 	}
 	Enemy.spawn cellX(c), cellY(0), kind
 	spawned++
@@ -1455,6 +3297,11 @@ func startGame() {
 	revived = reviveStage == stage
 	won = false
 	baseSafe = 0
+	resetRun()
+	applyAssist()
+	dailySeed = dailyDayNow*31 + 7
+	dailyChipSeed = dailyDayNow*97 + 3
+	dailySecs = 0
 	state = stPlay
 	setScreen ""
 	Camera.setZoom 1
@@ -1535,6 +3382,40 @@ onKey KeyC, => {
 	}
 }
 
+// 主页按 D：每日挑战（v6）
+onKey KeyD, => {
+	if state == stHome {
+		playDaily
+	}
+}
+
+// 主页按 A：输入好友的助战码（v6）
+onKey KeyA, => {
+	openAssist
+}
+
+onKey [Key0, Key9], (key) => {
+	if key == Key0 {
+		assistKey 0
+	} else {
+		assistKey 9
+	}
+}
+
+onKey KeyBackspace, => {
+	assistKey -1
+}
+
+// 主页按 B：排行榜（v6）
+onKey KeyB, => {
+	openRanks
+}
+
+// 主页按 G：车库（v6）
+onKey KeyG, => {
+	openGarage
+}
+
 // 主页按 E：自己做地图
 onKey KeyE, => {
 	if state == stHome {
@@ -1550,14 +3431,27 @@ onKey KeyK, => {
 	edCommand "copy"
 }
 
+// 编辑器里 S 是保存；每日挑战结算后 S 是分享战报（v6）
 onKey KeyS, => {
-	edCommand "save"
+	if state == stResult {
+		openShare
+	} else {
+		edCommand "save"
+	}
 }
 
 // 主页和选关画面按 1~8 直接进入对应关卡
 onKey [Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8], (key) => {
 	n := int(key) - int(Key0)
-	if state == stHome || state == stLevels {
+	if state == stPick {
+		pickChoose(n - 1) // 三选一
+	} else if state == stGarage {
+		buySkin(n - 1) // 车库：换 / 买涂装
+	} else if state == stRanks && n <= 2 {
+		lbShow(n - 1) // 排行榜：切换选项卡
+	} else if state == stAssist {
+		assistKey n // 助战码
+	} else if state == stHome || state == stLevels {
 		newGame n, false
 	} else if state == stEdit && n <= 5 {
 		edTool = n // 编辑器：选工具
@@ -1570,7 +3464,9 @@ onKey KeyEscape, => {
 }
 
 onKey KeyR, => {
-	if state == stResult {
+	if state == stPick {
+		pickReroll
+	} else if state == stResult {
 		again
 	} else if state == stPause {
 		startGame // 重新开始本关
@@ -1588,7 +3484,7 @@ onKey KeyP, => {
 }
 
 onKey KeyH, => {
-	if state == stResult {
+	if state == stResult || state == stGarage || state == stRanks {
 		goHome
 	} else if state == stPause {
 		quitFromPause
@@ -1667,15 +3563,23 @@ onMsg "adFlow", => {
 	}
 	if adReward == rewardRevive {
 		revive
+	} else if adReward == rewardReroll {
+		rerollUsed = true
+		pickRoll()
+		state = stPick
+		setScreen "pick"
 	} else {
+		wallet += coins // 翻倍多出来的那一份也存进钱包
 		coins *= 2
 		doubled = true
+		saveGame()
 		state = stResult
 		showResult
 	}
 }
 
 // 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍
+// → v6.0：芯片掉落、三选一升级、车库、每日挑战（demoV6）
 // → v3.0：新关卡、双人合作、自己做地图（demoV3）→ 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
@@ -1722,6 +3626,7 @@ onMsg "demoFlow", => {
 	}
 	waitState stResult, 10
 	wait 4
+	demoV6
 	demoV3
 	demoOn = false
 	autopilot = false
@@ -1745,8 +3650,30 @@ onMsg "gameEnd", => {
 	}
 }
 
+// v6 芯片：每帧的倒计时、磁吸和拾取（见 chipTick）。只在 onStart 里广播一次（再次广播会打断正在运行的处理）
+onMsg "chipLoop", => {
+	for {
+		waitNextFrame
+		dt := deltaTime
+		if dt > 0.05 {
+			dt = 0.05
+		}
+		chipTick dt
+		lbPoll
+	}
+}
+
 onStart => {
 	stage = 1
+	initSave
+	lbBase = lbURL
+	if lbBase != "" {
+		lbFlush() // 上次没传上去的成绩
+		if nowSec() <= 0 {
+			go lbHealth(lbBase) // 网页版：问服务器今天是第几天
+		}
+	}
+	broadcast "chipLoop"
 	initTheme
 	buildHud
 	goHome
