@@ -215,7 +215,7 @@ const (
 	// 排行榜：服务还没部署，lbURL 是空的（游戏里显示“排行榜服务还没上线”）。部署后打包时用 LB_URL=https://... 填上（tools/export/build.sh 只改打包副本）
 	lbURL       = ""
 	lbRegion    = "global" // 海外榜；国内的包打包时用 LB_REGION=cn（国内榜，数据存境内）
-	gameVersion = "6.0.1"
+	gameVersion = "6.0.2"
 	appID       = "com.qiniu.tankbattle" // 和 tools/export/env.sh 的 APP_ID 一致（Android 的私有目录 /data/data/<包名> 用到它）
 	lbQueueMax  = 20
 	lbLoading   = 0
@@ -1366,9 +1366,11 @@ func today() int {
 	return (sec + 8*3600) / 86400
 }
 
-// 线性同余随机数（每日任务、每日挑战用：同一个种子在所有设备上得到同样的结果）
+// 线性同余随机数（每日任务、每日挑战用：同一个种子在所有设备上得到同样的结果）。
+// 在 int64 里算：32 位的手机（Android armeabi-v7a）上 int 只有 32 位，乘法会溢出，地图就和别人不一样了
+// （常量 2147483648 本身在 32 位上也放不下，连编译都过不了）。结果小于 2^31，转回 int 不会溢出
 func lcg(s int) int {
-	return (s*1103515245 + 12345) % 2147483648
+	return int((int64(s)*1103515245 + 12345) % 2147483648)
 }
 
 // 第 d 天的 3 个任务（同一天大家一样）
