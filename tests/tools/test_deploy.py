@@ -1,4 +1,4 @@
-"""R31~R32：排行榜服务的部署文件（server/deploy/）和部署后的冒烟检查（见 server/README.md 的“部署”一节）
+"""R31~R33：排行榜服务的部署文件（server/deploy/）、部署后的冒烟检查、本机模拟上线（见 server/README.md 的“部署”一节）
 
 不需要 Docker：只检查部署文件里的参数和服务端对得上，冒烟检查脚本对本机临时起的服务跑一遍。
 """
@@ -13,6 +13,8 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
+import urllib.request
 import unittest
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
@@ -92,8 +94,8 @@ class DeployFiles(unittest.TestCase):
         self.assertGreaterEqual(limit * 1024, lb.MAX_BODY)
 
 
-class Smoke(unittest.TestCase):
-    """R32 冒烟检查：对本机临时起的服务跑 smoke.sh"""
+class LocalServer(unittest.TestCase):
+    """每个用例在本机临时起一个排行榜服务"""
 
     def setUp(self):
         if not shutil.which("curl"):
@@ -106,6 +108,10 @@ class Smoke(unittest.TestCase):
         self.addCleanup(self.srv.server_close)
         self.addCleanup(self.srv.shutdown)
         self.url = f"http://127.0.0.1:{self.srv.server_address[1]}"
+
+
+class Smoke(LocalServer):
+    """R32 冒烟检查：对本机临时起的服务跑 smoke.sh"""
 
     def smoke(self, *args):
         return subprocess.run(["sh", os.path.join(DEPLOY, "smoke.sh"), *args], capture_output=True, text=True, timeout=60)
@@ -126,6 +132,58 @@ class Smoke(unittest.TestCase):
         self.assertIn("GET /v1/health 失败", out.stderr)
         out = self.smoke()
         self.assertNotEqual(out.returncode, 0)
+
+
+class LocalSim(LocalServer):
+    """R33 本机模拟上线（local.sh）：只开在本机的端口，模拟玩家合法、编号各不相同，游戏副本连本机服务"""
+
+    def local(self, *args, **env):
+        e = dict(os.environ, LB_LOCAL=self.url, TMPDIR=self.tmp, **env)
+        return subprocess.run(["sh", os.path.join(DEPLOY, "local.sh"), *args], capture_output=True, text=True, timeout=60, env=e)
+
+    def test_R33_compose_local_only_binds_localhost(self):
+        src = read("compose.local.yml")
+        self.assertIn('"127.0.0.1:8787:8787"', src)
+        self.assertNotRegex(src, r'"(0\.0\.0\.0:)?8787:8787"')
+
+    def test_R33_seed(self):
+        out = self.local("seed")
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
+        self.assertIn("10 个模拟玩家", out.stdout)
+        day, week = lb.day_of(time.time()), lb.week_of(time.time())
+        for board, period in (("daily", day), ("weekly", week)):
+            with self.subTest(board=board):
+                with urllib.request.urlopen(f"{self.url}/v1/board?region=global&board={board}&period={period}&limit=50") as r:
+                    rows = json.load(r)["rows"]
+                self.assertEqual(len(rows), 10)
+                self.assertEqual(len({row["tag"] for row in rows}), 10)          # 游戏里显示的编号各不相同
+                self.assertTrue(all(row["player"][4:8] == "5eed" for row in rows))
+                self.assertEqual([row["score"] for row in rows], sorted((row["score"] for row in rows), reverse=True))
+        out = self.local("seed")                                             # 60 秒内再填：同一 IP 被限频
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("上传失败", out.stderr)
+
+    def test_R33_status_and_errors(self):
+        out = self.local("status")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('"ok": true', out.stdout)
+        out = self.local()
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("用法", out.stdout)
+        bad = dict(LB_LOCAL="http://127.0.0.1:9")
+        e = dict(os.environ, TMPDIR=self.tmp, **bad)
+        out = subprocess.run(["sh", os.path.join(DEPLOY, "local.sh"), "seed"], capture_output=True, text=True, timeout=60, env=e)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("连不上", out.stderr)
+
+    def test_R33_game_copy_points_at_local_server(self):
+        out = self.local("game", LB_GAME_DRY="1")
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
+        with open(os.path.join(self.tmp, "tankbattle-lb-local", "game", "main.spx"), encoding="utf-8") as f:
+            main = f.read()
+        self.assertIn(f'lbURL       = "{self.url}"', main)
+        with open(os.path.join(ROOT, "TankBattle", "main.spx"), encoding="utf-8") as f:
+            self.assertIn('lbURL       = ""', f.read())                   # 仓库里的游戏不改
 
 
 if __name__ == "__main__":

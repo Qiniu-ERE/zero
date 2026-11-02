@@ -100,6 +100,24 @@ curl http://127.0.0.1:8787/v1/health        # {"ok": true, "version": "1", "day"
 | `compose.yml` + `Caddyfile` | 一台云服务器上的完整部署：Caddy 自动申请 HTTPS 证书，反向代理到服务 |
 | `tankbattle-lb.service` | 不用 Docker 时用 systemd 运行（只监听本机，前面自己接 HTTPS 反向代理） |
 | `smoke.sh` | 部署后的冒烟检查：健康检查、上传一条测试成绩、读榜单、查名次 |
+| `local.sh` + `compose.local.yml` | 在本机模拟上线（见下面） |
+
+### 先在本机模拟上线
+
+不需要服务器和域名。和正式部署用同一套文件，域名换成 `localhost`：
+
+```bash
+server/deploy/local.sh up      # Docker 起服务 + Caddy（https://localhost，Caddy 自签证书），经过 HTTPS 跑冒烟检查，再填 10 个模拟玩家
+server/deploy/local.sh game    # 复制一份游戏，lbURL 指向 http://127.0.0.1:8787，运行；打完一局，按 B 看排行榜
+server/deploy/local.sh down    # 停掉，删掉本机模拟的数据
+```
+
+- 游戏直接连 `127.0.0.1:8787`（`compose.local.yml` 只把端口开在本机），因为游戏不认 Caddy 本机自签的证书；线上用正式证书，游戏走 HTTPS。
+- 没有 Docker 时，`up` 直接用 `python3` 起服务（只有 http，没有 Caddy）。
+- 模拟玩家的 ID 第 5~8 位是 `5eed`，前 4 位各不相同（游戏里显示的“指挥官 #编号”由前 4 位算出）。
+- 服务端同一个 IP 60 秒内最多 30 次上传，`seed` 一次填 20 条，60 秒内再运行会被限频。
+- 想保住自己的存档（例如不想占掉今天的每日挑战正式成绩），运行 `game` 时把 `HOME` 指到一个临时目录。
+- 2026-11-01 实测：Docker + Caddy 的 HTTPS 冒烟检查通过；游戏打完每日挑战，后台上传成功，排行榜上能看到自己（第 3 名、高亮），分享战报显示全球名次。顺带发现并修好了“没上榜时排行榜底部显示错乱”的问题。
 
 ### 步骤（以海外榜为例）
 
