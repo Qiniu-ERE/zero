@@ -80,7 +80,15 @@ var (
 	demoKeepEd     []byte // 演示会清空编辑器：先存下玩家的地图，结束或退出时还原
 	demoKeepLoaded bool
 	demoEdSaved    bool
-	apDir     int     // 自动驾驶绕路时的方向
+	demoChip       int   // 路演演示三选一选中的芯片（分享战报、助战码用它）
+	demoKeepScore  int   // 演示要摆出分享战报：先存下今天的正式成绩，离开时还原（演示不占正式成绩）
+	demoKeepSecs   int
+	demoKeepBuild  []int
+	demoKeepStreak int
+	demoKeepGift   int   // 演示会输入一个助战码：先存下玩家自己收到的助战芯片，结束或退出时还原
+	demoShareSaved bool
+	demoGiftSaved  bool
+	apDir    int     // 自动驾驶绕路时的方向
 	apTimer   float64 // 还要绕路多久（撞墙后随机走一会儿）
 	tgtX      float64 // 最近一辆敌人的位置（敌人每帧通过 seeEnemy 汇报）
 	tgtY      float64
@@ -3159,8 +3167,9 @@ func autopilotBlocked() {
 	apTimer = rand(0.4, 0.9)
 }
 
-// 路演演示的 v3.0 部分：几个新关卡 → 双人合作 → 暂停菜单 → 地图编辑器里画一张“河流城堡”并试玩
-// 路演演示的 v6 部分：精英掉的芯片 → 捡起来三选一 → 坦克升到 Lv2（头顶标签、右侧芯片格）→ 车库 → 每日挑战。
+// 路演演示的 v5 + v3.0 部分：选关画面 → 几个新关卡 → 双人合作 → 暂停菜单 → 地图编辑器里画一张“河流城堡”并试玩
+// 路演演示的 v6 部分：精英掉的芯片 → 捡起来三选一 → 坦克升到 Lv2（头顶标签、右侧芯片格）→ 车库 → 每日挑战
+// → 分享战报 → 排行榜（每日榜、周榜）→ 输入助战码。
 // 自动驾驶捡芯片时会直接装第一块（不弹三选一），所以这里由脚本摆出三选一画面，停一会儿再选第一块。
 // 演示不进存档：自动驾驶时经验、金币、任务、赛季、每日挑战正式成绩都不算
 func demoV6() {
@@ -3197,6 +3206,7 @@ func demoV6() {
 		setScreen "pick"
 	}
 	wait 3.5
+	demoChip = pickOpts[demoPick]
 	pickChoose demoPick
 	wait 3.5
 	goHome
@@ -3209,10 +3219,78 @@ func demoV6() {
 	playDaily
 	apTimer = 0
 	tgtAge = 9
-	wait 5
+	wait 12 // 打掉几辆，分享战报上有分数
+	if state == stPlay {
+		endGame true // 演示的每日挑战不算正式成绩（见 endGame），分享战报由下面的 demoShare 摆出来
+	}
+	waitState stResult, 5
+	wait 2
+	demoShare()
+	wait 4.5
+	restoreDemoShare()
+	goHome
+	wait 0.5
+	openRanks // 排行榜：每日挑战榜 → 全球周榜（没上线时显示“还没上线”；录视频时连本机临时起的服务）
+	wait 3
+	lbShow 1
+	wait 3
+	goHome
+	wait 0.5
+	openAssist // 输入好友的助战码（下一局开局送芯片）
+	wait 1
+	demoKeepGift = assistGift
+	demoGiftSaved = true
+	code := assistCode([]int{demoChip})
+	for i := 0; i < len(code); i++ {
+		assistKey(int(code[i] - '0'))
+		wait 0.35
+	}
+	wait 0.8
+	assistConfirm
+	wait 2.5
+	restoreDemoGift()
+}
+
+// 路演演示：摆出这一局的分享战报（演示不占今天的正式成绩：先存下正式成绩，离开时由 restoreDemoShare 还原）
+func demoShare() {
+	if state != stResult {
+		return
+	}
+	demoKeepScore, demoKeepSecs, demoKeepBuild, demoKeepStreak = dailyScore, dailyBestSecs, dailyBuild, streak
+	demoShareSaved = true
+	dailyScore = score
+	dailyBestSecs = int(dailySecs)
+	dailyBuild = append([]int{}, chips[1]...)
+	if len(dailyBuild) == 0 {
+		dailyBuild = []int{demoChip}
+	}
+	if streak < 1 {
+		streak = 1
+	}
+	state = stShare
+	buildShare()
+	setScreen "share"
+}
+
+func restoreDemoShare() {
+	if demoShareSaved {
+		dailyScore, dailyBestSecs, dailyBuild, streak = demoKeepScore, demoKeepSecs, demoKeepBuild, demoKeepStreak
+		demoShareSaved = false
+	}
+}
+
+func restoreDemoGift() {
+	if demoGiftSaved {
+		assistGift = demoKeepGift
+		demoGiftSaved = false
+	}
 }
 
 func demoV3() {
+	goHome
+	wait 0.5
+	openLevels // v5：选关画面
+	wait 2.5
 	for _, n := range []int{2, 3, 4, 8} {
 		autopilot = true
 		newGame n, false
@@ -3293,6 +3371,8 @@ func stopDemo() {
 	demoOn = false
 	autopilot = false
 	restoreDemoEd()
+	restoreDemoShare()
+	restoreDemoGift()
 	if theme != demoTheme {
 		switchTheme
 	}
@@ -3722,8 +3802,8 @@ onMsg "adFlow", => {
 }
 
 // 路演演示：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍
-// → v6.0：芯片掉落、三选一升级、车库、每日挑战（demoV6）
-// → v3.0：新关卡、双人合作、自己做地图（demoV3）→ 回主页。
+// → v6.0：芯片掉落、三选一升级、车库、每日挑战、分享战报、排行榜、助战码（demoV6）
+// → v5.0 选关画面、v3.0：新关卡、双人合作、自己做地图（demoV3）→ 回主页。
 // 每一步都按实际状态推进：如果对局中真的战败了，也会自然进入复活流程
 onMsg "demoFlow", => {
 	if demoStop {

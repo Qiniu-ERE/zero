@@ -2,6 +2,11 @@
 
 安装包在 [Releases](https://github.com/Qiniu-ERE/zero/releases) 下载。每个版本对应一个 Git 标签。
 
+## 未发布
+
+- **路演演示**（主页 P）把每个版本的特色都演一遍：v6 补上分享战报、排行榜（每日榜、周榜）、输入助战码，v5 补上选关画面；演示不占今天的每日挑战正式成绩，也不留下助战芯片（F22）。重新录制了[演示视频](docs/demo/tankbattle-v6-demo.mp4)（2 分 20 秒，排行榜连本机临时起的服务，有真实数据），README 列出视频里每段的时间。
+- `tools/dev/record_demo.sh` 可以用 `LB_URL` 连排行榜服务录制。
+
 ## v6.0.2
 
 安装包：macOS、Linux、网页版、Android。Windows 和 iOS 没有新包，仍是 v3.0.1 的。排行榜服务还没上线，游戏里打开排行榜会提示，其他功能不需要联网（哪些功能要等服务器，见 [README](https://github.com/Qiniu-ERE/zero#哪些功能要等服务器或平台才能用)）。
