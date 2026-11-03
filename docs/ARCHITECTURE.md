@@ -77,7 +77,7 @@ flowchart LR
 | v6 排行榜 | `lbRecord` `lbEnqueue` `lbFlush`（后台 goroutine 上传，离线排队）、`lbFetch` `lbHealth`、每帧 `lbPoll` 收结果、`openRanks` `lbShow` `lbText`；服务地址常量 `lbURL`（仓库里是空的，打包时用 `LB_URL` 填） |
 | v6 赛季与分享 | `seasonOf` `tierOf` `gainSeason`、连续打卡、`assistCode` / `assistDecode`、`openShare` `openAssist` `applyAssist`、`shareText` |
 | 画面小部件 | `panelOff` 和 `buildGarage` / `buildRanks` / `buildShare` / `buildAssist`：全屏画面的小部件打开时才创建（克隆上限，见 9.4） |
-| 路演演示 | `demoFlow` 消息处理（v2 内容之后先调用 `demoV6()`：芯片掉落、三选一升级、车库、每日挑战，演示不进存档；再调用 `demoV3()`：新关卡、双人合作、暂停菜单、编辑器里画地图并试玩；按 Esc 退出：`escKey` 设 `demoStop` 后重新广播 `demoFlow` 打断正在运行的演示，新的处理调用 `stopDemo()` 还原画风、语言和编辑器地图并回主页）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
+| 路演演示 | `demoFlow` 消息处理（v2 内容之后先调用 `demoV6()`：芯片掉落、三选一升级、车库、每日挑战、分享战报（`demoShare()` 临时摆出这一局的成绩，离开时还原）、排行榜两个选项卡、输入助战码，演示不进存档；再调用 `demoV3()`：v5 的选关画面、新关卡、双人合作、暂停菜单、编辑器里画地图并试玩；按 Esc 退出：`escKey` 设 `demoStop` 后重新广播 `demoFlow` 打断正在运行的演示，新的处理调用 `stopDemo()` 还原画风、语言、编辑器地图、今天的正式成绩和助战芯片并回主页）、`autopilotDir()`、`seeEnemy()`、`autopilotBlocked()`、`waitState()` |
 
 ### 3.2 精灵
 
@@ -300,7 +300,7 @@ stateDiagram-v2
 - **关卡地图**：`python3 tools/levels/check.py` 检查 8 张地图（编辑器里的实时检查是同一套规则）。
 - **安装包**：`tools/export/build.sh` 本地打包；`tools/test/package_boot.sh` 打出桌面包后运行里面的程序做启动测试（B03）；`tools/test/dist_boot.sh <安装包>` 直接运行要发出去的那个包（B14）。`.github/workflows/release.yml` 里的云端冒烟测试只能手动触发，要等 Actions 额度恢复才能用。
 
-- **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v6-demo.mp4` 和 `tankbattle-v6.gif`；`DEMO_NAME` 改名字，`GIF_START` / `GIF_LEN` 改动图截哪一段）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
+- **演示视频**：`tools/dev/record_demo.sh`（输出 `docs/demo/tankbattle-v6-demo.mp4` 和 `tankbattle-v6.gif`；`DEMO_NAME` 改名字，`GIF_START` / `GIF_LEN` 改动图截哪一段；设了 `LB_URL` 就连这个排行榜服务，例如 `server/deploy/local.sh up` 起的本机服务，排行榜画面有数据）复制一份工程，追加“自动开始路演演示、结束后退出”，用 `spx run --movie` 录制。spx 的录像器按实际渲染出的帧写视频、每帧记 1/30 秒，而游戏逻辑按真实时间以 60 Hz 运行，机器渲染跟不上时视频会被“快进”。所以脚本统计游戏逻辑的真实时长，再用 ffmpeg 把视频等比例拉伸回真实速度。录像器的音频同样被压缩，所以成品不带声音。
 - **测试演示视频**：`tools/dev/record_tests.sh` 真实运行一次 `tools/test/run_all.sh`，记下每行输出的时间，用 ffmpeg 画成终端画面（加速播放，画面上标明实际用时和倍速），输出 `docs/demo/tankbattle-v4-tests.mp4`。只改画面时用 `--from` 读取上次保存的输出记录，不用重跑测试。
 
 ### 自动化测试（v4.0）

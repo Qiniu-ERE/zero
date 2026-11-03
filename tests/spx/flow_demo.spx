@@ -1,6 +1,7 @@
 // 流程：路演演示模式（F22），见 docs/v4/TEST_PLAN.md 第 3.4 节
-// 演示脚本：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍 → v6（三选一、车库、每日挑战）→ v3（关卡、双人、编辑器）→ 回主页
-// timeout: 240
+// 演示脚本：对局（自动驾驶）→ 切画风 → 切语言 → 防线失守 → 看视频复活 → 胜利 → 看视频翻倍
+// → v6（三选一、车库、每日挑战、分享战报、排行榜、助战码）→ v5 选关 → v3（关卡、双人、编辑器）→ 回主页
+// timeout: 270
 onStart => {
 	wait 3
 
@@ -16,6 +17,7 @@ onStart => {
 
 	t0, l0 := theme, lang
 	w0, xp0, dd0, sp0 := wallet, cmdXP, dailyDay, seasonPts
+	ds0, dsec0, db0, st0, ag0 := dailyScore, dailyBestSecs, strconv.Itoa(len(dailyBuild))+assistCode(dailyBuild), streak, assistGift
 	broadcast "demoFlow" // 主页按 P
 	wait 0.5
 	tCheck "F22 演示开始：自动驾驶", autopilot
@@ -25,7 +27,7 @@ onStart => {
 	themeChanged, langChanged := false, false
 	maxLv, sawDaily := 0, false
 	finished := false
-	for t := 0.0; t < 170; t += 0.25 {
+	for t := 0.0; t < 200; t += 0.25 {
 		seen[state] = true
 		if state == stPlay && lvl[1] > maxLv {
 			maxLv = lvl[1]
@@ -67,6 +69,15 @@ onStart => {
 	tInt "F22 v6：演示不加指挥官经验", cmdXP, xp0
 	tInt "F22 v6：演示不占今天的每日挑战正式成绩", dailyDay, dd0
 	tInt "F22 v6：演示不加赛季积分", seasonPts, sp0
+	tCheck "F22 v6：演示经过了分享战报", seen[stShare]
+	tCheck "F22 v6：演示经过了排行榜", seen[stRanks]
+	tCheck "F22 v6：演示经过了助战码", seen[stAssist]
+	tCheck "F22 v5：演示经过了选关画面", seen[stLevels]
+	tInt "F22 v6：演示还原今天正式成绩的得分", dailyScore, ds0
+	tInt "F22 v6：演示还原今天正式成绩的用时", dailyBestSecs, dsec0
+	tStr "F22 v6：演示还原今天正式成绩的芯片", strconv.Itoa(len(dailyBuild))+assistCode(dailyBuild), db0
+	tInt "F22 v6：演示还原连续天数", streak, st0
+	tInt "F22 v6：演示不留下助战芯片", assistGift, ag0
 
 	// F36 演示中按 Esc 退出：马上回主页，演示脚本不再继续，画风、语言、编辑器地图都还原（v5 REVIEW A8）
 	openEditor

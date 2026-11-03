@@ -9,10 +9,10 @@
 [![1024 HACKATHON 第五届](https://img.shields.io/badge/1024_HACKATHON-第五届-e8c020)](#)
 [![XBuilder · XGo · spx 4.0](https://img.shields.io/badge/XBuilder-XGo_·_spx_4.0-b4521e)](https://x.qiniu.com)
 [![版本 v6.0.2](https://img.shields.io/badge/版本-v6.0.2-0a7bbb)](https://github.com/Qiniu-ERE/zero/releases/latest)
-[![测试 1136 通过](https://img.shields.io/badge/测试-1136_通过-brightgreen)](docs/v6/TEST_PLAN.md)
+[![测试 1145 通过](https://img.shields.io/badge/测试-1145_通过-brightgreen)](docs/v6/TEST_PLAN.md)
 [![覆盖率 99%](https://img.shields.io/badge/覆盖率-99%25-brightgreen)](docs/v6/TEST_PLAN.md#一要求和怎么检查)
 
-**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v6-demo.mp4)** · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [要等服务器的功能](#哪些功能要等服务器或平台才能用) · [玩法](#玩法) · [v6.0 新内容](#v60-做了什么) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
+**[⬇️ 下载安装包](https://github.com/Qiniu-ERE/zero/releases/latest)** · **[▶️ 演示视频](docs/demo/tankbattle-v6-demo.mp4)**（[每段演什么](#演示视频)） · [下载 .xbp](TankBattle.xbp) · [快速开始](#快速开始) · [要等服务器的功能](#哪些功能要等服务器或平台才能用) · [玩法](#玩法) · [v6.0 新内容](#v60-做了什么) · [架构文档](docs/ARCHITECTURE.md) · [更新记录](CHANGELOG.md)
 
 </div>
 
@@ -30,7 +30,29 @@
 
 ![坦克大战 2026 演示](docs/demo/tankbattle-v6.gif)
 
-> 动图：v6 的精英掉芯片 → 三选一升级 → 车库 → 每日挑战 → 新关卡。截自 v6.0 的[完整演示视频](docs/demo/tankbattle-v6-demo.mp4)（约 1 分 50 秒，无声：对局、画风和语言切换、复活、结算，v6 的芯片、车库、每日挑战，v3 的关卡、双人合作、编辑器；以前的版本：[v5.0](docs/demo/tankbattle-v5-demo.mp4)、[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)），由游戏内置的**路演演示模式**（主页按 P）在真实引擎里录制。
+> 动图：v6 的三选一升级 → 车库 → 每日挑战 → 分享战报 → 排行榜 → 助战码，截自下面的演示视频。
+
+### 演示视频
+
+**[▶️ 完整演示视频](docs/demo/tankbattle-v6-demo.mp4)**（2 分 20 秒，无声）把每个版本的特色都演一遍。由游戏内置的**路演演示模式**（主页按 P，按 Esc 退出）在真实引擎里录制，玩家坦克是自动驾驶；排行榜连的是本机临时起的排行榜服务（模拟玩家）。
+
+| 时间 | 版本 | 演示内容 |
+|---|---|---|
+| 0:00 | v2.0 | 主页 → 开局（自动驾驶）→ 按 T 切到 1985 像素风再切回 → 切换 English |
+| 0:26 | v2.0 | 防线失守 → 看视频复活（模拟广告位）→ 胜利结算 → 看视频金币翻倍 |
+| 0:54 | v6.0 | 第 4 关：敌我区分（枪灰车身 + 红色标识）、精英掉芯片 → 三选一 → 头顶升到 Lv2 |
+| 1:06 | v6.0 | 车库：指挥官等级、芯片图鉴、涂装、每日任务、赛季 |
+| 1:10 | v6.0 | 每日挑战（全世界同一张图）→ 结算 → 分享战报（得分、用时、连续打卡、助战码） |
+| 1:30 | v6.0 | 排行榜：每日挑战榜 → 全球周榜 |
+| 1:36 | v6.0 | 输入好友的助战码（下一关开局送芯片） |
+| 1:42 | v5.0 | 选择关卡画面 |
+| 1:46 | v3.0 | 新关卡：水乡迷宫、丛林伏击、钢铁堡垒、最终决战 |
+| 2:00 | v3.0 | 双人合作 → 暂停菜单 |
+| 2:06 | v3.0 | 地图编辑器：对称绘制一张“河流城堡”→ 马上试玩 |
+
+v4.0 做的是测试，单独录了一段：[一条命令跑完全部自动化测试](docs/demo/tankbattle-v4-tests.mp4)。各版本发布时录的视频也保留着：[v5.0](docs/demo/tankbattle-v5-demo.mp4)、[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)。
+
+### 截图
 
 | 主页 | 对局：敌我区分、精英、芯片 | 打精英后三选一 | 车库 |
 |---|---|---|---|
@@ -191,11 +213,11 @@ spx run .
 
 v6.0 只解决一个问题：**让玩家明天还想回来**。全部功能不需要平台 SDK，详见 [v6.0 规划和实现](docs/v6/PLAN.md) 和 [v6 测试方案](docs/v6/TEST_PLAN.md)。
 
-| 战斗：敌我区分、精英、芯片 | 三选一 | 车库 |
-|---|---|---|
-| ![](docs/v6/screens/v6-battle.png) | ![](docs/v6/screens/v6-pick.png) | ![](docs/v6/screens/v6-garage.png) |
-| **排行榜** | **每日挑战结算** | **分享战报** |
-| ![](docs/v6/screens/v6-ranks.png) | ![](docs/v6/screens/v6-daily.png) | ![](docs/v6/screens/v6-share.png) |
+| 分享战报 | 输入助战码 |
+|---|---|
+| ![](docs/v6/screens/v6-share.png) | ![](docs/v6/screens/v6-assist.png) |
+
+对局、三选一、车库、每日挑战、排行榜的截图见[开头](#截图)。
 
 | 方向 | 做了什么 |
 |---|---|
@@ -220,6 +242,8 @@ v5.0 回答一个问题：**这个游戏怎么真正赚到钱**。先只做文�
 | 盈利周期 | 总投入 **¥3350**（AI ¥1850 + 上架费 ¥1500）；基准每天 48 个新玩家，**第 6 个月回本、第一年净赚约 ¥5700**（保守第一年打平，乐观约 ¥3.2 万；都是推测） | [CASHFLOW](docs/v5/CASHFLOW.md) |
 | 商店页 | 中英文案、素材规格、预告片脚本；英文名定为 **Brickline Tanks** | [STORE](docs/v5/STORE.md) |
 | 全面审查 | 游戏 23 项、打包与工具 18 项、文档 15 项，第一批已经修完 | [REVIEW](docs/v5/REVIEW.md) |
+
+![选择关卡](docs/v5/screens/levels-zh.png)
 
 已经做完的修复和功能：选择关卡画面、复活清场和 3 秒保护、双人子弹互相影响、触屏误开火、生命 ×N 显示、去掉每日挑战；打包发布更可靠（版本号核对、固定调试证书、发布前核对提交）；难度模拟工具。详见[更新记录](CHANGELOG.md#v500)。
 
@@ -274,13 +298,13 @@ v4.0 不加新玩法，专门做**测试与质量**：每条游戏规则都有�
 | [架构文档](docs/ARCHITECTURE.md) | 模块规格、消息表、状态机、解释器限制、分工 |
 | [v6.0 规划和实现](docs/v6/PLAN.md) | 敌我区分、精英与芯片、车库、每日挑战、赛季、分享战报、排行榜：规则、截图、和路演商业路线对照、还没做的部分；[v6 测试方案](docs/v6/TEST_PLAN.md)（133 个用例 ID）；[排行榜服务](server/README.md) |
 | [v5.0 规划](docs/v5/PLAN.md) | 平台、体验、盈利、推广、盈利周期、商店页、全面审查清单 |
-| [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x → v4.0.x → v5.0.x → v6.0.x |
-| [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
 | [v4.0 规划](docs/v4/PLAN.md) | 测试与质量：自动化测试、覆盖率、本地检查，[测试方案](docs/v4/TEST_PLAN.md)（测试分层、用例清单、覆盖率、测试发现的问题） |
+| [v3.0 规划](docs/v3/PLAN.md) | 关卡、编辑器、双人、跨平台的方案和结果 |
 | [跨平台](docs/v3/CROSS_PLATFORM.md) | 打包方法、实测截图、限制 |
 | [微信小游戏](docs/v3/WECHAT_MINIGAME.md) | 可行性评估 |
 | [v2.0 规划](docs/v2/DESIGN.md) | 玩法、画风、商业化设计和效果图 |
-| [演示视频](docs/demo/tankbattle-v6-demo.mp4) | v6.0 完整流程（以前的版本：[v5.0](docs/demo/tankbattle-v5-demo.mp4)、[v3.0](docs/demo/tankbattle-v3-demo.mp4)、[v2.0](docs/demo/tankbattle-v2-demo.mp4)）；v4.0：[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4) |
+| [更新记录](CHANGELOG.md) | v0 → v2.0.0 → v3.0.0 → v3.0.x → v4.0.x → v5.0.x → v6.0.x |
+| [演示视频](docs/demo/tankbattle-v6-demo.mp4) | v2.0 ~ v6.0 每个版本的特色（[每段演什么](#演示视频)）；v4.0：[一条命令跑完全部测试](docs/demo/tankbattle-v4-tests.mp4) |
 
 ## 项目结构
 
@@ -364,6 +388,7 @@ tools/export/release_local.sh --append    # 以后给已有的 Release 补包（
 
 # 重新录制演示视频（需要 ffmpeg）
 ./tools/dev/record_demo.sh           # 输出 docs/demo/tankbattle-v6-demo.mp4 和 tankbattle-v6.gif（DEMO_NAME 改名字，GIF_START / GIF_LEN 改动图截哪一段）
+server/deploy/local.sh up && LB_URL=http://127.0.0.1:8787 ./tools/dev/record_demo.sh && server/deploy/local.sh down   # 排行榜画面有数据（README 的视频就是这样录的）
 ```
 
 **跑测试需要什么**：缺了某样东西时，有的测试会**跳过**。`run_all.sh` 会逐项列出“⚠️ 跳过”；`pr_check.sh` 有跳过时**不算通过**（退出码 2）。
